@@ -1,63 +1,68 @@
-// Importamos os pacotes e os arquivos das telas que criámos.
 import 'package:flutter/material.dart';
-import 'package:primeiro_flutter/telas/tela_calendario.dart';
-import 'package:primeiro_flutter/telas/tela_configuracao.dart';
-import 'package:primeiro_flutter/telas/tela_home.dart';
+import 'package:primeiro_flutter/screens/add_medication_screen.dart';
+import 'package:primeiro_flutter/screens/configuration_screen.dart';
+import 'package:primeiro_flutter/screens/home_screen.dart';
+import 'package:intl/date_symbol_data_local.dart'; // 1. Importe esta biblioteca
 
-void main() {
-  runApp(const MeuApp());
+// 2. Transformamos a função main em `async` para poder "esperar" a inicialização
+Future<void> main() async {
+  // 3. Esta linha garante que o Flutter esteja pronto antes de executarmos nosso código
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 4. Esta é a linha que resolve o erro!
+  // Ela carrega os dados de formatação para o português do Brasil.
+  await initializeDateFormatting('pt_BR', null);
+
+  runApp(const MyApp());
 }
 
-class MeuApp extends StatelessWidget {
-  const MeuApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      // A tela inicial do nosso app agora é a TelaPrincipal, que controla a navegação.
-      home: TelaPrincipal(),
+    return const MaterialApp(
+      home: MainScreen(),
     );
   }
 }
 
-// Este widget precisa de ser um StatefulWidget.
-// Motivo: Ele precisa de guardar uma informação que vai mudar: o índice da tela selecionada.
-// Quando o índice mudar, a tela precisa de se redesenhar para mostrar o conteúdo novo.
-class TelaPrincipal extends StatefulWidget {
-  const TelaPrincipal({super.key});
+// ... O resto do arquivo continua exatamente igual ...
+
+class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
 
   @override
-  State<TelaPrincipal> createState() => _TelaPrincipalState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
-class _TelaPrincipalState extends State<TelaPrincipal> {
-  // Variável para guardar o índice da aba atualmente selecionada. Começa em 0 (a primeira tela).
-  int _indiceSelecionado = 0;
+class _MainScreenState extends State<MainScreen> {
+  int _selectedIndex = 0;
 
-  // Lista com as telas que vamos exibir. A ordem aqui importa!
-  static const List<Widget> _telas = <Widget>[
-    TelaHome(),
-    TelaCalendario(),
-    TelaConfiguracao(),
-  ];
-
-  // Função chamada quando o usuário toca em um item da barra de navegação.
   void _onItemTapped(int index) {
-    // setState é a função que diz ao Flutter: "Ei, uma variável de estado mudou!
-    // Por favor, redesenhe a tela para refletir essa mudança."
-    setState(() {
-      _indiceSelecionado = index;
-    });
+    if (index == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const AddMedicationScreen()),
+      );
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> screens = [
+      const HomeScreen(),
+      const ConfigurationScreen(),
+    ];
+
+    final Widget currentScreen = _selectedIndex > 1 ? screens[1] : screens[0];
+
     return Scaffold(
-      // O corpo da nossa tela principal agora é a tela que está na posição `_indiceSelecionado` da nossa lista.
-      body: Center(
-        child: _telas.elementAt(_indiceSelecionado),
-      ),
-      // Aqui adicionamos a nossa barra de navegação inferior.
+      body: currentScreen,
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -65,16 +70,16 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
             label: 'Início',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Calendário',
+            icon: Icon(Icons.add_box_rounded),
+            label: 'Adicionar',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
             label: 'Configurações',
           ),
         ],
-        currentIndex: _indiceSelecionado, // O item atualmente selecionado.
-        onTap: _onItemTapped, // A função que será chamada ao tocar.
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
       ),
     );
   }
