@@ -1,18 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:primeiro_flutter/screens/add_medication_screen.dart';
 import 'package:primeiro_flutter/screens/configuration_screen.dart';
 import 'package:primeiro_flutter/screens/home_screen.dart';
-import 'package:intl/date_symbol_data_local.dart'; // 1. Importe esta biblioteca
 
-// 2. Transformamos a função main em `async` para poder "esperar" a inicialização
 Future<void> main() async {
-  // 3. Esta linha garante que o Flutter esteja pronto antes de executarmos nosso código
   WidgetsFlutterBinding.ensureInitialized();
-
-  // 4. Esta é a linha que resolve o erro!
-  // Ela carrega os dados de formatação para o português do Brasil.
   await initializeDateFormatting('pt_BR', null);
-
   runApp(const MyApp());
 }
 
@@ -27,8 +21,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// ... O resto do arquivo continua exatamente igual ...
-
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -37,49 +29,87 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0;
+  int? _selectedIndex = 0;
 
   void _onItemTapped(int index) {
-    if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const AddMedicationScreen()),
-      );
-    } else {
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     final List<Widget> screens = [
       const HomeScreen(),
       const ConfigurationScreen(),
     ];
 
-    final Widget currentScreen = _selectedIndex > 1 ? screens[1] : screens[0];
+    final Widget currentScreen = (_selectedIndex ?? 0) >= screens.length
+        ? screens[0]
+        : screens[_selectedIndex ?? 0];
+
+    const blueColor = Color(0xFF23AFDC);
 
     return Scaffold(
       body: currentScreen,
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Início',
+      floatingActionButton: SizedBox(
+        height: screenWidth * 0.18,
+        width: screenWidth * 0.18,
+        child: FloatingActionButton(
+          backgroundColor: blueColor,
+          shape: const CircleBorder(),
+          // MUDANÇA AQUI: Adicionamos a cor branca ao ícone.
+          child: Icon(
+            Icons.add,
+            size: screenWidth * 0.1,
+            color: Colors.white, // Define a cor do ícone para branco
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add_box_rounded),
-            label: 'Adicionar',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Configurações',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
+          onPressed: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+              ),
+              builder: (BuildContext context) {
+                return const AddMedicationScreen();
+              },
+            );
+          },
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 10.0,
+        height: screenHeight * 0.09,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: <Widget>[
+            Transform.translate(
+              offset: const Offset(0, -5.0),
+              child: IconButton(
+                icon: const Icon(Icons.home),
+                onPressed: () => _onItemTapped(0),
+                color: _selectedIndex == 0 ? blueColor : Colors.grey,
+                iconSize: screenWidth * 0.09,
+              ),
+            ),
+            SizedBox(width: screenWidth * 0.1),
+            Transform.translate(
+              offset: const Offset(0, -5.0),
+              child: IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () => _onItemTapped(1),
+                color: _selectedIndex == 1 ? blueColor : Colors.grey,
+                iconSize: screenWidth * 0.09,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

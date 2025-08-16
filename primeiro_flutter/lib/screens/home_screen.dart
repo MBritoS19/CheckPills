@@ -10,7 +10,54 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final DateTime _selectedDate = DateTime.now();
+  DateTime _selectedDate = DateTime.now();
+
+  void _goToPreviousWeek() {
+    setState(() {
+      _selectedDate = _selectedDate.subtract(const Duration(days: 7));
+    });
+  }
+
+  void _goToNextWeek() {
+    setState(() {
+      _selectedDate = _selectedDate.add(const Duration(days: 7));
+    });
+  }
+
+  List<Widget> _generateWeekDays(double screenWidth) {
+    List<Widget> weekDays = [];
+    DateFormat weekdayFormat = DateFormat('E', 'pt_BR');
+    DateTime startOfWeek =
+        _selectedDate.subtract(Duration(days: _selectedDate.weekday % 7));
+
+    for (int i = 0; i < 7; i++) {
+      DateTime currentDate = startOfWeek.add(Duration(days: i));
+      String dayOfWeek =
+          weekdayFormat.format(currentDate).substring(0, 3) + '.';
+
+      weekDays.add(
+        InkWell(
+          onTap: () {
+            setState(() {
+              _selectedDate = currentDate;
+            });
+          },
+          borderRadius: BorderRadius.circular(100),
+          child: _DayItem(
+            dayOfWeek: dayOfWeek,
+            dayNumber: currentDate.day.toString(),
+            isSelected: currentDate.day == _selectedDate.day &&
+                currentDate.month == _selectedDate.month &&
+                currentDate.year == _selectedDate.year,
+            highlightColor: const Color(0xFF23AFDC),
+            // Passamos a largura da tela para o widget filho
+            screenWidth: screenWidth,
+          ),
+        ),
+      );
+    }
+    return weekDays;
+  }
 
   final List<Medication> _medicationList = const [
     Medication(
@@ -36,16 +83,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     const orangeColor = Color(0xFFDC5023);
     const blueColor = Color(0xFF23AFDC);
+    // Obtemos as dimensões da tela aqui, no início do método build.
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Row(
-          children: [
-            Icon(Icons.medication_liquid),
-            SizedBox(width: 8),
-            Text('Nome do Usuário'),
-          ],
-        ),
+        title: Row(children: const [
+          Icon(Icons.medication_liquid),
+          SizedBox(width: 8),
+          Text('Nome do Usuário'),
+        ]),
         actions: [
           IconButton(
             icon: const Icon(Icons.calendar_month),
@@ -55,81 +102,39 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          const Divider(
-            color: orangeColor,
-            height: 1,
-            thickness: 1,
-          ),
-
-          // NOVO COMPONENTE DE SELEÇÃO DE SEMANA
+          const Divider(color: orangeColor, height: 1, thickness: 1),
           Container(
             color: Colors.grey[200],
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            padding: EdgeInsets.symmetric(
+                vertical: screenWidth * 0.02), // 2% da largura
             child: Column(
               children: [
-                // Linha principal com setas e dias
                 Row(
                   children: [
-                    // Seta da Esquerda
                     IconButton(
                       icon: const Icon(Icons.chevron_left),
-                      onPressed: () {/* Lógica para semana anterior */},
+                      onPressed: _goToPreviousWeek,
                     ),
-
-                    // Usamos `Expanded` para que a lista de dias ocupe
-                    // todo o espaço disponível entre as duas setas.
-                    const Expanded(
+                    Expanded(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _DayItem(
-                              dayOfWeek: 'dom.',
-                              dayNumber: '10',
-                              isSelected: false),
-                          _DayItem(
-                              dayOfWeek: 'seg.',
-                              dayNumber: '11',
-                              isSelected: false),
-                          _DayItem(
-                              dayOfWeek: 'ter.',
-                              dayNumber: '12',
-                              isSelected: false),
-                          _DayItem(
-                              dayOfWeek: 'qua.',
-                              dayNumber: '13',
-                              isSelected: false),
-                          _DayItem(
-                              dayOfWeek: 'qui.',
-                              dayNumber: '14',
-                              isSelected: false),
-                          _DayItem(
-                              dayOfWeek: 'sex.',
-                              dayNumber: '15',
-                              isSelected: true,
-                              highlightColor: blueColor),
-                          _DayItem(
-                              dayOfWeek: 'sáb.',
-                              dayNumber: '16',
-                              isSelected: false),
-                        ],
+                        // Passamos a largura da tela para a função que gera os dias
+                        children: _generateWeekDays(screenWidth),
                       ),
                     ),
-
-                    // Seta da Direita
                     IconButton(
                       icon: const Icon(Icons.chevron_right),
-                      onPressed: () {/* Lógica para próxima semana */},
+                      onPressed: _goToNextWeek,
                     ),
                   ],
                 ),
-
-                // Linha com a data completa selecionada
                 Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
+                  padding:
+                      EdgeInsets.only(top: screenWidth * 0.02), // 2% da largura
                   child: Text(
                     DateFormat('d/MMMM/y', 'pt_BR').format(_selectedDate),
-                    style: const TextStyle(
-                        fontSize: 16,
+                    style: TextStyle(
+                        fontSize: screenWidth * 0.04, // 4% da largura
                         fontWeight: FontWeight.bold,
                         color: blueColor),
                   ),
@@ -137,20 +142,23 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-
           Expanded(
             child: ListView.builder(
               itemCount: _medicationList.length,
               itemBuilder: (BuildContext context, int index) {
                 final medication = _medicationList[index];
                 return Card(
-                  margin: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
+                  // Margens responsivas
+                  margin: EdgeInsets.symmetric(
+                    horizontal: screenWidth * 0.04, // 4% da largura
+                    vertical: screenWidth * 0.02, // 2% da largura
+                  ),
                   child: ListTile(
                     leading: Text(
                       medication.firstDoseTime,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          fontSize: screenWidth * 0.04, // 4% da largura
+                          fontWeight: FontWeight.bold),
                     ),
                     title: Text(medication.name),
                     subtitle: Text(medication.dose),
@@ -160,27 +168,24 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
           ),
-          const Divider(
-            color: orangeColor,
-            height: 1,
-            thickness: 1,
-          ),
+          const Divider(color: orangeColor, height: 1, thickness: 1),
         ],
       ),
     );
   }
 }
 
-// Widget interno para criar cada item de dia da semana.
 class _DayItem extends StatelessWidget {
   final String dayOfWeek;
   final String dayNumber;
   final bool isSelected;
-  final Color? highlightColor; // Cor do destaque opcional
+  final Color? highlightColor;
+  final double screenWidth; // Recebe a largura da tela
 
   const _DayItem({
     required this.dayOfWeek,
     required this.dayNumber,
+    required this.screenWidth,
     this.isSelected = false,
     this.highlightColor,
   });
@@ -190,10 +195,12 @@ class _DayItem extends StatelessWidget {
     return Column(
       children: [
         Text(dayOfWeek,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 4),
+            style: TextStyle(
+                fontSize: screenWidth * 0.03, // 3% da largura
+                fontWeight: FontWeight.w500)),
+        SizedBox(height: screenWidth * 0.01), // 1% da largura
         Container(
-          padding: const EdgeInsets.all(8),
+          padding: EdgeInsets.all(screenWidth * 0.02), // 2% da largura
           decoration: BoxDecoration(
             color: isSelected ? highlightColor : Colors.transparent,
             shape: BoxShape.circle,
@@ -203,6 +210,7 @@ class _DayItem extends StatelessWidget {
             style: TextStyle(
               color: isSelected ? Colors.white : Colors.black87,
               fontWeight: FontWeight.bold,
+              fontSize: screenWidth * 0.035, // 3.5% da largura
             ),
           ),
         ),
