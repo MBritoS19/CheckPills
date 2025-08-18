@@ -33,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
     for (int i = 0; i < 7; i++) {
       DateTime currentDate = startOfWeek.add(Duration(days: i));
       String dayOfWeek =
-          weekdayFormat.format(currentDate).substring(0, 3) + '.';
+          '${weekdayFormat.format(currentDate).substring(0, 3)}.';
 
       weekDays.add(
         InkWell(
