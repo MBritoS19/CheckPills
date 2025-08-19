@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:primeiro_flutter/domain/entities/medication.dart';
+import 'package:primeiro_flutter/providers/medication_provider.dart';
+import 'package:provider/provider.dart';
 
 class AddMedicationScreen extends StatefulWidget {
   const AddMedicationScreen({super.key});
@@ -11,6 +14,23 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   final _pageController = PageController();
   int _currentPage = 0;
 
+  String? _selectedType;
+
+  // 1. Nova estrutura de dados para guardar as categorias e seus exemplos.
+  final Map<String, List<String>> _medicationCategories = {
+    'Sólidos': [
+      'Comprimidos',
+      'Cápsulas',
+      'Pó',
+      'Granulado',
+      'Pastilhas',
+      'Supositório'
+    ],
+    'Semissólidos': ['Pomada', 'Creme', 'Gel'],
+    'Líquidos': ['Gotas', 'Xarope', 'Suspensão', 'Emulsão', 'Injeção'],
+    'Gasosos': ['Aerossol', 'Spray'],
+  };
+
   final _nameController = TextEditingController();
   final _doseController = TextEditingController();
   final _stockController = TextEditingController();
@@ -19,13 +39,9 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   final _totalDosesController = TextEditingController();
   final _notesController = TextEditingController();
 
-  // MUDANÇA AQUI: Removemos a declaração da `_formPages` daqui.
-  // late final List<Widget> _formPages;
-
   @override
   void initState() {
     super.initState();
-    
     _pageController.addListener(() {
       setState(() {
         _currentPage = _pageController.page!.round();
@@ -60,10 +76,14 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(title, style: TextStyle(fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          Text(title,
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
           if (subtitle != null) ...[
             SizedBox(height: screenWidth * 0.02),
-            Text(subtitle, style: TextStyle(fontSize: screenWidth * 0.04, color: Colors.grey)),
+            Text(subtitle,
+                style: TextStyle(
+                    fontSize: screenWidth * 0.04, color: Colors.grey)),
           ],
           SizedBox(height: screenWidth * 0.06),
           TextFormField(
@@ -77,24 +97,101 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     );
   }
 
+  // 2. A função de construir a página de tipo foi totalmente refeita.
+  Widget _buildTypeSelectionPage({
+    required double screenWidth,
+  }) {
+    const blueColor = Color(0xFF23AFDC);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Qual o tipo do medicamento?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 24),
+          // Usamos um ListView para mostrar as 4 opções de categoria.
+          ListView(
+            shrinkWrap:
+                true, // Importante para o ListView funcionar dentro de uma Column
+            children: _medicationCategories.keys.map((category) {
+              return RadioListTile<String>(
+                title: Text(category,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                // O subtítulo mostra os exemplos.
+                subtitle: Text(_medicationCategories[category]!.join(', ')),
+                // `value` é o valor desta opção.
+                value: category,
+                // `groupValue` é a variável que guarda a opção selecionada.
+                groupValue: _selectedType,
+                // `onChanged` é chamado quando o usuário toca na opção.
+                onChanged: (value) {
+                  setState(() {
+                    _selectedType = value;
+                  });
+                },
+                activeColor: blueColor,
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     const orangeColor = Color(0xFFDC5023);
     const blueColor = Color(0xFF23AFDC);
 
-    // MUDANÇA AQUI: A lista de páginas agora é uma variável local,
-    // declarada e inicializada dentro do `build`.
     final List<Widget> formPages = [
-      _buildFormPage(title: 'Qual o nome do medicamento?', controller: _nameController, keyboardType: TextInputType.text, screenWidth: screenWidth),
-      _buildFormPage(title: 'Qual a dose?', subtitle: 'Ex: 1 comprimido, 500mg, 10ml', controller: _doseController, keyboardType: TextInputType.text, screenWidth: screenWidth),
-      _buildFormPage(title: 'Quantas doses você tem em estoque?', controller: _stockController, keyboardType: TextInputType.number, screenWidth: screenWidth),
-      _buildFormPage(title: 'Qual o horário da primeira dose?', subtitle: 'Use o formato HH:MM (ex: 08:00)', controller: _firstDoseTimeController, keyboardType: TextInputType.datetime, screenWidth: screenWidth),
-      _buildFormPage(title: 'Qual o intervalo entre as doses (em horas)?', controller: _intervalController, keyboardType: TextInputType.number, screenWidth: screenWidth),
-      _buildFormPage(title: 'Qual o total de doses do tratamento?', controller: _totalDosesController, keyboardType: TextInputType.number, screenWidth: screenWidth),
-      _buildFormPage(title: 'Alguma observação?', subtitle: 'Este campo é opcional', controller: _notesController, keyboardType: TextInputType.multiline, screenWidth: screenWidth, isLastPage: true),
+      _buildFormPage(
+          title: 'Qual o nome do medicamento?',
+          controller: _nameController,
+          keyboardType: TextInputType.text,
+          screenWidth: screenWidth),
+      _buildFormPage(
+          title: 'Qual a dose?',
+          subtitle: 'Ex: 1 comprimido, 500mg, 10ml',
+          controller: _doseController,
+          keyboardType: TextInputType.text,
+          screenWidth: screenWidth),
+      // 3. Adicionamos a nova página de seleção na lista.
+      _buildTypeSelectionPage(screenWidth: screenWidth),
+      _buildFormPage(
+          title: 'Quantas doses você tem em estoque?',
+          controller: _stockController,
+          keyboardType: TextInputType.number,
+          screenWidth: screenWidth),
+      _buildFormPage(
+          title: 'Qual o horário da primeira dose?',
+          subtitle: 'Use o formato HH:MM (ex: 08:00)',
+          controller: _firstDoseTimeController,
+          keyboardType: TextInputType.datetime,
+          screenWidth: screenWidth),
+      _buildFormPage(
+          title: 'Qual o intervalo entre as doses (em horas)?',
+          controller: _intervalController,
+          keyboardType: TextInputType.number,
+          screenWidth: screenWidth),
+      _buildFormPage(
+          title: 'Qual o total de doses do tratamento?',
+          controller: _totalDosesController,
+          keyboardType: TextInputType.number,
+          screenWidth: screenWidth),
+      _buildFormPage(
+          title: 'Alguma observação?',
+          subtitle: 'Este campo é opcional',
+          controller: _notesController,
+          keyboardType: TextInputType.multiline,
+          screenWidth: screenWidth,
+          isLastPage: true),
     ];
 
     return SizedBox(
@@ -102,19 +199,21 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20.0))),
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20.0))),
           title: const Text('Adicionar Medicamento'),
-          leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+          leading: IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () => Navigator.pop(context)),
           automaticallyImplyLeading: false,
         ),
         body: Column(
           children: [
             FormProgressBar(
-              totalPages: formPages.length,
-              currentPage: _currentPage,
-              activeColor: orangeColor,
-              completedColor: blueColor,
-            ),
+                totalPages: formPages.length,
+                currentPage: _currentPage,
+                activeColor: orangeColor,
+                completedColor: blueColor),
             Expanded(
               child: PageView(
                 controller: _pageController,
@@ -124,10 +223,32 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
             ),
             if (_currentPage == formPages.length - 1)
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenWidth * 0.02),
+                padding: EdgeInsets.symmetric(
+                    horizontal: screenWidth * 0.04,
+                    vertical: screenWidth * 0.02),
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(minimumSize: Size.fromHeight(screenHeight * 0.06), backgroundColor: blueColor),
-                  onPressed: () { Navigator.pop(context); },
+                  style: ElevatedButton.styleFrom(
+                      minimumSize: Size.fromHeight(screenHeight * 0.06),
+                      backgroundColor: blueColor),
+                  onPressed: () {
+                    final provider =
+                        Provider.of<MedicationProvider>(context, listen: false);
+                    final newMedication = Medication(
+                      name: _nameController.text,
+                      dose: _doseController.text,
+                      // 4. Adicionamos o `_selectedType` ao salvar.
+                      // `?? 'Não definido'` é uma segurança caso nada seja selecionado.
+                      type: _selectedType ?? 'Não definido',
+                      stock: int.tryParse(_stockController.text) ?? 0,
+                      firstDoseTime: _firstDoseTimeController.text,
+                      doseIntervalInHours:
+                          int.tryParse(_intervalController.text) ?? 0,
+                      totalDoses: int.tryParse(_totalDosesController.text) ?? 0,
+                      notes: _notesController.text,
+                    );
+                    provider.addMedication(newMedication);
+                    Navigator.pop(context);
+                  },
                   child: const Text('Salvar Medicamento'),
                 ),
               ),
@@ -137,11 +258,23 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   ElevatedButton(
-                    onPressed: _currentPage == 0 ? null : () { _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeIn); },
+                    onPressed: _currentPage == 0
+                        ? null
+                        : () {
+                            _pageController.previousPage(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeIn);
+                          },
                     child: const Text('Anterior'),
                   ),
                   ElevatedButton(
-                    onPressed: _currentPage == formPages.length - 1 ? null : () { _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeIn); },
+                    onPressed: _currentPage == formPages.length - 1
+                        ? null
+                        : () {
+                            _pageController.nextPage(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeIn);
+                          },
                     child: const Text('Próximo'),
                   ),
                 ],

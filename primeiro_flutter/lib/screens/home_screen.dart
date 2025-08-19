@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:primeiro_flutter/domain/entities/medication.dart';
+import 'package:primeiro_flutter/providers/medication_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart'; // Importamos o provider aqui também
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -33,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
     for (int i = 0; i < 7; i++) {
       DateTime currentDate = startOfWeek.add(Duration(days: i));
       String dayOfWeek =
-          '${weekdayFormat.format(currentDate).substring(0, 3)}.';
+          weekdayFormat.format(currentDate).substring(0, 3) + '.';
 
       weekDays.add(
         InkWell(
@@ -50,7 +51,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 currentDate.month == _selectedDate.month &&
                 currentDate.year == _selectedDate.year,
             highlightColor: const Color(0xFF23AFDC),
-            // Passamos a largura da tela para o widget filho
             screenWidth: screenWidth,
           ),
         ),
@@ -59,31 +59,14 @@ class _HomeScreenState extends State<HomeScreen> {
     return weekDays;
   }
 
-  final List<Medication> _medicationList = const [
-    Medication(
-      name: 'Dipirona',
-      dose: '1 comprimido',
-      stock: 30,
-      doseIntervalInHours: 8,
-      totalDoses: 90,
-      firstDoseTime: '08:00',
-    ),
-    Medication(
-      name: 'Paracetamol',
-      dose: '500mg',
-      stock: 20,
-      doseIntervalInHours: 6,
-      totalDoses: 60,
-      firstDoseTime: '12:00',
-      notes: 'Tomar após a refeição',
-    ),
-  ];
+  // MUDANÇA AQUI: Removemos a lista de medicamentos estática.
+  // Ela agora será lida a partir do MedicationProvider.
+  // final List<Medication> _medicationList = const [ ... ];
 
   @override
   Widget build(BuildContext context) {
     const orangeColor = Color(0xFFDC5023);
     const blueColor = Color(0xFF23AFDC);
-    // Obtemos as dimensões da tela aqui, no início do método build.
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
@@ -105,8 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const Divider(color: orangeColor, height: 1, thickness: 1),
           Container(
             color: Colors.grey[200],
-            padding: EdgeInsets.symmetric(
-                vertical: screenWidth * 0.02), // 2% da largura
+            padding: EdgeInsets.symmetric(vertical: screenWidth * 0.02),
             child: Column(
               children: [
                 Row(
@@ -118,7 +100,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        // Passamos a largura da tela para a função que gera os dias
                         children: _generateWeekDays(screenWidth),
                       ),
                     ),
@@ -129,12 +110,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 Padding(
-                  padding:
-                      EdgeInsets.only(top: screenWidth * 0.02), // 2% da largura
+                  padding: EdgeInsets.only(top: screenWidth * 0.02),
                   child: Text(
                     DateFormat('d/MMMM/y', 'pt_BR').format(_selectedDate),
                     style: TextStyle(
-                        fontSize: screenWidth * 0.04, // 4% da largura
+                        fontSize: screenWidth * 0.04,
                         fontWeight: FontWeight.bold,
                         color: blueColor),
                   ),
@@ -143,27 +123,34 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              itemCount: _medicationList.length,
-              itemBuilder: (BuildContext context, int index) {
-                final medication = _medicationList[index];
-                return Card(
-                  // Margens responsivas
-                  margin: EdgeInsets.symmetric(
-                    horizontal: screenWidth * 0.04, // 4% da largura
-                    vertical: screenWidth * 0.02, // 2% da largura
-                  ),
-                  child: ListTile(
-                    leading: Text(
-                      medication.firstDoseTime,
-                      style: TextStyle(
-                          fontSize: screenWidth * 0.04, // 4% da largura
-                          fontWeight: FontWeight.bold),
-                    ),
-                    title: Text(medication.name),
-                    subtitle: Text(medication.dose),
-                    trailing: const Icon(Icons.check_circle_outline),
-                  ),
+            // MUDANÇA AQUI: Usamos o widget Consumer.
+            child: Consumer<MedicationProvider>(
+              // O `builder` é a função que constrói o widget.
+              // Ele nos dá o `context`, a instância do nosso `provider`, e um `child` opcional.
+              builder: (context, provider, child) {
+                // A nossa ListView agora usa a lista que vem do provider.
+                return ListView.builder(
+                  itemCount: provider.medicationList.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    final medication = provider.medicationList[index];
+                    return Card(
+                      margin: EdgeInsets.symmetric(
+                        horizontal: screenWidth * 0.04,
+                        vertical: screenWidth * 0.02,
+                      ),
+                      child: ListTile(
+                        leading: Text(
+                          medication.firstDoseTime,
+                          style: TextStyle(
+                              fontSize: screenWidth * 0.04,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        title: Text(medication.name),
+                        subtitle: Text(medication.dose),
+                        trailing: const Icon(Icons.check_circle_outline),
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -180,7 +167,7 @@ class _DayItem extends StatelessWidget {
   final String dayNumber;
   final bool isSelected;
   final Color? highlightColor;
-  final double screenWidth; // Recebe a largura da tela
+  final double screenWidth;
 
   const _DayItem({
     required this.dayOfWeek,
@@ -196,11 +183,10 @@ class _DayItem extends StatelessWidget {
       children: [
         Text(dayOfWeek,
             style: TextStyle(
-                fontSize: screenWidth * 0.03, // 3% da largura
-                fontWeight: FontWeight.w500)),
-        SizedBox(height: screenWidth * 0.01), // 1% da largura
+                fontSize: screenWidth * 0.03, fontWeight: FontWeight.w500)),
+        SizedBox(height: screenWidth * 0.01),
         Container(
-          padding: EdgeInsets.all(screenWidth * 0.02), // 2% da largura
+          padding: EdgeInsets.all(screenWidth * 0.02),
           decoration: BoxDecoration(
             color: isSelected ? highlightColor : Colors.transparent,
             shape: BoxShape.circle,
@@ -210,7 +196,7 @@ class _DayItem extends StatelessWidget {
             style: TextStyle(
               color: isSelected ? Colors.white : Colors.black87,
               fontWeight: FontWeight.bold,
-              fontSize: screenWidth * 0.035, // 3.5% da largura
+              fontSize: screenWidth * 0.035,
             ),
           ),
         ),

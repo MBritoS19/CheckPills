@@ -4,6 +4,7 @@ class Medication {
   final String? id;
   final String name;
   final String dose;
+  final String type; // NOVO CAMPO ADICIONADO AQUI
   final int stock;
   final int doseIntervalInHours;
   final int totalDoses;
@@ -13,6 +14,7 @@ class Medication {
   const Medication({
     required this.name,
     required this.dose,
+    required this.type, // E ADICIONADO AO CONSTRUTOR
     required this.stock,
     required this.doseIntervalInHours,
     required this.totalDoses,

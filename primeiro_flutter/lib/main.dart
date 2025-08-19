@@ -1,13 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:primeiro_flutter/providers/medication_provider.dart';
 import 'package:primeiro_flutter/screens/add_medication_screen.dart';
 import 'package:primeiro_flutter/screens/configuration_screen.dart';
 import 'package:primeiro_flutter/screens/home_screen.dart';
+import 'package:provider/provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt_BR', null);
-  runApp(const MyApp());
+
+  // 2. Envolvemos nosso aplicativo com o ChangeNotifierProvider
+  runApp(
+    ChangeNotifierProvider(
+      // `create` é a função que constrói o nosso "gestor".
+      // Ele será criado uma única vez e ficará disponível para todo o app.
+      create: (context) => MedicationProvider(),
+      // `child` é o nosso aplicativo, que agora está "dentro" do Provider.
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -21,6 +33,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
+// O resto do arquivo continua exatamente igual...
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -32,9 +45,22 @@ class _MainScreenState extends State<MainScreen> {
   int? _selectedIndex = 0;
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (index == 1) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+        ),
+        builder: (BuildContext context) {
+          return const AddMedicationScreen();
+        },
+      );
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   @override
@@ -61,11 +87,10 @@ class _MainScreenState extends State<MainScreen> {
         child: FloatingActionButton(
           backgroundColor: blueColor,
           shape: const CircleBorder(),
-          // MUDANÇA AQUI: Adicionamos a cor branca ao ícone.
           child: Icon(
             Icons.add,
             size: screenWidth * 0.1,
-            color: Colors.white, // Define a cor do ícone para branco
+            color: Colors.white,
           ),
           onPressed: () {
             showModalBottomSheet(
