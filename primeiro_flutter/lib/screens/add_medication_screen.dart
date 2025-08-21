@@ -15,7 +15,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   int _currentPage = 0;
 
   String? _selectedType;
-  // 1. Novo controlador para o campo de texto de "Outros".
   final _customTypeController = TextEditingController();
 
   final _nameController = TextEditingController();
@@ -39,7 +38,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   @override
   void dispose() {
     _pageController.dispose();
-    _customTypeController.dispose(); // Não se esqueça de fazer o dispose!
+    _customTypeController.dispose();
     _nameController.dispose();
     _doseController.dispose();
     _stockController.dispose();
@@ -170,7 +169,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           controller: _doseController,
           keyboardType: TextInputType.text,
           screenWidth: screenWidth),
-      // 3. Adicionamos a nova página de seleção na lista.
       _buildTypeSelectionPage(screenWidth: screenWidth),
       _buildFormPage(
           title: 'Quantas doses você tem em estoque?',
@@ -202,33 +200,45 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           isLastPage: true),
     ];
 
-    return SizedBox(
-      height: screenHeight * 0.7,
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20.0))),
-          title: const Text('Adicionar Medicamento'),
-          leading: IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () => Navigator.pop(context)),
-          automaticallyImplyLeading: false,
-        ),
-        body: Column(
+    // O conteúdo agora está dentro de um Padding que se ajusta ao teclado.
+    return Padding(
+      // `viewInsets` nos dá informações sobre o que está a obstruir a tela, como o teclado.
+      // Adicionamos um padding na parte de baixo igual à altura do teclado.
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SingleChildScrollView(
+        // E envolvemos tudo com um SingleChildScrollView.
+        child: Column(
+          mainAxisSize:
+              MainAxisSize.min, // A coluna ocupa o mínimo de espaço necessário.
           children: [
+            AppBar(
+              shape: const RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.vertical(top: Radius.circular(20.0))),
+              title: const Text('Adicionar Medicamento'),
+              leading: IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context)),
+              automaticallyImplyLeading: false,
+            ),
             FormProgressBar(
                 totalPages: formPages.length,
                 currentPage: _currentPage,
                 activeColor: orangeColor,
                 completedColor: blueColor),
-            Expanded(
+
+            // Usamos um SizedBox para dar uma altura fixa à área do PageView.
+            // Sem isso, o PageView tentaria ser infinitamente alto.
+            SizedBox(
+              height: screenHeight * 0.4, // 40% da altura da tela
               child: PageView(
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 children: formPages,
               ),
             ),
+
             if (_currentPage == formPages.length - 1)
               Padding(
                 padding: EdgeInsets.symmetric(
@@ -241,19 +251,16 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   onPressed: () {
                     final provider =
                         Provider.of<MedicationProvider>(context, listen: false);
-
-                    // Lógica para determinar o valor final do tipo.
                     String finalType;
                     if (_selectedType == 'Outros') {
                       finalType = _customTypeController.text;
                     } else {
                       finalType = _selectedType ?? 'Não definido';
                     }
-
                     final newMedication = Medication(
                       name: _nameController.text,
                       dose: _doseController.text,
-                      type: finalType, // Usamos o valor final aqui
+                      type: finalType,
                       stock: int.tryParse(_stockController.text) ?? 0,
                       firstDoseTime: _firstDoseTimeController.text,
                       doseIntervalInHours:
@@ -267,6 +274,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   child: const Text('Salvar Medicamento'),
                 ),
               ),
+
             Padding(
               padding: EdgeInsets.all(screenWidth * 0.04),
               child: Row(
