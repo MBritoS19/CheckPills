@@ -1,55 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Importação essencial
-import 'package:checkpills/core/theme/app_theme.dart';
-import 'package:checkpills/presentation/screens/medication_home_screen.dart';
-import 'package:checkpills/data/datasources/local/medication_local_datasource.dart';
+import 'package:checkpills/data/datasources/medication_local_datasource_impl.dart';
 import 'package:checkpills/data/repositories/medication_repository_impl.dart';
-import 'package:checkpills/domain/repositories/medication_repository.dart';
-import 'package:checkpills/domain/usecases/get_today_medications.dart';
-import 'package:checkpills/domain/usecases/add_medication.dart';
-import 'package:checkpills/presentation/view_models/medication_home_viewmodel.dart';
+import 'package:checkpills/domain/usecases/get_medications_usecase.dart';
+import 'package:checkpills/domain/usecases/add_medication_usecase.dart';
+import 'package:checkpills/presentation/providers/medication_provider.dart';
+import 'package:provider/provider.dart';
 
-void main() {
-  // 1. Configuração inicial
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 2. Inicialização de dependências
-  final MedicationLocalDataSource localDataSource =
-      MedicationLocalDataSourceImpl();
-  final MedicationRepository repository = MedicationRepositoryImpl(
-    localDataSource: localDataSource,
-  );
-  final GetTodayMedications getTodayMedications = GetTodayMedications(
-    repository,
-  );
-  final AddMedication addMedication = AddMedication(repository);
+  // Inicializar dependências
+  final localDataSource = MedicationLocalDataSourceImpl();
+  final repository = MedicationRepositoryImpl(localDataSource: localDataSource);
+  final getMedicationsUseCase = GetMedicationsUseCase(repository: repository);
+  final addMedicationUseCase = AddMedicationUseCase(repository: repository);
 
-  // 3. Execução do app
+  // Inicializar dados padrão
+  await repository.initializeDefaultMedications();
+
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(
-          create: (context) => MedicationHomeViewModel(
-            getTodayMedications: getTodayMedications,
-            addMedication: addMedication,
-          )..loadMedications(),
-        ),
-      ],
+    ChangeNotifierProvider(
+      create: (context) => MedicationProvider(
+        getMedicationsUseCase: getMedicationsUseCase,
+        addMedicationUseCase: addMedicationUseCase,
+        repository: repository,
+      )..initialize(),
       child: const MyApp(),
     ),
   );
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Med',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      home: const MedicationHomeScreen(),
-    );
-  }
 }

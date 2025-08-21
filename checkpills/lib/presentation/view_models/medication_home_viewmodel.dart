@@ -1,3 +1,4 @@
+import 'package:checkpills/presentation/screens/add_medication_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:checkpills/domain/entities/medication.dart';
 import 'package:checkpills/domain/usecases/add_medication.dart';
@@ -5,9 +6,9 @@ import 'package:checkpills/domain/usecases/get_today_medications.dart';
 
 class MedicationHomeViewModel with ChangeNotifier {
   final GetTodayMedications getTodayMedications;
-  final AddMedication addMedication;
+  final AddMedicationScreen addMedication;
 
-  List<Medication> _medications = [];
+  List<MedicationHomeViewModel> _medications = [];
   bool _isLoading = false;
 
   MedicationHomeViewModel({
@@ -15,7 +16,7 @@ class MedicationHomeViewModel with ChangeNotifier {
     required this.addMedication,
   });
 
-  List<Medication> get medications => _medications;
+  List<MedicationHomeViewModel> get medications => _medications;
   bool get isLoading => _isLoading;
 
   Future<void> loadMedications() async {
@@ -28,7 +29,7 @@ class MedicationHomeViewModel with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addNewMedication(Medication medication) async {
+  Future<void> addNewMedication(MedicationHomeViewModel medication) async {
     _isLoading = true;
     notifyListeners();
 
