@@ -84,7 +84,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     );
   }
 
-  // 2. Função de construir a página de tipo foi totalmente refeita.
   Widget _buildTypeSelectionPage({
     required double screenWidth,
   }) {
@@ -131,9 +130,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               );
             }).toList(),
           ),
-
-          // 3. Campo de texto condicional para "Outros".
-          // Ele só vai aparecer se o tipo selecionado for "Outros".
           if (_selectedType == 'Outros') ...[
             const SizedBox(height: 24),
             TextFormField(
@@ -157,19 +153,27 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     const orangeColor = Color(0xFFDC5023);
     const blueColor = Color(0xFF23AFDC);
 
+    // As alterações são feitas aqui, na criação da lista de páginas
     final List<Widget> formPages = [
       _buildFormPage(
           title: 'Qual o nome do medicamento?',
           controller: _nameController,
           keyboardType: TextInputType.text,
           screenWidth: screenWidth),
+
+      // MUDANÇA 1: A página de TIPO agora vem em segundo lugar.
+      _buildTypeSelectionPage(screenWidth: screenWidth),
+
+      // MUDANÇA 2: O título da página de DOSE agora é dinâmico.
+      // Ele usa o `.text` do `_nameController` para pegar o nome do remédio.
       _buildFormPage(
-          title: 'Qual a dose?',
+          title:
+              'Qual a quantidade de "${_nameController.text}" você deve tomar por vez?',
           subtitle: 'Ex: 1 comprimido, 500mg, 10ml',
           controller: _doseController,
           keyboardType: TextInputType.text,
           screenWidth: screenWidth),
-      _buildTypeSelectionPage(screenWidth: screenWidth),
+
       _buildFormPage(
           title: 'Quantas doses você tem em estoque?',
           controller: _stockController,
@@ -200,17 +204,12 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           isLastPage: true),
     ];
 
-    // O conteúdo agora está dentro de um Padding que se ajusta ao teclado.
     return Padding(
-      // `viewInsets` nos dá informações sobre o que está a obstruir a tela, como o teclado.
-      // Adicionamos um padding na parte de baixo igual à altura do teclado.
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SingleChildScrollView(
-        // E envolvemos tudo com um SingleChildScrollView.
         child: Column(
-          mainAxisSize:
-              MainAxisSize.min, // A coluna ocupa o mínimo de espaço necessário.
+          mainAxisSize: MainAxisSize.min,
           children: [
             AppBar(
               shape: const RoundedRectangleBorder(
@@ -227,18 +226,14 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                 currentPage: _currentPage,
                 activeColor: orangeColor,
                 completedColor: blueColor),
-
-            // Usamos um SizedBox para dar uma altura fixa à área do PageView.
-            // Sem isso, o PageView tentaria ser infinitamente alto.
             SizedBox(
-              height: screenHeight * 0.4, // 40% da altura da tela
+              height: screenHeight * 0.4,
               child: PageView(
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 children: formPages,
               ),
             ),
-
             if (_currentPage == formPages.length - 1)
               Padding(
                 padding: EdgeInsets.symmetric(
@@ -274,7 +269,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   child: const Text('Salvar Medicamento'),
                 ),
               ),
-
             Padding(
               padding: EdgeInsets.all(screenWidth * 0.04),
               child: Row(
