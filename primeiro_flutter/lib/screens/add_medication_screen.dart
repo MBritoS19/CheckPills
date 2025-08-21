@@ -11,6 +11,7 @@ class AddMedicationScreen extends StatefulWidget {
 }
 
 class _AddMedicationScreenState extends State<AddMedicationScreen> {
+  // ... (todo o código da classe State continua igual até o método build)
   final _pageController = PageController();
   int _currentPage = 0;
 
@@ -153,19 +154,13 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     const orangeColor = Color(0xFFDC5023);
     const blueColor = Color(0xFF23AFDC);
 
-    // As alterações são feitas aqui, na criação da lista de páginas
     final List<Widget> formPages = [
       _buildFormPage(
           title: 'Qual o nome do medicamento?',
           controller: _nameController,
           keyboardType: TextInputType.text,
           screenWidth: screenWidth),
-
-      // MUDANÇA 1: A página de TIPO agora vem em segundo lugar.
       _buildTypeSelectionPage(screenWidth: screenWidth),
-
-      // MUDANÇA 2: O título da página de DOSE agora é dinâmico.
-      // Ele usa o `.text` do `_nameController` para pegar o nome do remédio.
       _buildFormPage(
           title:
               'Qual a quantidade de "${_nameController.text}" você deve tomar por vez?',
@@ -173,7 +168,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           controller: _doseController,
           keyboardType: TextInputType.text,
           screenWidth: screenWidth),
-
       _buildFormPage(
           title: 'Quantas doses você tem em estoque?',
           controller: _stockController,
@@ -204,100 +198,109 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           isLastPage: true),
     ];
 
-    return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppBar(
-              shape: const RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.vertical(top: Radius.circular(20.0))),
-              title: const Text('Adicionar Medicamento'),
-              leading: IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context)),
-              automaticallyImplyLeading: false,
-            ),
-            FormProgressBar(
-                totalPages: formPages.length,
-                currentPage: _currentPage,
-                activeColor: orangeColor,
-                completedColor: blueColor),
-            SizedBox(
-              height: screenHeight * 0.4,
-              child: PageView(
-                controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
-                children: formPages,
+    // MUDANÇA AQUI: Envolvemos o widget principal com um GestureDetector.
+    return GestureDetector(
+      // A função `onTap` será chamada quando a área do GestureDetector for tocada.
+      onTap: () {
+        // Este comando remove o foco do widget atualmente focado, fechando o teclado.
+        FocusScope.of(context).unfocus();
+      },
+      child: Padding(
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppBar(
+                shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(20.0))),
+                title: const Text('Adicionar Medicamento'),
+                leading: IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context)),
+                automaticallyImplyLeading: false,
               ),
-            ),
-            if (_currentPage == formPages.length - 1)
-              Padding(
-                padding: EdgeInsets.symmetric(
-                    horizontal: screenWidth * 0.04,
-                    vertical: screenWidth * 0.02),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      minimumSize: Size.fromHeight(screenHeight * 0.06),
-                      backgroundColor: blueColor),
-                  onPressed: () {
-                    final provider =
-                        Provider.of<MedicationProvider>(context, listen: false);
-                    String finalType;
-                    if (_selectedType == 'Outros') {
-                      finalType = _customTypeController.text;
-                    } else {
-                      finalType = _selectedType ?? 'Não definido';
-                    }
-                    final newMedication = Medication(
-                      name: _nameController.text,
-                      dose: _doseController.text,
-                      type: finalType,
-                      stock: int.tryParse(_stockController.text) ?? 0,
-                      firstDoseTime: _firstDoseTimeController.text,
-                      doseIntervalInHours:
-                          int.tryParse(_intervalController.text) ?? 0,
-                      totalDoses: int.tryParse(_totalDosesController.text) ?? 0,
-                      notes: _notesController.text,
-                    );
-                    provider.addMedication(newMedication);
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Salvar Medicamento'),
+              FormProgressBar(
+                  totalPages: formPages.length,
+                  currentPage: _currentPage,
+                  activeColor: orangeColor,
+                  completedColor: blueColor),
+              SizedBox(
+                height: screenHeight * 0.4,
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: formPages,
                 ),
               ),
-            Padding(
-              padding: EdgeInsets.all(screenWidth * 0.04),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ElevatedButton(
-                    onPressed: _currentPage == 0
-                        ? null
-                        : () {
-                            _pageController.previousPage(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeIn);
-                          },
-                    child: const Text('Anterior'),
+              if (_currentPage == formPages.length - 1)
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.04,
+                      vertical: screenWidth * 0.02),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        minimumSize: Size.fromHeight(screenHeight * 0.06),
+                        backgroundColor: blueColor),
+                    onPressed: () {
+                      final provider = Provider.of<MedicationProvider>(context,
+                          listen: false);
+                      String finalType;
+                      if (_selectedType == 'Outros') {
+                        finalType = _customTypeController.text;
+                      } else {
+                        finalType = _selectedType ?? 'Não definido';
+                      }
+                      final newMedication = Medication(
+                        name: _nameController.text,
+                        dose: _doseController.text,
+                        type: finalType,
+                        stock: int.tryParse(_stockController.text) ?? 0,
+                        firstDoseTime: _firstDoseTimeController.text,
+                        doseIntervalInHours:
+                            int.tryParse(_intervalController.text) ?? 0,
+                        totalDoses:
+                            int.tryParse(_totalDosesController.text) ?? 0,
+                        notes: _notesController.text,
+                      );
+                      provider.addMedication(newMedication);
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Salvar Medicamento'),
                   ),
-                  ElevatedButton(
-                    onPressed: _currentPage == formPages.length - 1
-                        ? null
-                        : () {
-                            _pageController.nextPage(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeIn);
-                          },
-                    child: const Text('Próximo'),
-                  ),
-                ],
+                ),
+              Padding(
+                padding: EdgeInsets.all(screenWidth * 0.04),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ElevatedButton(
+                      onPressed: _currentPage == 0
+                          ? null
+                          : () {
+                              _pageController.previousPage(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeIn);
+                            },
+                      child: const Text('Anterior'),
+                    ),
+                    ElevatedButton(
+                      onPressed: _currentPage == formPages.length - 1
+                          ? null
+                          : () {
+                              _pageController.nextPage(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeIn);
+                            },
+                      child: const Text('Próximo'),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
