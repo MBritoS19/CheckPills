@@ -15,21 +15,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   int _currentPage = 0;
 
   String? _selectedType;
-
-  // 1. Nova estrutura de dados para guardar as categorias e seus exemplos.
-  final Map<String, List<String>> _medicationCategories = {
-    'Sólidos': [
-      'Comprimidos',
-      'Cápsulas',
-      'Pó',
-      'Granulado',
-      'Pastilhas',
-      'Supositório'
-    ],
-    'Semissólidos': ['Pomada', 'Creme', 'Gel'],
-    'Líquidos': ['Gotas', 'Xarope', 'Suspensão', 'Emulsão', 'Injeção'],
-    'Gasosos': ['Aerossol', 'Spray'],
-  };
+  // 1. Novo controlador para o campo de texto de "Outros".
+  final _customTypeController = TextEditingController();
 
   final _nameController = TextEditingController();
   final _doseController = TextEditingController();
@@ -52,6 +39,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   @override
   void dispose() {
     _pageController.dispose();
+    _customTypeController.dispose(); // Não se esqueça de fazer o dispose!
     _nameController.dispose();
     _doseController.dispose();
     _stockController.dispose();
@@ -97,10 +85,19 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     );
   }
 
-  // 2. A função de construir a página de tipo foi totalmente refeita.
+  // 2. Função de construir a página de tipo foi totalmente refeita.
   Widget _buildTypeSelectionPage({
     required double screenWidth,
   }) {
+    const types = [
+      'Comprimido',
+      'Injeção',
+      'Gotas',
+      'Líquido',
+      'Inalação',
+      'Pó',
+      'Outros'
+    ];
     const blueColor = Color(0xFF23AFDC);
 
     return Padding(
@@ -113,30 +110,41 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               style: TextStyle(
                   fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
           const SizedBox(height: 24),
-          // Usamos um ListView para mostrar as 4 opções de categoria.
-          ListView(
-            shrinkWrap:
-                true, // Importante para o ListView funcionar dentro de uma Column
-            children: _medicationCategories.keys.map((category) {
-              return RadioListTile<String>(
-                title: Text(category,
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                // O subtítulo mostra os exemplos.
-                subtitle: Text(_medicationCategories[category]!.join(', ')),
-                // `value` é o valor desta opção.
-                value: category,
-                // `groupValue` é a variável que guarda a opção selecionada.
-                groupValue: _selectedType,
-                // `onChanged` é chamado quando o usuário toca na opção.
-                onChanged: (value) {
+          Wrap(
+            spacing: 8.0,
+            runSpacing: 8.0,
+            children: types.map((type) {
+              final isSelected = _selectedType == type;
+              return ElevatedButton(
+                onPressed: () {
                   setState(() {
-                    _selectedType = value;
+                    _selectedType = type;
                   });
                 },
-                activeColor: blueColor,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isSelected ? blueColor : Colors.grey[200],
+                  foregroundColor: isSelected ? Colors.white : Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: Text(type),
               );
             }).toList(),
           ),
+
+          // 3. Campo de texto condicional para "Outros".
+          // Ele só vai aparecer se o tipo selecionado for "Outros".
+          if (_selectedType == 'Outros') ...[
+            const SizedBox(height: 24),
+            TextFormField(
+              controller: _customTypeController,
+              decoration: const InputDecoration(
+                labelText: 'Digite o tipo do medicamento',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ]
         ],
       ),
     );
@@ -233,12 +241,19 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   onPressed: () {
                     final provider =
                         Provider.of<MedicationProvider>(context, listen: false);
+
+                    // Lógica para determinar o valor final do tipo.
+                    String finalType;
+                    if (_selectedType == 'Outros') {
+                      finalType = _customTypeController.text;
+                    } else {
+                      finalType = _selectedType ?? 'Não definido';
+                    }
+
                     final newMedication = Medication(
                       name: _nameController.text,
                       dose: _doseController.text,
-                      // 4. Adicionamos o `_selectedType` ao salvar.
-                      // `?? 'Não definido'` é uma segurança caso nada seja selecionado.
-                      type: _selectedType ?? 'Não definido',
+                      type: finalType, // Usamos o valor final aqui
                       stock: int.tryParse(_stockController.text) ?? 0,
                       firstDoseTime: _firstDoseTimeController.text,
                       doseIntervalInHours:
