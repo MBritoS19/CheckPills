@@ -11,7 +11,6 @@ class AddMedicationScreen extends StatefulWidget {
 }
 
 class _AddMedicationScreenState extends State<AddMedicationScreen> {
-  // ... (todo o código da classe State continua igual até o método build)
   final _pageController = PageController();
   int _currentPage = 0;
 
@@ -198,11 +197,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           isLastPage: true),
     ];
 
-    // MUDANÇA AQUI: Envolvemos o widget principal com um GestureDetector.
     return GestureDetector(
-      // A função `onTap` será chamada quando a área do GestureDetector for tocada.
       onTap: () {
-        // Este comando remove o foco do widget atualmente focado, fechando o teclado.
         FocusScope.of(context).unfocus();
       },
       child: Padding(
@@ -280,6 +276,9 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                       onPressed: _currentPage == 0
                           ? null
                           : () {
+                              // MUDANÇA AQUI:
+                              FocusScope.of(context)
+                                  .unfocus(); // Fecha o teclado
                               _pageController.previousPage(
                                   duration: const Duration(milliseconds: 300),
                                   curve: Curves.easeIn);
@@ -290,6 +289,9 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                       onPressed: _currentPage == formPages.length - 1
                           ? null
                           : () {
+                              // MUDANÇA AQUI:
+                              FocusScope.of(context)
+                                  .unfocus(); // Fecha o teclado
                               _pageController.nextPage(
                                   duration: const Duration(milliseconds: 300),
                                   curve: Curves.easeIn);
