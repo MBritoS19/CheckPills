@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart'; // Importamos a biblioteca Cupertino para o Picker
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:primeiro_flutter/domain/entities/medication.dart';
 import 'package:primeiro_flutter/providers/medication_provider.dart';
@@ -15,10 +15,10 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   final _pageController = PageController();
   int _currentPage = 0;
 
-  // 1. Novas variáveis de estado para guardar a hora e o minuto selecionados.
-  // Começam com a hora e minuto atuais.
   int _selectedHour = DateTime.now().hour;
   int _selectedMinute = DateTime.now().minute;
+  int _selectedIntervalHour = 8;
+  int _selectedIntervalMinute = 0;
 
   String? _selectedType;
   final _customTypeController = TextEditingController();
@@ -26,9 +26,10 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   final _nameController = TextEditingController();
   final _doseController = TextEditingController();
   final _stockController = TextEditingController();
-  final _intervalController = TextEditingController();
   final _totalDosesController = TextEditingController();
   final _notesController = TextEditingController();
+  // Não precisamos mais do controlador para o horário da primeira dose
+  // final _firstDoseTimeController = TextEditingController();
 
   @override
   void initState() {
@@ -47,7 +48,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     _nameController.dispose();
     _doseController.dispose();
     _stockController.dispose();
-    _intervalController.dispose();
     _totalDosesController.dispose();
     _notesController.dispose();
     super.dispose();
@@ -164,13 +164,12 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
           SizedBox(height: screenWidth * 0.06),
           SizedBox(
-            height: screenHeight * 0.2, // Altura da área dos seletores
+            height: screenHeight * 0.2,
             child: Row(
               children: [
-                // Carrossel das Horas
                 Expanded(
                   child: CupertinoPicker(
-                    itemExtent: 40, // Altura de cada item
+                    itemExtent: 40,
                     onSelectedItemChanged: (index) {
                       setState(() {
                         _selectedHour = index;
@@ -178,14 +177,13 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                     },
                     scrollController:
                         FixedExtentScrollController(initialItem: _selectedHour),
-                    looping: true, // Permite que a roda gire infinitamente
+                    looping: true,
                     children: List.generate(24, (index) {
                       return Center(
-                          child: Text(index.toString().padLeft(2, '0')));
+                          child: Text('${index.toString().padLeft(2, '0')} h'));
                     }),
                   ),
                 ),
-                // Carrossel dos Minutos
                 Expanded(
                   child: CupertinoPicker(
                     itemExtent: 40,
@@ -199,7 +197,69 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                     looping: true,
                     children: List.generate(60, (index) {
                       return Center(
-                          child: Text(index.toString().padLeft(2, '0')));
+                          child:
+                              Text('${index.toString().padLeft(2, '0')} min'));
+                    }),
+                  ),
+                ),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIntervalPickerPage({
+    required double screenWidth,
+    required double screenHeight,
+  }) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Qual o intervalo entre as doses?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          SizedBox(height: screenWidth * 0.06),
+          SizedBox(
+            height: screenHeight * 0.2,
+            child: Row(
+              children: [
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 40,
+                    onSelectedItemChanged: (index) {
+                      setState(() {
+                        _selectedIntervalHour = index;
+                      });
+                    },
+                    scrollController: FixedExtentScrollController(
+                        initialItem: _selectedIntervalHour),
+                    looping: true,
+                    children: List.generate(24, (index) {
+                      return Center(
+                          child: Text('${index.toString().padLeft(2, '0')} h'));
+                    }),
+                  ),
+                ),
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 40,
+                    onSelectedItemChanged: (index) {
+                      setState(() {
+                        _selectedIntervalMinute = index;
+                      });
+                    },
+                    scrollController: FixedExtentScrollController(
+                        initialItem: _selectedIntervalMinute),
+                    looping: true,
+                    children: List.generate(60, (index) {
+                      return Center(
+                          child:
+                              Text('${index.toString().padLeft(2, '0')} min'));
                     }),
                   ),
                 ),
@@ -240,11 +300,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           screenWidth: screenWidth),
       _buildTimePickerPage(
           screenWidth: screenWidth, screenHeight: screenHeight),
-      _buildFormPage(
-          title: 'Qual o intervalo entre as doses (em horas)?',
-          controller: _intervalController,
-          keyboardType: TextInputType.number,
-          screenWidth: screenWidth),
+      _buildIntervalPickerPage(
+          screenWidth: screenWidth, screenHeight: screenHeight),
       _buildFormPage(
           title: 'Qual o total de doses do tratamento?',
           controller: _totalDosesController,
@@ -259,105 +316,116 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           isLastPage: true),
     ];
 
-    return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppBar(
-              shape: const RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.vertical(top: Radius.circular(20.0))),
-              title: const Text('Adicionar Medicamento'),
-              leading: IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context)),
-              automaticallyImplyLeading: false,
-            ),
-            FormProgressBar(
-                totalPages: formPages.length,
-                currentPage: _currentPage,
-                activeColor: orangeColor,
-                completedColor: blueColor),
-            SizedBox(
-              height: screenHeight * 0.4,
-              child: PageView(
-                controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
-                children: formPages,
+    // MUDANÇA 1: Envolvemos o widget principal com um GestureDetector.
+    return GestureDetector(
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: Padding(
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppBar(
+                shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(20.0))),
+                title: const Text('Adicionar Medicamento'),
+                leading: IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context)),
+                automaticallyImplyLeading: false,
               ),
-            ),
-            if (_currentPage == formPages.length - 1)
-              Padding(
-                padding: EdgeInsets.symmetric(
-                    horizontal: screenWidth * 0.04,
-                    vertical: screenWidth * 0.02),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      minimumSize: Size.fromHeight(screenHeight * 0.06),
-                      backgroundColor: blueColor),
-                  onPressed: () {
-                    final provider =
-                        Provider.of<MedicationProvider>(context, listen: false);
-                    String finalType;
-                    if (_selectedType == 'Outros') {
-                      finalType = _customTypeController.text;
-                    } else {
-                      finalType = _selectedType ?? 'Não definido';
-                    }
-
-                    final now = DateTime.now();
-                    final firstDoseDateTime = DateTime(now.year, now.month,
-                        now.day, _selectedHour, _selectedMinute);
-
-                    final newMedication = Medication(
-                      name: _nameController.text,
-                      dose: _doseController.text,
-                      type: finalType,
-                      stock: int.tryParse(_stockController.text) ?? 0,
-                      firstDoseTime: firstDoseDateTime,
-                      doseIntervalInHours:
-                          int.tryParse(_intervalController.text) ?? 0,
-                      totalDoses: int.tryParse(_totalDosesController.text) ?? 0,
-                      notes: _notesController.text,
-                    );
-                    provider.addMedication(newMedication);
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Salvar Medicamento'),
+              FormProgressBar(
+                  totalPages: formPages.length,
+                  currentPage: _currentPage,
+                  activeColor: orangeColor,
+                  completedColor: blueColor),
+              SizedBox(
+                height: screenHeight * 0.4,
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: formPages,
                 ),
               ),
-            Padding(
-              padding: EdgeInsets.all(screenWidth * 0.04),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ElevatedButton(
-                    onPressed: _currentPage == 0
-                        ? null
-                        : () {
-                            _pageController.previousPage(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeIn);
-                          },
-                    child: const Text('Anterior'),
+              if (_currentPage == formPages.length - 1)
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.04,
+                      vertical: screenWidth * 0.02),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        minimumSize: Size.fromHeight(screenHeight * 0.06),
+                        backgroundColor: blueColor),
+                    onPressed: () {
+                      final provider = Provider.of<MedicationProvider>(context,
+                          listen: false);
+                      String finalType;
+                      if (_selectedType == 'Outros') {
+                        finalType = _customTypeController.text;
+                      } else {
+                        finalType = _selectedType ?? 'Não definido';
+                      }
+                      final now = DateTime.now();
+                      final firstDoseDateTime = DateTime(now.year, now.month,
+                          now.day, _selectedHour, _selectedMinute);
+                      final doseIntervalDuration = Duration(
+                          hours: _selectedIntervalHour,
+                          minutes: _selectedIntervalMinute);
+                      final newMedication = Medication(
+                        name: _nameController.text,
+                        dose: _doseController.text,
+                        type: finalType,
+                        stock: int.tryParse(_stockController.text) ?? 0,
+                        firstDoseTime: firstDoseDateTime,
+                        doseInterval: doseIntervalDuration,
+                        totalDoses:
+                            int.tryParse(_totalDosesController.text) ?? 0,
+                        notes: _notesController.text,
+                      );
+                      provider.addMedication(newMedication);
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Salvar Medicamento'),
                   ),
-                  ElevatedButton(
-                    onPressed: _currentPage == formPages.length - 1
-                        ? null
-                        : () {
-                            _pageController.nextPage(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeIn);
-                          },
-                    child: const Text('Próximo'),
-                  ),
-                ],
+                ),
+              Padding(
+                padding: EdgeInsets.all(screenWidth * 0.04),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ElevatedButton(
+                      onPressed: _currentPage == 0
+                          ? null
+                          : () {
+                              // MUDANÇA 2: Adicionamos o comando para fechar o teclado.
+                              FocusScope.of(context).unfocus();
+                              _pageController.previousPage(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeIn);
+                            },
+                      child: const Text('Anterior'),
+                    ),
+                    ElevatedButton(
+                      onPressed: _currentPage == formPages.length - 1
+                          ? null
+                          : () {
+                              // MUDANÇA 3: E aqui também.
+                              FocusScope.of(context).unfocus();
+                              _pageController.nextPage(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeIn);
+                            },
+                      child: const Text('Próximo'),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

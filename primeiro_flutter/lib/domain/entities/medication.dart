@@ -6,9 +6,9 @@ class Medication {
   final String dose;
   final String type;
   final int stock;
-  final int doseIntervalInHours;
+  // MUDANÇA AQUI: Trocamos o int por Duration
+  final Duration doseInterval;
   final int totalDoses;
-  // MUDANÇA AQUI: Trocamos String por DateTime
   final DateTime firstDoseTime;
   final String? notes;
 
@@ -17,9 +17,9 @@ class Medication {
     required this.dose,
     required this.type,
     required this.stock,
-    required this.doseIntervalInHours,
-    required this.totalDoses,
     // E AQUI TAMBÉM
+    required this.doseInterval,
+    required this.totalDoses,
     required this.firstDoseTime,
     this.id,
     this.notes,

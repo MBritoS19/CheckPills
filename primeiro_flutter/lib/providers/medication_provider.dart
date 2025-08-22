@@ -8,20 +8,20 @@ class MedicationProvider with ChangeNotifier {
       dose: '1 comprimido',
       type: 'Comprimido',
       stock: 30,
-      doseIntervalInHours: 8,
+      // MUDANÇA AQUI: Trocamos o int por um objeto Duration.
+      doseInterval: const Duration(hours: 8),
       totalDoses: 90,
-      // MUDANÇA AQUI: Agora usamos DateTime para criar a data e hora.
-      firstDoseTime: DateTime(2025, 8, 21, 8, 0), // Ano, Mês, Dia, Hora, Minuto
+      firstDoseTime: DateTime(2025, 8, 22, 8, 0),
     ),
     Medication(
       name: 'Paracetamol',
       dose: '500mg',
       type: 'Gotas',
       stock: 20,
-      doseIntervalInHours: 6,
-      totalDoses: 60,
       // E AQUI TAMBÉM
-      firstDoseTime: DateTime(2025, 8, 21, 12, 0),
+      doseInterval: const Duration(hours: 6),
+      totalDoses: 60,
+      firstDoseTime: DateTime(2025, 8, 22, 12, 0),
       notes: 'Tomar após a refeição',
     ),
   ];
