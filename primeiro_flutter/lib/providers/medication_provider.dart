@@ -6,20 +6,22 @@ class MedicationProvider with ChangeNotifier {
     Medication(
       name: 'Dipirona',
       dose: '1 comprimido',
-      type: 'Comprimido', // ADICIONADO AQUI
+      type: 'Comprimido',
       stock: 30,
       doseIntervalInHours: 8,
       totalDoses: 90,
-      firstDoseTime: '08:00',
+      // MUDANÇA AQUI: Agora usamos DateTime para criar a data e hora.
+      firstDoseTime: DateTime(2025, 8, 21, 8, 0), // Ano, Mês, Dia, Hora, Minuto
     ),
     Medication(
       name: 'Paracetamol',
       dose: '500mg',
-      type: 'Gotas', // E AQUI
+      type: 'Gotas',
       stock: 20,
       doseIntervalInHours: 6,
       totalDoses: 60,
-      firstDoseTime: '12:00',
+      // E AQUI TAMBÉM
+      firstDoseTime: DateTime(2025, 8, 21, 12, 0),
       notes: 'Tomar após a refeição',
     ),
   ];

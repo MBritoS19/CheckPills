@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:primeiro_flutter/providers/medication_provider.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart'; // Importamos o provider aqui também
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -58,10 +58,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     return weekDays;
   }
-
-  // MUDANÇA AQUI: Removemos a lista de medicamentos estática.
-  // Ela agora será lida a partir do MedicationProvider.
-  // final List<Medication> _medicationList = const [ ... ];
 
   @override
   Widget build(BuildContext context) {
@@ -123,12 +119,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Expanded(
-            // MUDANÇA AQUI: Usamos o widget Consumer.
             child: Consumer<MedicationProvider>(
-              // O `builder` é a função que constrói o widget.
-              // Ele nos dá o `context`, a instância do nosso `provider`, e um `child` opcional.
               builder: (context, provider, child) {
-                // A nossa ListView agora usa a lista que vem do provider.
                 return ListView.builder(
                   itemCount: provider.medicationList.length,
                   itemBuilder: (BuildContext context, int index) {
@@ -140,7 +132,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: ListTile(
                         leading: Text(
-                          medication.firstDoseTime,
+                          // MUDANÇA AQUI: Formatamos o DateTime para mostrar apenas Hora e Minuto.
+                          // HH (maiúsculo) é para formato 24h.
+                          DateFormat('HH:mm').format(medication.firstDoseTime),
                           style: TextStyle(
                               fontSize: screenWidth * 0.04,
                               fontWeight: FontWeight.bold),
