@@ -23,13 +23,16 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   String? _selectedType;
   final _customTypeController = TextEditingController();
 
+  // 1. Novas variáveis de estado para a duração do tratamento
+  bool _isContinuous = false;
+  final _treatmentLengthController = TextEditingController();
+  String _selectedTreatmentUnit = 'Dias';
+
   final _nameController = TextEditingController();
   final _doseController = TextEditingController();
   final _stockController = TextEditingController();
-  final _totalDosesController = TextEditingController();
   final _notesController = TextEditingController();
-  // Não precisamos mais do controlador para o horário da primeira dose
-  // final _firstDoseTimeController = TextEditingController();
+  // final _totalDosesController foi removido
 
   @override
   void initState() {
@@ -48,7 +51,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     _nameController.dispose();
     _doseController.dispose();
     _stockController.dispose();
-    _totalDosesController.dispose();
+    _treatmentLengthController.dispose(); // Adicionado
     _notesController.dispose();
     super.dispose();
   }
@@ -271,6 +274,79 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     );
   }
 
+  // 2. Nova função para construir a página de duração
+  Widget _buildDurationPage({
+    required double screenWidth,
+  }) {
+    final units = ['Dias', 'Semanas', 'Meses', 'Anos'];
+    const blueColor = Color(0xFF23AFDC);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Qual a duração do tratamento?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          SizedBox(height: screenWidth * 0.06),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _treatmentLengthController,
+                  // O campo fica desativado se `_isContinuous` for verdadeiro
+                  enabled: !_isContinuous,
+                  keyboardType: TextInputType.number,
+                  decoration:
+                      const InputDecoration(border: OutlineInputBorder()),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _selectedTreatmentUnit,
+                  // O menu também fica desativado se `_isContinuous` for verdadeiro
+                  onChanged: _isContinuous
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _selectedTreatmentUnit = value!;
+                          });
+                        },
+                  items: units.map((unit) {
+                    return DropdownMenuItem(value: unit, child: Text(unit));
+                  }).toList(),
+                  decoration:
+                      const InputDecoration(border: OutlineInputBorder()),
+                ),
+              ),
+            ],
+          ),
+          // Usamos CheckboxListTile para ter o texto e a caixa de seleção juntos
+          CheckboxListTile(
+            title: const Text('Uso constante'),
+            value: _isContinuous,
+            onChanged: (value) {
+              setState(() {
+                _isContinuous = value!;
+                // Se o usuário marcar a caixa, limpamos os outros campos
+                if (_isContinuous) {
+                  _treatmentLengthController.clear();
+                  _selectedTreatmentUnit = 'Dias';
+                }
+              });
+            },
+            activeColor: blueColor,
+            controlAffinity:
+                ListTileControlAffinity.leading, // Caixa à esquerda
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
@@ -302,11 +378,10 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           screenWidth: screenWidth, screenHeight: screenHeight),
       _buildIntervalPickerPage(
           screenWidth: screenWidth, screenHeight: screenHeight),
-      _buildFormPage(
-          title: 'Qual o total de doses do tratamento?',
-          controller: _totalDosesController,
-          keyboardType: TextInputType.number,
-          screenWidth: screenWidth),
+
+      // A página de total de doses foi substituída pela nossa nova página de duração
+      _buildDurationPage(screenWidth: screenWidth),
+
       _buildFormPage(
           title: 'Alguma observação?',
           subtitle: 'Este campo é opcional',
@@ -382,8 +457,16 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                         stock: int.tryParse(_stockController.text) ?? 0,
                         firstDoseTime: firstDoseDateTime,
                         doseInterval: doseIntervalDuration,
-                        totalDoses:
-                            int.tryParse(_totalDosesController.text) ?? 0,
+
+                        // 4. ATUALIZAÇÃO na lógica de salvar
+                        isContinuous: _isContinuous,
+                        treatmentLength: _isContinuous
+                            ? null
+                            : int.tryParse(_treatmentLengthController.text) ??
+                                0,
+                        treatmentUnit:
+                            _isContinuous ? null : _selectedTreatmentUnit,
+
                         notes: _notesController.text,
                       );
                       provider.addMedication(newMedication);

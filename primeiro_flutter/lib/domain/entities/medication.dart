@@ -6,9 +6,13 @@ class Medication {
   final String dose;
   final String type;
   final int stock;
-  // MUDANÇA AQUI: Trocamos o int por Duration
   final Duration doseInterval;
-  final int totalDoses;
+  
+  // MUDANÇA AQUI: Removemos `totalDoses` e adicionamos os novos campos.
+  final bool isContinuous; // Para saber se é de uso contínuo
+  final int? treatmentLength; // O número (ex: 7). É opcional (`?`)
+  final String? treatmentUnit; // A unidade (ex: "Dias"). É opcional (`?`)
+
   final DateTime firstDoseTime;
   final String? notes;
 
@@ -17,9 +21,11 @@ class Medication {
     required this.dose,
     required this.type,
     required this.stock,
-    // E AQUI TAMBÉM
     required this.doseInterval,
-    required this.totalDoses,
+    // E AQUI TAMBÉM
+    required this.isContinuous,
+    this.treatmentLength,
+    this.treatmentUnit,
     required this.firstDoseTime,
     this.id,
     this.notes,

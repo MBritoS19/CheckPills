@@ -8,20 +8,24 @@ class MedicationProvider with ChangeNotifier {
       dose: '1 comprimido',
       type: 'Comprimido',
       stock: 30,
-      // MUDANÇA AQUI: Trocamos o int por um objeto Duration.
       doseInterval: const Duration(hours: 8),
-      totalDoses: 90,
-      firstDoseTime: DateTime(2025, 8, 22, 8, 0),
+      // MUDANÇA AQUI:
+      isContinuous: false, // Não é de uso contínuo
+      treatmentLength: 30, // Duração de 30...
+      treatmentUnit: 'Dias', // ...dias.
+      // totalDoses: 90, <-- REMOVIDO
+      firstDoseTime: DateTime(2025, 8, 25, 8, 0),
     ),
     Medication(
       name: 'Paracetamol',
       dose: '500mg',
       type: 'Gotas',
       stock: 20,
-      // E AQUI TAMBÉM
       doseInterval: const Duration(hours: 6),
-      totalDoses: 60,
-      firstDoseTime: DateTime(2025, 8, 22, 12, 0),
+      // E AQUI:
+      isContinuous: true, // É de uso contínuo, então não precisa de `treatmentLength` ou `treatmentUnit`.
+      // totalDoses: 60, <-- REMOVIDO
+      firstDoseTime: DateTime(2025, 8, 25, 12, 0),
       notes: 'Tomar após a refeição',
     ),
   ];
