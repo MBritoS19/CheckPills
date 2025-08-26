@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:primeiro_flutter/providers/medication_provider.dart';
-import 'package:primeiro_flutter/screens/add_medication_screen.dart';
-import 'package:primeiro_flutter/screens/configuration_screen.dart';
-import 'package:primeiro_flutter/screens/home_screen.dart';
+import 'package:primeiro_flutter/presentation/providers/medication_provider.dart';
+import 'package:primeiro_flutter/presentation/screens/add_medication_screen.dart';
+import 'package:primeiro_flutter/presentation/screens/configuration_screen.dart';
+import 'package:primeiro_flutter/presentation/screens/home_screen.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
