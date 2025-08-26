@@ -132,15 +132,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: ListTile(
                         leading: Text(
-                          // MUDANÇA AQUI: Formatamos o DateTime para mostrar apenas Hora e Minuto.
-                          // HH (maiúsculo) é para formato 24h.
                           DateFormat('HH:mm').format(medication.firstDoseTime),
                           style: TextStyle(
                               fontSize: screenWidth * 0.04,
                               fontWeight: FontWeight.bold),
                         ),
                         title: Text(medication.name),
-                        subtitle: Text(medication.dose),
+                        // MUDANÇA AQUI: Trocamos `dose` por `doseDescription`.
+                        subtitle: Text(medication.doseDescription),
                         trailing: const Icon(Icons.check_circle_outline),
                       ),
                     );

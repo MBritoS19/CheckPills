@@ -5,6 +5,7 @@ import 'package:primeiro_flutter/presentation/screens/add_medication_screen.dart
 import 'package:primeiro_flutter/presentation/screens/configuration_screen.dart';
 import 'package:primeiro_flutter/presentation/screens/home_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:primeiro_flutter/data/datasources/database.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,12 +13,16 @@ Future<void> main() async {
 
   // 2. Envolvemos nosso aplicativo com o ChangeNotifierProvider
   runApp(
-    ChangeNotifierProvider(
-      // `create` é a função que constrói o nosso "gestor".
-      // Ele será criado uma única vez e ficará disponível para todo o app.
-      create: (context) => MedicationProvider(),
-      // `child` é o nosso aplicativo, que agora está "dentro" do Provider.
-      child: const MyApp(),
+    Provider<AppDatabase>(
+      create: (context) => AppDatabase(),
+      dispose: (context, db) => db.close(),
+      child: ChangeNotifierProvider(
+        create: (context) => MedicationProvider(
+          // Passamos a instância do AppDatabase para o MedicationProvider
+          database: Provider.of<AppDatabase>(context, listen: false),
+        ),
+        child: const MyApp(),
+      ),
     ),
   );
 }

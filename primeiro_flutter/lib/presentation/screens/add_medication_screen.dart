@@ -23,7 +23,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   String? _selectedType;
   final _customTypeController = TextEditingController();
 
-  // 1. Novas variáveis de estado para a duração do tratamento
   bool _isContinuous = false;
   final _treatmentLengthController = TextEditingController();
   String _selectedTreatmentUnit = 'Dias';
@@ -32,7 +31,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   final _doseController = TextEditingController();
   final _stockController = TextEditingController();
   final _notesController = TextEditingController();
-  // final _totalDosesController foi removido
 
   @override
   void initState() {
@@ -51,7 +49,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     _nameController.dispose();
     _doseController.dispose();
     _stockController.dispose();
-    _treatmentLengthController.dispose(); // Adicionado
+    _treatmentLengthController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -356,68 +354,31 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     const blueColor = Color(0xFF23AFDC);
 
     final List<Widget> formPages = [
-      _buildFormPage(
-          title: 'Qual o nome do medicamento?',
-          controller: _nameController,
-          keyboardType: TextInputType.text,
-          screenWidth: screenWidth),
+      _buildFormPage(title: 'Qual o nome do medicamento?', controller: _nameController, keyboardType: TextInputType.text, screenWidth: screenWidth),
       _buildTypeSelectionPage(screenWidth: screenWidth),
-      _buildFormPage(
-          title:
-              'Qual a quantidade de "${_nameController.text}" você deve tomar por vez?',
-          subtitle: 'Ex: 1 comprimido, 500mg, 10ml',
-          controller: _doseController,
-          keyboardType: TextInputType.text,
-          screenWidth: screenWidth),
-      _buildFormPage(
-          title: 'Quantas doses você tem em estoque?',
-          controller: _stockController,
-          keyboardType: TextInputType.number,
-          screenWidth: screenWidth),
-      _buildTimePickerPage(
-          screenWidth: screenWidth, screenHeight: screenHeight),
-      _buildIntervalPickerPage(
-          screenWidth: screenWidth, screenHeight: screenHeight),
-
-      // A página de total de doses foi substituída pela nossa nova página de duração
+      _buildFormPage(title: 'Qual a quantidade de "${_nameController.text}" você deve tomar por vez?', subtitle: 'Ex: 1 comprimido, 500mg, 10ml', controller: _doseController, keyboardType: TextInputType.text, screenWidth: screenWidth),
+      _buildFormPage(title: 'Quantas doses você tem em estoque?', controller: _stockController, keyboardType: TextInputType.number, screenWidth: screenWidth),
+      _buildTimePickerPage(screenWidth: screenWidth, screenHeight: screenHeight),
+      _buildIntervalPickerPage(screenWidth: screenWidth, screenHeight: screenHeight),
       _buildDurationPage(screenWidth: screenWidth),
-
-      _buildFormPage(
-          title: 'Alguma observação?',
-          subtitle: 'Este campo é opcional',
-          controller: _notesController,
-          keyboardType: TextInputType.multiline,
-          screenWidth: screenWidth,
-          isLastPage: true),
+      _buildFormPage(title: 'Alguma observação?', subtitle: 'Este campo é opcional', controller: _notesController, keyboardType: TextInputType.multiline, screenWidth: screenWidth, isLastPage: true),
     ];
 
-    // MUDANÇA 1: Envolvemos o widget principal com um GestureDetector.
     return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-      },
+      onTap: () => FocusScope.of(context).unfocus(),
       child: Padding(
-        padding:
-            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               AppBar(
-                shape: const RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(20.0))),
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20.0))),
                 title: const Text('Adicionar Medicamento'),
-                leading: IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context)),
+                leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
                 automaticallyImplyLeading: false,
               ),
-              FormProgressBar(
-                  totalPages: formPages.length,
-                  currentPage: _currentPage,
-                  activeColor: orangeColor,
-                  completedColor: blueColor),
+              FormProgressBar(totalPages: formPages.length, currentPage: _currentPage, activeColor: orangeColor, completedColor: blueColor),
               SizedBox(
                 height: screenHeight * 0.4,
                 child: PageView(
@@ -428,18 +389,11 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               ),
               if (_currentPage == formPages.length - 1)
                 Padding(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth * 0.04,
-                      vertical: screenWidth * 0.02),
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenWidth * 0.02),
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                        minimumSize: Size.fromHeight(screenHeight * 0.06),
-                        backgroundColor: blueColor,
-                        foregroundColor: Colors.black),
-                        
+                    style: ElevatedButton.styleFrom(minimumSize: Size.fromHeight(screenHeight * 0.06), backgroundColor: blueColor, foregroundColor: Colors.black),
                     onPressed: () {
-                      final provider = Provider.of<MedicationProvider>(context,
-                          listen: false);
+                      final provider = Provider.of<MedicationProvider>(context, listen: false);
                       String finalType;
                       if (_selectedType == 'Outros') {
                         finalType = _customTypeController.text;
@@ -447,11 +401,11 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                         finalType = _selectedType ?? 'Não definido';
                       }
                       final now = DateTime.now();
-                      final firstDoseDateTime = DateTime(now.year, now.month,
-                          now.day, _selectedHour, _selectedMinute);
-                      final doseIntervalDuration = Duration(
-                          hours: _selectedIntervalHour,
-                          minutes: _selectedIntervalMinute);
+                      final firstDoseDateTime = DateTime(now.year, now.month, now.day, _selectedHour, _selectedMinute);
+                      final doseIntervalDuration = Duration(hours: _selectedIntervalHour, minutes: _selectedIntervalMinute);
+                      
+                      // MUDANÇAS FINAIS AQUI:
+                      // Usamos os nomes corretos que estão na classe Medication
                       final newMedication = Medication(
                         name: _nameController.text,
                         dose: _doseController.text,
@@ -459,18 +413,12 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                         stock: int.tryParse(_stockController.text) ?? 0,
                         firstDoseTime: firstDoseDateTime,
                         doseInterval: doseIntervalDuration,
-
-                        // 4. ATUALIZAÇÃO na lógica de salvar
                         isContinuous: _isContinuous,
-                        treatmentLength: _isContinuous
-                            ? null
-                            : int.tryParse(_treatmentLengthController.text) ??
-                                0,
-                        treatmentUnit:
-                            _isContinuous ? null : _selectedTreatmentUnit,
-
+                        durationTreatment: _isContinuous ? null : int.tryParse(_treatmentLengthController.text) ?? 0,
+                        unitTreatment: _isContinuous ? null : _selectedTreatmentUnit,
                         notes: _notesController.text,
                       );
+
                       provider.addMedication(newMedication);
                       Navigator.pop(context);
                     },
@@ -483,27 +431,17 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     ElevatedButton(
-                      onPressed: _currentPage == 0
-                          ? null
-                          : () {
-                              // MUDANÇA 2: Adicionamos o comando para fechar o teclado.
-                              FocusScope.of(context).unfocus();
-                              _pageController.previousPage(
-                                  duration: const Duration(milliseconds: 300),
-                                  curve: Curves.easeIn);
-                            },
+                      onPressed: _currentPage == 0 ? null : () {
+                        FocusScope.of(context).unfocus();
+                        _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeIn);
+                      },
                       child: const Text('Anterior'),
                     ),
                     ElevatedButton(
-                      onPressed: _currentPage == formPages.length - 1
-                          ? null
-                          : () {
-                              // MUDANÇA 3: E aqui também.
-                              FocusScope.of(context).unfocus();
-                              _pageController.nextPage(
-                                  duration: const Duration(milliseconds: 300),
-                                  curve: Curves.easeIn);
-                            },
+                      onPressed: _currentPage == formPages.length - 1 ? null : () {
+                        FocusScope.of(context).unfocus();
+                        _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeIn);
+                      },
                       child: const Text('Próximo'),
                     ),
                   ],

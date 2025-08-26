@@ -1,39 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:primeiro_flutter/data/datasources/database.dart';
 import 'package:primeiro_flutter/domain/entities/medication.dart';
+import 'package:drift/drift.dart'; // LINHA ADICIONADA AQUI
 
 class MedicationProvider with ChangeNotifier {
-  final List<Medication> _medicationList = [
-    Medication(
-      name: 'Dipirona',
-      dose: '1 comprimido',
-      type: 'Comprimido',
-      stock: 30,
-      doseInterval: const Duration(hours: 8),
-      // MUDANÇA AQUI:
-      isContinuous: false, // Não é de uso contínuo
-      treatmentLength: 30, // Duração de 30...
-      treatmentUnit: 'Dias', // ...dias.
-      // totalDoses: 90, <-- REMOVIDO
-      firstDoseTime: DateTime(2025, 8, 25, 8, 0),
-    ),
-    Medication(
-      name: 'Paracetamol',
-      dose: '500mg',
-      type: 'Gotas',
-      stock: 20,
-      doseInterval: const Duration(hours: 6),
-      // E AQUI:
-      isContinuous: true, // É de uso contínuo, então não precisa de `treatmentLength` ou `treatmentUnit`.
-      // totalDoses: 60, <-- REMOVIDO
-      firstDoseTime: DateTime(2025, 8, 25, 12, 0),
-      notes: 'Tomar após a refeição',
-    ),
-  ];
+  final AppDatabase database;
+  List<Prescription> _medicationList = [];
 
-  List<Medication> get medicationList => _medicationList;
+  List<Prescription> get medicationList => _medicationList;
 
-  void addMedication(Medication medication) {
-    _medicationList.add(medication);
+  MedicationProvider({required this.database}) {
+    _loadMedications();
+  }
+
+  Future<void> _loadMedications() async {
+    _medicationList = await database.select(database.prescriptions).get();
     notifyListeners();
+  }
+
+  Future<void> addMedication(Medication medication) async {
+    final prescriptionCompanion = PrescriptionsCompanion.insert(
+      name: medication.name,
+      doseDescription: medication.dose,
+      type: medication.type,
+      stock: medication.stock,
+      doseInterval: medication.doseInterval.inMinutes,
+      isContinuous: medication.isContinuous,
+      durationTreatment: Value(medication.durationTreatment),
+      unitTreatment: Value(medication.unitTreatment),
+      firstDoseTime: medication.firstDoseTime,
+      notes: Value(medication.notes),
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    await database.into(database.prescriptions).insert(prescriptionCompanion);
+    await _loadMedications();
   }
 }
