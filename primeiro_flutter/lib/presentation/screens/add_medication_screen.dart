@@ -15,6 +15,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   final _pageController = PageController();
   int _currentPage = 0;
 
+  bool _isPageValid = false;
+
   int _selectedHour = DateTime.now().hour;
   int _selectedMinute = DateTime.now().minute;
   int _selectedIntervalHour = 8;
@@ -32,18 +34,75 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   final _stockController = TextEditingController();
   final _notesController = TextEditingController();
 
+  // Função que será chamada sempre que o texto de um campo mudar.
+  void _validatePage() {
+    bool isValid = false;
+    // Verificamos a página atual e o estado do seu respetivo controlador/variável.
+    switch (_currentPage) {
+      case 0: // Nome do medicamento
+        isValid = _nameController.text.isNotEmpty;
+        break;
+      case 1: // Tipo de medicamento
+        isValid = _selectedType != null;
+        if (_selectedType == 'Outros') {
+          isValid = _customTypeController.text.isNotEmpty;
+        }
+        break;
+      case 2: // Dose
+        isValid = _doseController.text.isNotEmpty;
+        break;
+      case 3: // Estoque
+        isValid = _stockController.text.isNotEmpty;
+        break;
+      case 4: // Hora da primeira dose - Sempre válido pois tem valor padrão
+      case 5: // Intervalo - Sempre válido pois tem valor padrão
+        isValid = true;
+        break;
+      case 6: // Duração do Tratamento
+        isValid = _isContinuous || _treatmentLengthController.text.isNotEmpty;
+        break;
+      case 7: // Observações - Opcional, então sempre válido para avançar.
+        isValid = true;
+        break;
+      default:
+        isValid = false;
+    }
+    // Usamos `setState` para reconstruir a tela com o novo estado do botão.
+    setState(() {
+      _isPageValid = isValid;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _pageController.addListener(() {
       setState(() {
         _currentPage = _pageController.page!.round();
+        _validatePage(); // Validamos a página sempre que o usuário navega.
       });
     });
+
+    // Adicionamos os "ouvintes" aos controladores de texto.
+    _nameController.addListener(_validatePage);
+    _doseController.addListener(_validatePage);
+    _stockController.addListener(_validatePage);
+    _customTypeController.addListener(_validatePage);
+    _treatmentLengthController.addListener(_validatePage);
+
+    // Chamamos a validação uma vez no início para definir o estado inicial do botão.
+    _validatePage();
   }
 
   @override
   void dispose() {
+    // Removemos os ouvintes para evitar erros de memória.
+    _nameController.removeListener(_validatePage);
+    _doseController.removeListener(_validatePage);
+    _stockController.removeListener(_validatePage);
+    _customTypeController.removeListener(_validatePage);
+    _treatmentLengthController.removeListener(_validatePage);
+    
     _pageController.dispose();
     _customTypeController.dispose();
     _nameController.dispose();
@@ -93,13 +152,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     required double screenWidth,
   }) {
     const types = [
-      'Comprimido',
-      'Injeção',
-      'Gotas',
-      'Líquido',
-      'Inalação',
-      'Pó',
-      'Outros'
+      'Comprimido', 'Injeção', 'Gotas', 'Líquido', 'Inalação', 'Pó', 'Outros'
     ];
     const blueColor = Color(0xFF23AFDC);
 
@@ -122,6 +175,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                 onPressed: () {
                   setState(() {
                     _selectedType = type;
+                    _validatePage(); // Validamos a página sempre que o tipo é selecionado.
                   });
                 },
                 style: ElevatedButton.styleFrom(
@@ -172,9 +226,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   child: CupertinoPicker(
                     itemExtent: 40,
                     onSelectedItemChanged: (index) {
-                      setState(() {
-                        _selectedHour = index;
-                      });
+                      setState(() { _selectedHour = index; });
                     },
                     scrollController:
                         FixedExtentScrollController(initialItem: _selectedHour),
@@ -189,9 +241,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   child: CupertinoPicker(
                     itemExtent: 40,
                     onSelectedItemChanged: (index) {
-                      setState(() {
-                        _selectedMinute = index;
-                      });
+                      setState(() { _selectedMinute = index; });
                     },
                     scrollController: FixedExtentScrollController(
                         initialItem: _selectedMinute),
@@ -233,9 +283,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   child: CupertinoPicker(
                     itemExtent: 40,
                     onSelectedItemChanged: (index) {
-                      setState(() {
-                        _selectedIntervalHour = index;
-                      });
+                      setState(() { _selectedIntervalHour = index; });
                     },
                     scrollController: FixedExtentScrollController(
                         initialItem: _selectedIntervalHour),
@@ -250,9 +298,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   child: CupertinoPicker(
                     itemExtent: 40,
                     onSelectedItemChanged: (index) {
-                      setState(() {
-                        _selectedIntervalMinute = index;
-                      });
+                      setState(() { _selectedIntervalMinute = index; });
                     },
                     scrollController: FixedExtentScrollController(
                         initialItem: _selectedIntervalMinute),
@@ -272,7 +318,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     );
   }
 
-  // 2. Nova função para construir a página de duração
   Widget _buildDurationPage({
     required double screenWidth,
   }) {
@@ -294,7 +339,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               Expanded(
                 child: TextFormField(
                   controller: _treatmentLengthController,
-                  // O campo fica desativado se `_isContinuous` for verdadeiro
                   enabled: !_isContinuous,
                   keyboardType: TextInputType.number,
                   decoration:
@@ -305,7 +349,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   value: _selectedTreatmentUnit,
-                  // O menu também fica desativado se `_isContinuous` for verdadeiro
                   onChanged: _isContinuous
                       ? null
                       : (value) {
@@ -322,14 +365,12 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               ),
             ],
           ),
-          // Usamos CheckboxListTile para ter o texto e a caixa de seleção juntos
           CheckboxListTile(
             title: const Text('Uso constante'),
             value: _isContinuous,
             onChanged: (value) {
               setState(() {
                 _isContinuous = value!;
-                // Se o usuário marcar a caixa, limpamos os outros campos
                 if (_isContinuous) {
                   _treatmentLengthController.clear();
                   _selectedTreatmentUnit = 'Dias';
@@ -338,7 +379,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
             },
             activeColor: blueColor,
             controlAffinity:
-                ListTileControlAffinity.leading, // Caixa à esquerda
+                ListTileControlAffinity.leading,
           ),
         ],
       ),
@@ -367,18 +408,27 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               AppBar(
-                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20.0))),
+                shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(20.0))),
                 title: const Text('Adicionar Medicamento'),
-                leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                leading: IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context)),
                 automaticallyImplyLeading: false,
               ),
-              FormProgressBar(totalPages: formPages.length, currentPage: _currentPage, activeColor: orangeColor, completedColor: blueColor),
+              FormProgressBar(
+                  totalPages: formPages.length,
+                  currentPage: _currentPage,
+                  activeColor: orangeColor,
+                  completedColor: blueColor),
               SizedBox(
                 height: screenHeight * 0.4,
                 child: PageView(
@@ -389,11 +439,17 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               ),
               if (_currentPage == formPages.length - 1)
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenWidth * 0.02),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.04,
+                      vertical: screenWidth * 0.02),
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(minimumSize: Size.fromHeight(screenHeight * 0.06), backgroundColor: blueColor, foregroundColor: Colors.black),
+                    style: ElevatedButton.styleFrom(
+                        minimumSize: Size.fromHeight(screenHeight * 0.06),
+                        backgroundColor: blueColor,
+                        foregroundColor: Colors.black),
                     onPressed: () {
-                      final provider = Provider.of<MedicationProvider>(context, listen: false);
+                      final provider =
+                          Provider.of<MedicationProvider>(context, listen: false);
                       String finalType;
                       if (_selectedType == 'Outros') {
                         finalType = _customTypeController.text;
@@ -401,11 +457,11 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                         finalType = _selectedType ?? 'Não definido';
                       }
                       final now = DateTime.now();
-                      final firstDoseDateTime = DateTime(now.year, now.month, now.day, _selectedHour, _selectedMinute);
-                      final doseIntervalDuration = Duration(hours: _selectedIntervalHour, minutes: _selectedIntervalMinute);
-                      
-                      // MUDANÇAS FINAIS AQUI:
-                      // Usamos os nomes corretos que estão na classe Medication
+                      final firstDoseDateTime = DateTime(now.year, now.month,
+                          now.day, _selectedHour, _selectedMinute);
+                      final doseIntervalDuration = Duration(
+                          hours: _selectedIntervalHour,
+                          minutes: _selectedIntervalMinute);
                       final newMedication = Medication(
                         name: _nameController.text,
                         dose: _doseController.text,
@@ -414,11 +470,14 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                         firstDoseTime: firstDoseDateTime,
                         doseInterval: doseIntervalDuration,
                         isContinuous: _isContinuous,
-                        durationTreatment: _isContinuous ? null : int.tryParse(_treatmentLengthController.text) ?? 0,
-                        unitTreatment: _isContinuous ? null : _selectedTreatmentUnit,
+                        durationTreatment: _isContinuous
+                            ? null
+                            : int.tryParse(_treatmentLengthController.text) ??
+                                0,
+                        unitTreatment:
+                            _isContinuous ? null : _selectedTreatmentUnit,
                         notes: _notesController.text,
                       );
-
                       provider.addMedication(newMedication);
                       Navigator.pop(context);
                     },
@@ -431,17 +490,26 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     ElevatedButton(
-                      onPressed: _currentPage == 0 ? null : () {
-                        FocusScope.of(context).unfocus();
-                        _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeIn);
-                      },
+                      onPressed: _currentPage == 0
+                          ? null
+                          : () {
+                              FocusScope.of(context).unfocus();
+                              _pageController.previousPage(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeIn);
+                            },
                       child: const Text('Anterior'),
                     ),
                     ElevatedButton(
-                      onPressed: _currentPage == formPages.length - 1 ? null : () {
-                        FocusScope.of(context).unfocus();
-                        _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeIn);
-                      },
+                      // MUDANÇA FINAL AQUI:
+                      // O botão "Próximo" só tem função se a página for válida
+                      // E se não for a última página.
+                      onPressed: (_isPageValid && _currentPage < formPages.length - 1)
+                          ? () {
+                              FocusScope.of(context).unfocus();
+                              _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeIn);
+                            }
+                          : null, // Se não, fica desativado.
                       child: const Text('Próximo'),
                     ),
                   ],
