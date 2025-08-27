@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:primeiro_flutter/data/datasources/database.dart';
 import 'package:primeiro_flutter/presentation/providers/medication_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -13,16 +14,26 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   DateTime _selectedDate = DateTime.now();
 
-  void _goToPreviousWeek() {
+  // Função para mudar a data e avisar o Provider
+  void _updateSelectedDate(DateTime newDate) {
     setState(() {
-      _selectedDate = _selectedDate.subtract(const Duration(days: 7));
+      _selectedDate = newDate;
     });
+    // A LINHA MAIS IMPORTANTE:
+    // Após mudar a data, pedimos ao provider para buscar as doses para este novo dia.
+    // `listen: false` é usado porque estamos a chamar uma função, não a ler um valor no `build`.
+    Provider.of<MedicationProvider>(context, listen: false)
+        .fetchDoseEventsForDay(newDate);
+  }
+
+  void _goToPreviousWeek() {
+    // Usamos a nova função para garantir que o provider seja notificado.
+    _updateSelectedDate(_selectedDate.subtract(const Duration(days: 7)));
   }
 
   void _goToNextWeek() {
-    setState(() {
-      _selectedDate = _selectedDate.add(const Duration(days: 7));
-    });
+    // Usamos a nova função aqui também.
+    _updateSelectedDate(_selectedDate.add(const Duration(days: 7)));
   }
 
   List<Widget> _generateWeekDays(double screenWidth) {
@@ -39,9 +50,8 @@ class _HomeScreenState extends State<HomeScreen> {
       weekDays.add(
         InkWell(
           onTap: () {
-            setState(() {
-              _selectedDate = currentDate;
-            });
+            // E finalmente, usamos a nova função aqui.
+            _updateSelectedDate(currentDate);
           },
           borderRadius: BorderRadius.circular(100),
           child: _DayItem(
@@ -121,10 +131,28 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: Consumer<MedicationProvider>(
               builder: (context, provider, child) {
+                // A nossa ListView agora vai mostrar a lista de `DoseEvents`.
+                final doseEvents = provider.doseEventsForDay;
+
+                // Se a lista estiver vazia, mostramos uma mensagem.
+                if (doseEvents.isEmpty) {
+                  return const Center(
+                    child: Text('Nenhuma dose para este dia.'),
+                  );
+                }
+
                 return ListView.builder(
-                  itemCount: provider.medicationList.length,
+                  itemCount: doseEvents.length,
                   itemBuilder: (BuildContext context, int index) {
-                    final medication = provider.medicationList[index];
+                    final doseEvent = doseEvents[index];
+                    
+                    // Encontramos a "receita" (Prescription) correspondente a esta dose
+                    final prescription = provider.prescriptionList.firstWhere(
+                      (p) => p.id == doseEvent.prescriptionId,
+                      // `orElse` é uma segurança para caso a prescrição não seja encontrada
+                      orElse: () => provider.prescriptionList.first, 
+                    );
+
                     return Card(
                       margin: EdgeInsets.symmetric(
                         horizontal: screenWidth * 0.04,
@@ -132,14 +160,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: ListTile(
                         leading: Text(
-                          DateFormat('HH:mm').format(medication.firstDoseTime),
+                          DateFormat('HH:mm').format(doseEvent.scheduledTime),
                           style: TextStyle(
                               fontSize: screenWidth * 0.04,
                               fontWeight: FontWeight.bold),
                         ),
-                        title: Text(medication.name),
-                        // MUDANÇA AQUI: Trocamos `dose` por `doseDescription`.
-                        subtitle: Text(medication.doseDescription),
+                        title: Text(prescription.name),
+                        subtitle: Text(prescription.doseDescription),
                         trailing: const Icon(Icons.check_circle_outline),
                       ),
                     );

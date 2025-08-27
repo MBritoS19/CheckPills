@@ -6,11 +6,8 @@ import 'package:path/path.dart' as p;
 
 part 'database.g.dart';
 
-// ENUM: Como discutimos, criamos um enum para os status da dose.
-// Isso torna o nosso código mais seguro e legível.
 enum DoseStatus { pendente, tomada, pulada }
 
-// TABELA 1: Settings
 class Settings extends Table {
   IntColumn get id => integer().withDefault(const Constant(1))();
   TextColumn get userName => text().nullable()();
@@ -24,15 +21,14 @@ class Settings extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-// TABELA 2: Prescriptions
-@DataClassName('Prescription') // Nomeia a classe de dados que será gerada
+@DataClassName('Prescription')
 class Prescriptions extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   TextColumn get doseDescription => text()();
   TextColumn get type => text()();
   IntColumn get stock => integer()();
-  IntColumn get doseInterval => integer()(); // Guardado em minutos
+  IntColumn get doseInterval => integer()();
   BoolColumn get isContinuous => boolean()();
   IntColumn get durationTreatment => integer().nullable()();
   TextColumn get unitTreatment => text().nullable()();
@@ -42,21 +38,16 @@ class Prescriptions extends Table {
   DateTimeColumn get updatedAt => dateTime()();
 }
 
-// TABELA 3: DoseEvents
 @DataClassName('DoseEvent')
 class DoseEvents extends Table {
   IntColumn get id => integer().autoIncrement()();
   
-  // CHAVE ESTRANGEIRA: Liga este evento a uma prescrição.
   IntColumn get prescriptionId => integer().references(Prescriptions, #id,
-      // REGRA DE EXCLUSÃO: Se uma prescrição for apagada,
-      // todas as doses ligadas a ela também serão (exclusão em cascata).
       onDelete: KeyAction.cascade)();
       
   DateTimeColumn get scheduledTime => dateTime()();
   DateTimeColumn get takenTime => dateTime().nullable()();
   
-  // Usamos .intEnum() para dizer ao Drift para guardar o nosso enum como um inteiro.
   IntColumn get status => intEnum<DoseStatus>()(); 
   
   DateTimeColumn get createdAt => dateTime()();
@@ -70,6 +61,23 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   int get schemaVersion => 1;
+
+  // NOVO MÉTODO AQUI
+  // Esta função vai buscar todos os eventos de dose para um dia específico.
+  Future<List<DoseEvent>> getDoseEventsForDay(DateTime date) {
+    // Definimos o início do dia (hora 00:00:00)
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    // Definimos o final do dia (hora 23:59:59)
+    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+
+    // `select(doseEvents)` inicia a consulta na tabela de DoseEvents.
+    // `where(...)` é a cláusula de filtro.
+    return (select(doseEvents)
+          ..where((row) =>
+              // Queremos as linhas onde o `scheduledTime` é MAIOR OU IGUAL ao início do dia
+              row.scheduledTime.isBetween(Variable(startOfDay), Variable(endOfDay))))
+        .get(); // `.get()` executa a consulta e retorna uma lista.
+  }
 }
 
 LazyDatabase _openConnection() {

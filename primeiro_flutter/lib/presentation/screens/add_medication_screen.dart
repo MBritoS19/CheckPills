@@ -1,8 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:primeiro_flutter/data/datasources/database.dart'; 
 import 'package:primeiro_flutter/domain/entities/medication.dart';
 import 'package:primeiro_flutter/presentation/providers/medication_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:drift/drift.dart' hide Column; 
 
 class AddMedicationScreen extends StatefulWidget {
   const AddMedicationScreen({super.key});
@@ -459,26 +461,24 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                       final now = DateTime.now();
                       final firstDoseDateTime = DateTime(now.year, now.month,
                           now.day, _selectedHour, _selectedMinute);
-                      final doseIntervalDuration = Duration(
-                          hours: _selectedIntervalHour,
-                          minutes: _selectedIntervalMinute);
-                      final newMedication = Medication(
+                      final newPrescription = PrescriptionsCompanion.insert(
                         name: _nameController.text,
-                        dose: _doseController.text,
+                        doseDescription: _doseController.text,
                         type: finalType,
                         stock: int.tryParse(_stockController.text) ?? 0,
                         firstDoseTime: firstDoseDateTime,
-                        doseInterval: doseIntervalDuration,
+                        doseInterval: Duration(hours: _selectedIntervalHour, minutes: _selectedIntervalMinute).inMinutes,
                         isContinuous: _isContinuous,
-                        durationTreatment: _isContinuous
-                            ? null
-                            : int.tryParse(_treatmentLengthController.text) ??
-                                0,
-                        unitTreatment:
-                            _isContinuous ? null : _selectedTreatmentUnit,
-                        notes: _notesController.text,
+                        durationTreatment: Value(_isContinuous ? null : int.tryParse(_treatmentLengthController.text) ?? 0),
+                        unitTreatment: Value(_isContinuous ? null : _selectedTreatmentUnit),
+                        notes: Value(_notesController.text),
+                        createdAt: DateTime.now(),
+                        updatedAt: DateTime.now(),
                       );
-                      provider.addMedication(newMedication);
+                      
+                      // Chamamos a função do provider com o novo objeto
+                      provider.addPrescription(newPrescription);
+                      
                       Navigator.pop(context);
                     },
                     child: const Text('Salvar Medicamento'),
