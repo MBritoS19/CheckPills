@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:primeiro_flutter/data/datasources/database.dart'; 
-import 'package:primeiro_flutter/domain/entities/medication.dart';
 import 'package:primeiro_flutter/presentation/providers/medication_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' hide Column; 

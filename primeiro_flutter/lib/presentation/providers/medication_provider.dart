@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:primeiro_flutter/data/datasources/database.dart';
-import 'package:drift/drift.dart' hide Column;
 
 class MedicationProvider with ChangeNotifier {
   final AppDatabase database;

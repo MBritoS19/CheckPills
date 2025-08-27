@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:primeiro_flutter/data/datasources/database.dart';
 import 'package:primeiro_flutter/presentation/providers/medication_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
