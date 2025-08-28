@@ -13,25 +13,19 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   DateTime _selectedDate = DateTime.now();
 
-  // Função para mudar a data e avisar o Provider
   void _updateSelectedDate(DateTime newDate) {
     setState(() {
       _selectedDate = newDate;
     });
-    // A LINHA MAIS IMPORTANTE:
-    // Após mudar a data, pedimos ao provider para buscar as doses para este novo dia.
-    // `listen: false` é usado porque estamos a chamar uma função, não a ler um valor no `build`.
     Provider.of<MedicationProvider>(context, listen: false)
         .fetchDoseEventsForDay(newDate);
   }
 
   void _goToPreviousWeek() {
-    // Usamos a nova função para garantir que o provider seja notificado.
     _updateSelectedDate(_selectedDate.subtract(const Duration(days: 7)));
   }
 
   void _goToNextWeek() {
-    // Usamos a nova função aqui também.
     _updateSelectedDate(_selectedDate.add(const Duration(days: 7)));
   }
 
@@ -49,7 +43,6 @@ class _HomeScreenState extends State<HomeScreen> {
       weekDays.add(
         InkWell(
           onTap: () {
-            // E finalmente, usamos a nova função aqui.
             _updateSelectedDate(currentDate);
           },
           borderRadius: BorderRadius.circular(100),
@@ -76,10 +69,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(children: const [
-          Icon(Icons.medication_liquid),
-          SizedBox(width: 8),
-          Text('Nome do Usuário'),
+        // A propriedade `backgroundColor` foi REMOVIDA daqui.
+        // Agora a cor virá do `appTheme` que definimos no `main.dart`.
+        title: Row(children: [
+          SizedBox(
+            height: 40,
+            width: 40,
+            child: Image.asset('assets/images/logo.jpg'),
+          ),
+          const SizedBox(width: 8),
+          const Text('Nome do Usuário'),
         ]),
         actions: [
           IconButton(
@@ -92,6 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           const Divider(color: orangeColor, height: 1, thickness: 1),
           Container(
+            // Este cinza é para o seletor de data, então ele pode ser mantido.
             color: Colors.grey[200],
             padding: EdgeInsets.symmetric(vertical: screenWidth * 0.02),
             child: Column(
@@ -130,29 +130,23 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: Consumer<MedicationProvider>(
               builder: (context, provider, child) {
-                // A nossa ListView agora vai mostrar a lista de `DoseEvents`.
                 final doseEvents = provider.doseEventsForDay;
-
-                // Se a lista estiver vazia, mostramos uma mensagem.
                 if (doseEvents.isEmpty) {
                   return const Center(
                     child: Text('Nenhuma dose para este dia.'),
                   );
                 }
-
                 return ListView.builder(
                   itemCount: doseEvents.length,
                   itemBuilder: (BuildContext context, int index) {
                     final doseEvent = doseEvents[index];
-                    
-                    // Encontramos a "receita" (Prescription) correspondente a esta dose
                     final prescription = provider.prescriptionList.firstWhere(
                       (p) => p.id == doseEvent.prescriptionId,
-                      // `orElse` é uma segurança para caso a prescrição não seja encontrada
-                      orElse: () => provider.prescriptionList.first, 
+                      orElse: () => provider.prescriptionList.first,
                     );
-
                     return Card(
+                      // A propriedade `color` foi REMOVIDA daqui.
+                      // Agora a cor do Card virá do `appTheme`.
                       margin: EdgeInsets.symmetric(
                         horizontal: screenWidth * 0.04,
                         vertical: screenWidth * 0.02,
