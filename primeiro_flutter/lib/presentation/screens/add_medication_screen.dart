@@ -8,9 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' hide Column;
 
 class AddMedicationScreen extends StatefulWidget {
-  final Prescription? prescription;
-
-  const AddMedicationScreen({super.key, this.prescription});
+  const AddMedicationScreen({super.key});
 
   @override
   State<AddMedicationScreen> createState() => _AddMedicationScreenState();
@@ -575,14 +573,10 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   completedColor: blueColor),
               SizedBox(
                 height: screenHeight * 0.4,
-                child: Form(
-                  // ADICIONADO: Envolva o PageView com um Form
-                  key: _formKey,
-                  child: PageView(
-                    controller: _pageController,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: formPages,
-                  ),
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: formPages,
                 ),
               ),
               if (_currentPage == formPages.length - 1)
@@ -595,80 +589,49 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                         minimumSize: Size.fromHeight(screenHeight * 0.06),
                         backgroundColor: blueColor,
                         foregroundColor: Colors.black),
-                    onPressed: () async {
-                      if (_formKey.currentState!.validate()) {
-                        _formKey.currentState!.save();
-                        final medicationProvider =
-                            Provider.of<MedicationProvider>(context,
-                                listen: false);
-                        final firstDoseTime = DateTime(
-                          DateTime.now().year,
-                          DateTime.now().month,
-                          DateTime.now().day,
-                          _selectedHour,
-                          _selectedMinute,
-                        );
-
-                        if (widget.prescription == null) {
-                          await medicationProvider.addPrescription(
-                            PrescriptionsCompanion(
-                              name: Value(_nameController.text),
-                              doseDescription: Value(_doseController.text),
-                              type: Value(
-                                  _selectedType ?? _customTypeController.text),
-                              stock: Value(
-                                  int.tryParse(_stockController.text) ?? 0),
-                              doseInterval: Value(_selectedIntervalHour * 60 +
-                                  _selectedIntervalMinute),
-                              isContinuous: Value(_isContinuous),
-                              durationTreatment: Value(_isContinuous
-                                  ? null
-                                  : int.tryParse(
-                                      _treatmentLengthController.text)),
-                              unitTreatment: Value(_isContinuous
-                                  ? null
-                                  : _selectedTreatmentUnit),
-                              firstDoseTime: Value(firstDoseTime),
-                              notes: Value(_notesController.text.isEmpty
-                                  ? null
-                                  : _notesController.text), // LINHA ADICIONADA
-                              createdAt: Value(DateTime.now()),
-                              updatedAt: Value(DateTime.now()),
-                            ),
-                          );
-                        } else {
-                          await medicationProvider.updatePrescription(
-                            widget.prescription!.id,
-                            PrescriptionsCompanion(
-                              name: Value(_nameController.text),
-                              doseDescription: Value(_doseController.text),
-                              type: Value(
-                                  _selectedType ?? _customTypeController.text),
-                              stock: Value(
-                                  int.tryParse(_stockController.text) ?? 0),
-                              doseInterval: Value(_selectedIntervalHour * 60 +
-                                  _selectedIntervalMinute),
-                              isContinuous: Value(_isContinuous),
-                              durationTreatment: Value(_isContinuous
-                                  ? null
-                                  : int.tryParse(
-                                      _treatmentLengthController.text)),
-                              unitTreatment: Value(_isContinuous
-                                  ? null
-                                  : _selectedTreatmentUnit),
-                              firstDoseTime: Value(firstDoseTime),
-                              notes: Value(_notesController.text.isEmpty
-                                  ? null
-                                  : _notesController.text), // LINHA ADICIONADA
-                              updatedAt: Value(DateTime.now()),
-                            ),
-                          );
-                        }
-
-                        if (mounted) {
-                          Navigator.of(context).pop();
-                        }
+                    onPressed: () {
+                      final provider =
+                          Provider.of<MedicationProvider>(context, listen: false);
+                      
+                      String finalType;
+                      if (_selectedType == 'Outros') {
+                        finalType = _customTypeController.text;
+                      } else {
+                        finalType = _selectedType ?? 'Não definido';
                       }
+
+                      final now = DateTime.now();
+                      final firstDoseDateTime = DateTime(now.year, now.month,
+                          now.day, _selectedHour, _selectedMinute);
+
+                      // MUDANÇA PRINCIPAL AQUI:
+                      // Criamos o PrescriptionsCompanion que o novo `addPrescription` espera.
+                      final newPrescription = PrescriptionsCompanion.insert(
+                        name: _nameController.text,
+                        doseDescription: _doseController.text,
+                        type: finalType,
+                        stock: int.tryParse(_stockController.text) ?? 0,
+                        firstDoseTime: firstDoseDateTime,
+                        doseInterval: Duration(
+                                hours: _selectedIntervalHour,
+                                minutes: _selectedIntervalMinute)
+                            .inMinutes,
+                        isContinuous: _isContinuous,
+                        durationTreatment: Value(_isContinuous
+                            ? null
+                            : int.tryParse(_treatmentLengthController.text) ??
+                                0),
+                        unitTreatment:
+                            Value(_isContinuous ? null : _selectedTreatmentUnit),
+                        notes: Value(_notesController.text),
+                        createdAt: DateTime.now(),
+                        updatedAt: DateTime.now(),
+                      );
+
+                      // Chamamos a função do provider com o novo objeto.
+                      provider.addPrescription(newPrescription);
+
+                      Navigator.pop(context);
                     },
                     child: const Text('Salvar Medicamento'),
                   ),
