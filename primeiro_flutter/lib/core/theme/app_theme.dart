@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 // A sua cor de fundo. Corrigi o código hexadecimal para o que estava na sua documentação.
 const Color appBackgroundColor = Color(0xFFD9D9D9);
+const Color orangeColor = Color(0xFFF2994A);
 
 final ThemeData appTheme = ThemeData(
   scaffoldBackgroundColor: appBackgroundColor,

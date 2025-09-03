@@ -1,4 +1,7 @@
+// lib/main.dart
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:primeiro_flutter/presentation/providers/medication_provider.dart';
 import 'package:primeiro_flutter/presentation/screens/add_medication_screen.dart';
@@ -11,14 +14,17 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt_BR', null);
 
-  // 2. Envolvemos nosso aplicativo com o ChangeNotifierProvider
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+  
   runApp(
     Provider<AppDatabase>(
       create: (context) => AppDatabase(),
       dispose: (context, db) => db.close(),
       child: ChangeNotifierProvider(
         create: (context) => MedicationProvider(
-          // Passamos a instância do AppDatabase para o MedicationProvider
           database: Provider.of<AppDatabase>(context, listen: false),
         ),
         child: const MyApp(),
@@ -33,6 +39,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
+      debugShowCheckedModeBanner: false, // <-- A linha que remove a faixa de debug
       home: MainScreen(),
     );
   }
@@ -47,25 +54,16 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int? _selectedIndex = 0;
+  int _selectedIndex = 0;
+  static const List<Widget> _widgetOptions = <Widget>[
+    HomeScreen(),
+    ConfigurationScreen(),
+  ];
 
   void _onItemTapped(int index) {
-    if (index == 1) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-        ),
-        builder: (BuildContext context) {
-          return const AddMedicationScreen();
-        },
-      );
-    } else {
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   @override
