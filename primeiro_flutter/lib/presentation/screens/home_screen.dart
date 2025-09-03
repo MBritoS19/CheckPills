@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:primeiro_flutter/presentation/providers/medication_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:primeiro_flutter/data/datasources/database.dart';
-import 'package:primeiro_flutter/presentation/widgets/dose_event_card.dart';
-import 'package:primeiro_flutter/presentation/screens/add_medication_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,6 +12,15 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   DateTime _selectedDate = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    // Garante que as doses para o dia inicial sejam carregadas quando a tela é construída.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateSelectedDate(DateTime.now());
+    });
+  }
 
   void _updateSelectedDate(DateTime newDate) {
     setState(() {
@@ -72,8 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        // A propriedade `backgroundColor` foi REMOVIDA daqui.
-        // Agora a cor virá do `appTheme` que definimos no `main.dart`.
         title: Row(children: [
           SizedBox(
             height: 40,
@@ -94,7 +98,6 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           const Divider(color: orangeColor, height: 1, thickness: 1),
           Container(
-            // Este cinza é para o seletor de data, então ele pode ser mantido.
             color: Colors.grey[200],
             padding: EdgeInsets.symmetric(vertical: screenWidth * 0.02),
             child: Column(
@@ -132,89 +135,37 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Expanded(
             child: Consumer<MedicationProvider>(
-              builder: (context, medicationProvider, child) {
-                if (medicationProvider.doseEventsForDay.isEmpty) {
+              builder: (context, provider, child) {
+                final doseEventsResults = provider.doseEventsForDay;
+
+                if (doseEventsResults.isEmpty) {
                   return const Center(
-                      child: Text("Nenhuma dose agendada para este dia."));
+                    child: Text('Nenhuma dose para este dia.'),
+                  );
                 }
 
                 return ListView.builder(
-                  itemCount: medicationProvider.doseEventsForDay.length,
-                  itemBuilder: (context, index) {
-                    final combinedData =
-                        medicationProvider.doseEventsForDay[index];
+                  itemCount: doseEventsResults.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    final result = doseEventsResults[index];
 
-                    return Dismissible(
-                      key: Key(combinedData.prescription.id.toString()),
-                      direction: DismissDirection.endToStart,
-                      background: Container(
-                        color: Colors.red,
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20.0),
-                        child: const Icon(Icons.delete,
-                            color: Colors.white, size: 30),
+                    return Card(
+                      margin: EdgeInsets.symmetric(
+                        horizontal: screenWidth * 0.04,
+                        vertical: screenWidth * 0.02,
                       ),
-                      confirmDismiss: (direction) async {
-                        final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: const Text('Confirmação'),
-                              content: const Text(
-                                  'Tem certeza de que deseja excluir este medicamento?'),
-                              actions: <Widget>[
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pop(false);
-                                  },
-                                  child: const Text('Cancelar'),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pop(true);
-                                  },
-                                  child: const Text('Apagar'),
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                        return confirmed ?? false;
-                      },
-                      onDismissed: (direction) {
-                        medicationProvider
-                            .deletePrescription(combinedData.prescription.id);
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                '${combinedData.prescription.name} excluído.'),
-                          ),
-                        );
-                      },
-                      child: DoseEventCard(
-                        combinedData: combinedData,
-                        onEdit: () {
-                          // Abre o modal de edição
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(20.0),
-                              ),
-                            ),
-                            builder: (BuildContext context) {
-                              // Passa a medicação correta para a tela de edição
-                              return AddMedicationScreen(
-                                prescription: combinedData.prescription,
-                              );
-                            },
-                          );
-                        },
-                        onToggleStatus: (doseEvent) {
-                          medicationProvider.toggleDoseStatus(doseEvent);
-                        },
+                      child: ListTile(
+                        leading: Text(
+                          // CORREÇÃO FINAL: Usamos `result.scheduledTime`
+                          DateFormat('HH:mm').format(result.scheduledTime),
+                          style: TextStyle(
+                              fontSize: screenWidth * 0.04,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        // CORREÇÃO FINAL: Usamos `result.p.name` e `result.p.doseDescription`
+                        title: Text(result.p.name),
+                        subtitle: Text(result.p.doseDescription),
+                        trailing: const Icon(Icons.check_circle_outline),
                       ),
                     );
                   },

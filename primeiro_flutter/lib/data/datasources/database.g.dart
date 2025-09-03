@@ -50,13 +50,17 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
   @override
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
       'created_at', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
   static const VerificationMeta _updatedAtMeta =
       const VerificationMeta('updatedAt');
   @override
   late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
       'updated_at', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -103,14 +107,10 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
-    } else if (isInserting) {
-      context.missing(_createdAtMeta);
     }
     if (data.containsKey('updated_at')) {
       context.handle(_updatedAtMeta,
           updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
-    } else if (isInserting) {
-      context.missing(_updatedAtMeta);
     }
     return context;
   }
@@ -308,10 +308,9 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.standardPillType = const Value.absent(),
     this.darkMode = const Value.absent(),
     this.refillReminder = const Value.absent(),
-    required DateTime createdAt,
-    required DateTime updatedAt,
-  })  : createdAt = Value(createdAt),
-        updatedAt = Value(updatedAt);
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
   static Insertable<Setting> custom({
     Expression<int>? id,
     Expression<String>? userName,
@@ -472,13 +471,17 @@ class $PrescriptionsTable extends Prescriptions
   @override
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
       'created_at', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
   static const VerificationMeta _updatedAtMeta =
       const VerificationMeta('updatedAt');
   @override
   late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
       'updated_at', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -577,14 +580,10 @@ class $PrescriptionsTable extends Prescriptions
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
-    } else if (isInserting) {
-      context.missing(_createdAtMeta);
     }
     if (data.containsKey('updated_at')) {
       context.handle(_updatedAtMeta,
           updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
-    } else if (isInserting) {
-      context.missing(_updatedAtMeta);
     }
     return context;
   }
@@ -902,17 +901,15 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
     this.unitTreatment = const Value.absent(),
     required DateTime firstDoseTime,
     this.notes = const Value.absent(),
-    required DateTime createdAt,
-    required DateTime updatedAt,
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
   })  : name = Value(name),
         doseDescription = Value(doseDescription),
         type = Value(type),
         stock = Value(stock),
         doseInterval = Value(doseInterval),
         isContinuous = Value(isContinuous),
-        firstDoseTime = Value(firstDoseTime),
-        createdAt = Value(createdAt),
-        updatedAt = Value(updatedAt);
+        firstDoseTime = Value(firstDoseTime);
   static Insertable<Prescription> custom({
     Expression<int>? id,
     Expression<String>? name,
@@ -1081,20 +1078,26 @@ class $DoseEventsTable extends DoseEvents
   @override
   late final GeneratedColumnWithTypeConverter<DoseStatus, int> status =
       GeneratedColumn<int>('status', aliasedName, false,
-              type: DriftSqlType.int, requiredDuringInsert: true)
+              type: DriftSqlType.int,
+              requiredDuringInsert: false,
+              defaultValue: const Constant(0))
           .withConverter<DoseStatus>($DoseEventsTable.$converterstatus);
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
       'created_at', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
   static const VerificationMeta _updatedAtMeta =
       const VerificationMeta('updatedAt');
   @override
   late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
       'updated_at', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -1141,14 +1144,10 @@ class $DoseEventsTable extends DoseEvents
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
-    } else if (isInserting) {
-      context.missing(_createdAtMeta);
     }
     if (data.containsKey('updated_at')) {
       context.handle(_updatedAtMeta,
           updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
-    } else if (isInserting) {
-      context.missing(_updatedAtMeta);
     }
     return context;
   }
@@ -1348,14 +1347,11 @@ class DoseEventsCompanion extends UpdateCompanion<DoseEvent> {
     required int prescriptionId,
     required DateTime scheduledTime,
     this.takenTime = const Value.absent(),
-    required DoseStatus status,
-    required DateTime createdAt,
-    required DateTime updatedAt,
+    this.status = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
   })  : prescriptionId = Value(prescriptionId),
-        scheduledTime = Value(scheduledTime),
-        status = Value(status),
-        createdAt = Value(createdAt),
-        updatedAt = Value(updatedAt);
+        scheduledTime = Value(scheduledTime);
   static Insertable<DoseEvent> custom({
     Expression<int>? id,
     Expression<int>? prescriptionId,
@@ -1444,6 +1440,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SettingsTable settings = $SettingsTable(this);
   late final $PrescriptionsTable prescriptions = $PrescriptionsTable(this);
   late final $DoseEventsTable doseEvents = $DoseEventsTable(this);
+  late final SettingsDao settingsDao = SettingsDao(this as AppDatabase);
+  late final PrescriptionsDao prescriptionsDao =
+      PrescriptionsDao(this as AppDatabase);
+  late final DoseEventsDao doseEventsDao = DoseEventsDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1470,8 +1470,8 @@ typedef $$SettingsTableCreateCompanionBuilder = SettingsCompanion Function({
   Value<String?> standardPillType,
   Value<bool> darkMode,
   Value<int> refillReminder,
-  required DateTime createdAt,
-  required DateTime updatedAt,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
 });
 typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
   Value<int> id,
@@ -1626,8 +1626,8 @@ class $$SettingsTableTableManager extends RootTableManager<
             Value<String?> standardPillType = const Value.absent(),
             Value<bool> darkMode = const Value.absent(),
             Value<int> refillReminder = const Value.absent(),
-            required DateTime createdAt,
-            required DateTime updatedAt,
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
           }) =>
               SettingsCompanion.insert(
             id: id,
@@ -1670,8 +1670,8 @@ typedef $$PrescriptionsTableCreateCompanionBuilder = PrescriptionsCompanion
   Value<String?> unitTreatment,
   required DateTime firstDoseTime,
   Value<String?> notes,
-  required DateTime createdAt,
-  required DateTime updatedAt,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
 });
 typedef $$PrescriptionsTableUpdateCompanionBuilder = PrescriptionsCompanion
     Function({
@@ -1972,8 +1972,8 @@ class $$PrescriptionsTableTableManager extends RootTableManager<
             Value<String?> unitTreatment = const Value.absent(),
             required DateTime firstDoseTime,
             Value<String?> notes = const Value.absent(),
-            required DateTime createdAt,
-            required DateTime updatedAt,
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
           }) =>
               PrescriptionsCompanion.insert(
             id: id,
@@ -2040,9 +2040,9 @@ typedef $$DoseEventsTableCreateCompanionBuilder = DoseEventsCompanion Function({
   required int prescriptionId,
   required DateTime scheduledTime,
   Value<DateTime?> takenTime,
-  required DoseStatus status,
-  required DateTime createdAt,
-  required DateTime updatedAt,
+  Value<DoseStatus> status,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
 });
 typedef $$DoseEventsTableUpdateCompanionBuilder = DoseEventsCompanion Function({
   Value<int> id,
@@ -2266,9 +2266,9 @@ class $$DoseEventsTableTableManager extends RootTableManager<
             required int prescriptionId,
             required DateTime scheduledTime,
             Value<DateTime?> takenTime = const Value.absent(),
-            required DoseStatus status,
-            required DateTime createdAt,
-            required DateTime updatedAt,
+            Value<DoseStatus> status = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
           }) =>
               DoseEventsCompanion.insert(
             id: id,
@@ -2345,4 +2345,15 @@ class $AppDatabaseManager {
       $$PrescriptionsTableTableManager(_db, _db.prescriptions);
   $$DoseEventsTableTableManager get doseEvents =>
       $$DoseEventsTableTableManager(_db, _db.doseEvents);
+}
+
+mixin _$SettingsDaoMixin on DatabaseAccessor<AppDatabase> {
+  $SettingsTable get settings => attachedDatabase.settings;
+}
+mixin _$PrescriptionsDaoMixin on DatabaseAccessor<AppDatabase> {
+  $PrescriptionsTable get prescriptions => attachedDatabase.prescriptions;
+}
+mixin _$DoseEventsDaoMixin on DatabaseAccessor<AppDatabase> {
+  $PrescriptionsTable get prescriptions => attachedDatabase.prescriptions;
+  $DoseEventsTable get doseEvents => attachedDatabase.doseEvents;
 }
