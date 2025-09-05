@@ -1,5 +1,3 @@
-// lib/main.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -18,7 +16,7 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   runApp(
     Provider<AppDatabase>(
       create: (context) => AppDatabase(),
@@ -39,13 +37,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      debugShowCheckedModeBanner: false, // <-- A linha que remove a faixa de debug
+      debugShowCheckedModeBanner: false,
       home: MainScreen(),
     );
   }
 }
 
-// O resto do arquivo continua exatamente igual...
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -54,13 +51,14 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  // A variável não precisa mais de ser nula. Começa sempre em 0.
   int _selectedIndex = 0;
-  static const List<Widget> _widgetOptions = <Widget>[
-    HomeScreen(),
-    ConfigurationScreen(),
-  ];
+
+  // A lista `_widgetOptions` desnecessária foi removida.
 
   void _onItemTapped(int index) {
+    // A lógica de abrir o modal foi movida para o onPressed do FAB.
+    // Esta função agora só precisa de atualizar o índice.
     setState(() {
       _selectedIndex = index;
     });
@@ -71,14 +69,15 @@ class _MainScreenState extends State<MainScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
+    // A lista de telas agora está aqui, de forma mais limpa.
     final List<Widget> screens = [
-      const HomeScreen(),
-      const ConfigurationScreen(),
+      const HomeScreen(), // Índice 0
+      const ConfigurationScreen(), // Índice 1
     ];
 
-    final Widget currentScreen = (_selectedIndex ?? 0) >= screens.length
-        ? screens[0]
-        : screens[_selectedIndex ?? 0];
+    // A lógica para escolher a tela foi simplificada.
+    // `_selectedIndex` nunca será nulo.
+    final Widget currentScreen = screens[_selectedIndex];
 
     const blueColor = Color(0xFF23AFDC);
 

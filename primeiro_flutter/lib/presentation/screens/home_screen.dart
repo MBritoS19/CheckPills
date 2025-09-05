@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:primeiro_flutter/data/datasources/database.dart';
 import 'package:primeiro_flutter/presentation/providers/medication_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:primeiro_flutter/presentation/screens/add_medication_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,7 +18,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Garante que as doses para o dia inicial sejam carregadas quando a tela é construída.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateSelectedDate(DateTime.now());
     });
@@ -68,6 +69,19 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
     return weekDays;
+  }
+
+  void _navigateToEditScreen(Prescription prescription) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+      ),
+      builder: (BuildContext context) {
+        return AddMedicationScreen(prescription: prescription);
+      },
+    );
   }
 
   @override
@@ -148,24 +162,82 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemCount: doseEventsResults.length,
                   itemBuilder: (BuildContext context, int index) {
                     final result = doseEventsResults[index];
+                    // CORREÇÃO FINAL: Usamos os nomes corretos da nossa classe auxiliar.
+                    final doseEvent = result.doseEvent;
+                    final prescription = result.prescription;
+                    final isTaken = doseEvent.status == DoseStatus.tomada;
 
-                    return Card(
-                      margin: EdgeInsets.symmetric(
-                        horizontal: screenWidth * 0.04,
-                        vertical: screenWidth * 0.02,
+                    return Dismissible(
+                      key: ValueKey(prescription.id),
+                      background: Container(
+                        color: Colors.blueAccent,
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.only(left: 20),
+                        child: const Icon(Icons.edit, color: Colors.white),
                       ),
-                      child: ListTile(
-                        leading: Text(
-                          // CORREÇÃO FINAL: Usamos `result.scheduledTime`
-                          DateFormat('HH:mm').format(result.scheduledTime),
-                          style: TextStyle(
-                              fontSize: screenWidth * 0.04,
-                              fontWeight: FontWeight.bold),
+                      secondaryBackground: Container(
+                        color: Colors.red,
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      confirmDismiss: (direction) async {
+                        if (direction == DismissDirection.endToStart) {
+                          return await showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text('Confirmar Exclusão'),
+                                content: Text(
+                                    'Tem a certeza de que deseja excluir a prescrição de ${prescription.name}? Todas as doses futuras serão removidas.'),
+                                actions: <Widget>[
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(false),
+                                    child: const Text('Cancelar'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(true),
+                                    child: const Text('Excluir'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        } else {
+                          _navigateToEditScreen(prescription);
+                          return false;
+                        }
+                      },
+                      onDismissed: (direction) {
+                        if (direction == DismissDirection.endToStart) {
+                          provider.deletePrescription(prescription.id);
+                        }
+                      },
+                      child: Card(
+                        child: ListTile(
+                          leading: Text(
+                            DateFormat('HH:mm').format(doseEvent.scheduledTime),
+                            style: TextStyle(
+                                fontSize: screenWidth * 0.04,
+                                fontWeight: FontWeight.bold),
+                          ),
+                          title: Text(prescription.name),
+                          subtitle: Text(prescription.doseDescription),
+                          trailing: IconButton(
+                            icon: Icon(
+                              isTaken
+                                  ? Icons.check_circle
+                                  : Icons.radio_button_unchecked,
+                              color: isTaken ? blueColor : Colors.grey,
+                              size: 30,
+                            ),
+                            onPressed: () {
+                              provider.toggleDoseStatus(doseEvent);
+                            },
+                          ),
                         ),
-                        // CORREÇÃO FINAL: Usamos `result.p.name` e `result.p.doseDescription`
-                        title: Text(result.p.name),
-                        subtitle: Text(result.p.doseDescription),
-                        trailing: const Icon(Icons.check_circle_outline),
                       ),
                     );
                   },

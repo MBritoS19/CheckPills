@@ -8,7 +8,13 @@ import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' hide Column;
 
 class AddMedicationScreen extends StatefulWidget {
-  const AddMedicationScreen({super.key});
+  // MUDANÇA 1: Adicionamos a propriedade opcional para receber um medicamento a ser editado.
+  final Prescription? prescription;
+
+  const AddMedicationScreen({
+    super.key,
+    this.prescription, // Tornamo-la opcional
+  });
 
   @override
   State<AddMedicationScreen> createState() => _AddMedicationScreenState();
@@ -17,7 +23,6 @@ class AddMedicationScreen extends StatefulWidget {
 class _AddMedicationScreenState extends State<AddMedicationScreen> {
   final _pageController = PageController();
   int _currentPage = 0;
-  final _formKey = GlobalKey<FormState>(); // ADICIONADO: Variável do formKey
 
   bool _isPageValid = false;
 
@@ -74,116 +79,78 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     });
   }
 
-  void _saveMedication(MedicationProvider provider) {
-    if (!_isPageValid) return;
+  void _onSave() {
+    final provider = Provider.of<MedicationProvider>(context, listen: false);
 
-    final name = _nameController.text;
-    final dose = _doseController.text;
-    final type =
-        _selectedType == 'Outros' ? _customTypeController.text : _selectedType;
-    final stock = int.tryParse(_stockController.text) ?? 0;
-    final doseInterval = Duration(
-        hours: _selectedIntervalHour, minutes: _selectedIntervalMinute);
-    final firstDoseTime = DateTime(DateTime.now().year, DateTime.now().month,
-        DateTime.now().day, _selectedHour, _selectedMinute, 0);
-
-    final durationTreatment = int.tryParse(_treatmentLengthController.text);
-    final isContinuous = _isContinuous;
-    final unitTreatment = _selectedTreatmentUnit;
-    final notes = _notesController.text.isEmpty ? null : _notesController.text;
-
-    final prescriptionCompanion = PrescriptionsCompanion(
-      name: Value(name),
-      doseDescription: Value(dose),
-      type: Value(type!),
-      stock: Value(stock),
-      doseInterval: Value(doseInterval.inMinutes),
-      isContinuous: Value(isContinuous),
-      durationTreatment:
-          isContinuous ? const Value.absent() : Value(durationTreatment),
-      unitTreatment: isContinuous ? const Value.absent() : Value(unitTreatment),
-      firstDoseTime: Value(firstDoseTime),
-      notes:
-          Value(_notesController.text.isEmpty ? null : _notesController.text),
-    );
-
-    if (widget.prescription == null) {
-      provider.addPrescription(prescriptionCompanion);
+    String finalType;
+    if (_selectedType == 'Outros') {
+      finalType = _customTypeController.text;
     } else {
-      provider.updatePrescription(
-          widget.prescription!.id, prescriptionCompanion);
+      finalType = _selectedType ?? 'Não definido';
     }
 
-    Navigator.of(context).pop();
-  }
+    final now = DateTime.now();
+    final firstDoseDateTime =
+        DateTime(now.year, now.month, now.day, _selectedHour, _selectedMinute);
 
-  void _onFinishPressed(MedicationProvider medicationProvider) async {
-    if (!_isPageValid) return;
+    final doseIntervalDuration = Duration(
+        hours: _selectedIntervalHour, minutes: _selectedIntervalMinute);
 
-    final newPrescription = PrescriptionsCompanion(
-      // AQUI: Usamos o `Value` do Drift para campos que podem ser nulos
-      id: widget.prescription?.id != null
-          ? Value(widget.prescription!.id)
-          : const Value.absent(),
+    // Criamos o Companion com todos os dados do formulário
+    final prescriptionCompanion = PrescriptionsCompanion(
       name: Value(_nameController.text),
       doseDescription: Value(_doseController.text),
+      type: Value(finalType),
       stock: Value(int.tryParse(_stockController.text) ?? 0),
-      type: Value(_selectedType ?? _customTypeController.text),
-      doseInterval: Value(Duration(
-              hours: _selectedIntervalHour, minutes: _selectedIntervalMinute)
-          .inMinutes),
-      firstDoseTime: Value(DateTime(
-        DateTime.now().year,
-        DateTime.now().month,
-        DateTime.now().day,
-        _selectedHour,
-        _selectedMinute,
-      )),
-      notes:
-          Value(_notesController.text.isEmpty ? null : _notesController.text),
+      firstDoseTime: Value(firstDoseDateTime),
+      doseInterval: Value(doseIntervalDuration.inMinutes),
       isContinuous: Value(_isContinuous),
-      durationTreatment: Value(
-          _isContinuous ? null : int.tryParse(_treatmentLengthController.text)),
+      durationTreatment: Value(_isContinuous
+          ? null
+          : int.tryParse(_treatmentLengthController.text) ?? 0),
       unitTreatment: Value(_isContinuous ? null : _selectedTreatmentUnit),
+      notes: Value(_notesController.text),
+      updatedAt: Value(DateTime.now()),
     );
 
-    // Lógica de correção para chamar a função correta
+    // A LÓGICA PRINCIPAL:
+    // `widget.prescription` vem da HomeScreen quando queremos editar.
+    // Se ele não for nulo, significa que estamos em MODO DE EDIÇÃO.
     if (widget.prescription != null) {
-      // Modo de edição: atualiza o medicamento existente
-      await medicationProvider.updatePrescription(
-          widget.prescription!.id, newPrescription);
+      provider.updatePrescription(
+          widget.prescription!.id, prescriptionCompanion);
     } else {
-      // Modo de adição: cria um novo medicamento
-      await medicationProvider.addPrescription(newPrescription);
+      // Senão, estamos em MODO DE ADIÇÃO.
+      provider.addPrescription(prescriptionCompanion.copyWith(
+        createdAt: Value(DateTime.now()),
+      ));
     }
 
-    // Fecha a tela
-    if (mounted) {
-      Navigator.of(context).pop();
-    }
+    Navigator.pop(context);
   }
 
   @override
   void initState() {
     super.initState();
     if (widget.prescription != null) {
-      _nameController.text = widget.prescription!.name;
-      _doseController.text = widget.prescription!.doseDescription;
-      _stockController.text = widget.prescription!.stock.toString();
-      _isContinuous = widget.prescription!.isContinuous;
-      if (widget.prescription!.durationTreatment != null) {
-        _treatmentLengthController.text =
-            widget.prescription!.durationTreatment.toString();
-        _selectedTreatmentUnit = widget.prescription!.unitTreatment!;
-      }
-      _selectedType = widget.prescription!.type;
-      _notesController.text = widget.prescription!.notes ?? '';
-      _selectedHour = widget.prescription!.firstDoseTime.hour;
-      _selectedMinute = widget.prescription!.firstDoseTime.minute;
-      final interval = Duration(minutes: widget.prescription!.doseInterval);
+      final p = widget.prescription!;
+      _nameController.text = p.name;
+      _doseController.text = p.doseDescription;
+      _selectedType = p.type;
+      _stockController.text = p.stock.toString();
+      _selectedHour = p.firstDoseTime.hour;
+      _selectedMinute = p.firstDoseTime.minute;
+      final interval = Duration(minutes: p.doseInterval);
       _selectedIntervalHour = interval.inHours;
       _selectedIntervalMinute = interval.inMinutes.remainder(60);
+      _isContinuous = p.isContinuous;
+      if (!p.isContinuous) {
+        _treatmentLengthController.text = p.durationTreatment?.toString() ?? '';
+        _selectedTreatmentUnit = p.unitTreatment ?? 'Dias';
+      }
+      _notesController.text = p.notes ?? '';
     }
+
     _pageController.addListener(() {
       setState(() {
         _currentPage = _pageController.page!.round();
@@ -589,50 +556,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                         minimumSize: Size.fromHeight(screenHeight * 0.06),
                         backgroundColor: blueColor,
                         foregroundColor: Colors.black),
-                    onPressed: () {
-                      final provider =
-                          Provider.of<MedicationProvider>(context, listen: false);
-                      
-                      String finalType;
-                      if (_selectedType == 'Outros') {
-                        finalType = _customTypeController.text;
-                      } else {
-                        finalType = _selectedType ?? 'Não definido';
-                      }
-
-                      final now = DateTime.now();
-                      final firstDoseDateTime = DateTime(now.year, now.month,
-                          now.day, _selectedHour, _selectedMinute);
-
-                      // MUDANÇA PRINCIPAL AQUI:
-                      // Criamos o PrescriptionsCompanion que o novo `addPrescription` espera.
-                      final newPrescription = PrescriptionsCompanion.insert(
-                        name: _nameController.text,
-                        doseDescription: _doseController.text,
-                        type: finalType,
-                        stock: int.tryParse(_stockController.text) ?? 0,
-                        firstDoseTime: firstDoseDateTime,
-                        doseInterval: Duration(
-                                hours: _selectedIntervalHour,
-                                minutes: _selectedIntervalMinute)
-                            .inMinutes,
-                        isContinuous: _isContinuous,
-                        durationTreatment: Value(_isContinuous
-                            ? null
-                            : int.tryParse(_treatmentLengthController.text) ??
-                                0),
-                        unitTreatment:
-                            Value(_isContinuous ? null : _selectedTreatmentUnit),
-                        notes: Value(_notesController.text),
-                        createdAt: DateTime.now(),
-                        updatedAt: DateTime.now(),
-                      );
-
-                      // Chamamos a função do provider com o novo objeto.
-                      provider.addPrescription(newPrescription);
-
-                      Navigator.pop(context);
-                    },
+                    onPressed: _onSave,
                     child: const Text('Salvar Medicamento'),
                   ),
                 ),
