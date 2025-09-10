@@ -1,15 +1,17 @@
-import 'package:checkpills/core/constants/medication_constants.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:CheckPills/data/datasources/database.dart';
+import 'package:CheckPills/presentation/providers/medication_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:checkpills/core/constants/app_constants.dart';
-import 'package:checkpills/core/utils/medication_utils.dart';
-import 'package:checkpills/domain/entities/medication_entity.dart';
-import 'package:checkpills/presentation/providers/medication_provider.dart';
-import 'package:checkpills/presentation/widgets/form_progress_bar.dart';
-import 'package:checkpills/presentation/widgets/medication_type_selection.dart';
+import 'package:drift/drift.dart' hide Column;
 
 class AddMedicationScreen extends StatefulWidget {
-  const AddMedicationScreen({super.key});
+  final Prescription? prescription;
+
+  const AddMedicationScreen({
+    super.key,
+    this.prescription,
+  });
 
   @override
   State<AddMedicationScreen> createState() => _AddMedicationScreenState();
@@ -18,38 +20,204 @@ class AddMedicationScreen extends StatefulWidget {
 class _AddMedicationScreenState extends State<AddMedicationScreen> {
   final _pageController = PageController();
   int _currentPage = 0;
+  bool _isPageValid = false;
 
+  int _selectedHour = DateTime.now().hour;
+  int _selectedMinute = DateTime.now().minute;
+  int _selectedIntervalHour = 8;
+  int _selectedIntervalMinute = 0;
   String? _selectedType;
+  bool _isContinuous = false;
+  String _selectedTreatmentUnit = 'Dias';
+  String _selectedDoseUnit = 'unidade(s)';
 
+  final _customTypeController = TextEditingController();
   final _nameController = TextEditingController();
-  final _doseController = TextEditingController();
   final _stockController = TextEditingController();
-  final _firstDoseTimeController = TextEditingController();
-  final _intervalController = TextEditingController();
-  final _totalDosesController = TextEditingController();
   final _notesController = TextEditingController();
+  final _treatmentLengthController = TextEditingController();
+  final _doseQuantityController = TextEditingController();
+
+  final Map<String, String> _medicationTypeToUnitMap = {
+    'Comprimido': 'unidade(s)',
+    'Cápsula': 'unidade(s)',
+    'Injeção': 'ml',
+    'Gotas': 'gota(s)',
+    'Líquido': 'ml',
+    'Xarope': 'ml',
+    'Inalação': 'dose(s)',
+    'Pó': 'mg',
+    'Outros': 'unidade(s)',
+  };
+  final List<String> _allDoseUnits = [
+    'unidade(s)',
+    'comprimido(s)',
+    'cápsula(s)',
+    'gota(s)',
+    'ml',
+    'mg',
+    'g',
+    'L',
+    'dose(s)'
+  ];
 
   @override
   void initState() {
     super.initState();
+    if (widget.prescription != null) {
+      _prefillFields();
+    }
+
     _pageController.addListener(() {
       setState(() {
         _currentPage = _pageController.page!.round();
+        if (_currentPage == 2) {
+          _preselectDoseUnit();
+        }
+        _validatePage();
       });
     });
+
+    _nameController.addListener(_validatePage);
+    _stockController.addListener(_validatePage);
+    _customTypeController.addListener(_validatePage);
+    _treatmentLengthController.addListener(_validatePage);
+    _doseQuantityController.addListener(_validatePage);
+    _validatePage();
+  }
+
+  void _prefillFields() {
+    final p = widget.prescription!;
+    _nameController.text = p.name;
+    final doseParts = p.doseDescription.split(' ');
+    if (doseParts.isNotEmpty) {
+      _doseQuantityController.text = doseParts.first;
+      if (doseParts.length > 1) {
+        _selectedDoseUnit = doseParts.sublist(1).join(' ');
+      }
+    }
+    _selectedType = p.type;
+    _stockController.text = p.stock.toString();
+    _selectedHour = p.firstDoseTime.hour;
+    _selectedMinute = p.firstDoseTime.minute;
+    final interval = Duration(minutes: p.doseInterval);
+    _selectedIntervalHour = interval.inHours;
+    _selectedIntervalMinute = interval.inMinutes.remainder(60);
+    _isContinuous = p.isContinuous;
+    if (!p.isContinuous) {
+      _treatmentLengthController.text = p.durationTreatment?.toString() ?? '';
+      _selectedTreatmentUnit = p.unitTreatment ?? 'Dias';
+    }
+    _notesController.text = p.notes ?? '';
   }
 
   @override
   void dispose() {
+    _nameController.removeListener(_validatePage);
+    _stockController.removeListener(_validatePage);
+    _customTypeController.removeListener(_validatePage);
+    _treatmentLengthController.removeListener(_validatePage);
+    _doseQuantityController.removeListener(_validatePage);
+
     _pageController.dispose();
+    _customTypeController.dispose();
     _nameController.dispose();
-    _doseController.dispose();
     _stockController.dispose();
-    _firstDoseTimeController.dispose();
-    _intervalController.dispose();
-    _totalDosesController.dispose();
+    _treatmentLengthController.dispose();
     _notesController.dispose();
+    _doseQuantityController.dispose();
     super.dispose();
+  }
+
+  void _validatePage() {
+    bool isValid = false;
+    switch (_currentPage) {
+      case 0:
+        isValid = _nameController.text.isNotEmpty;
+        break;
+      case 1:
+        isValid = _selectedType != null;
+        if (_selectedType == 'Outros') {
+          isValid = _customTypeController.text.isNotEmpty;
+        }
+        break;
+      case 2: // Validação com o novo controller
+        isValid = _doseQuantityController.text.isNotEmpty;
+        break;
+      case 3:
+        isValid = _stockController.text.isNotEmpty;
+        break;
+      case 4:
+      case 5:
+        isValid = true;
+        break;
+      case 6:
+        isValid = _isContinuous || _treatmentLengthController.text.isNotEmpty;
+        break;
+      case 7:
+        isValid = true;
+        break;
+      default:
+        isValid = false;
+    }
+    if (mounted) {
+      setState(() {
+        _isPageValid = isValid;
+      });
+    }
+  }
+
+  void _preselectDoseUnit() {
+    if (_selectedType != null &&
+        _medicationTypeToUnitMap.containsKey(_selectedType)) {
+      setState(() {
+        _selectedDoseUnit = _medicationTypeToUnitMap[_selectedType]!;
+      });
+    }
+  }
+
+  void _onSave() {
+    final provider = Provider.of<MedicationProvider>(context, listen: false);
+    String finalType;
+    if (_selectedType == 'Outros') {
+      finalType = _customTypeController.text;
+    } else {
+      finalType = _selectedType ?? 'Não definido';
+    }
+    final now = DateTime.now();
+    final firstDoseDateTime =
+        DateTime(now.year, now.month, now.day, _selectedHour, _selectedMinute);
+    final doseIntervalDuration = Duration(
+        hours: _selectedIntervalHour, minutes: _selectedIntervalMinute);
+
+    final doseDescription =
+        '${_doseQuantityController.text} $_selectedDoseUnit'.trim();
+
+    final prescriptionCompanion = PrescriptionsCompanion(
+      name: Value(_nameController.text),
+      doseDescription: Value(doseDescription),
+      type: Value(finalType),
+      stock: Value(int.tryParse(_stockController.text) ?? 0),
+      firstDoseTime: Value(firstDoseDateTime),
+      doseInterval: Value(doseIntervalDuration.inMinutes),
+      isContinuous: Value(_isContinuous),
+      durationTreatment: Value(_isContinuous
+          ? null
+          : int.tryParse(_treatmentLengthController.text) ?? 0),
+      unitTreatment: Value(_isContinuous ? null : _selectedTreatmentUnit),
+      notes: Value(_notesController.text),
+      updatedAt: Value(DateTime.now()),
+    );
+
+    if (widget.prescription != null) {
+      provider.updatePrescription(
+          widget.prescription!.id, prescriptionCompanion);
+    } else {
+      provider.addPrescription(prescriptionCompanion.copyWith(
+        createdAt: Value(DateTime.now()),
+      ));
+    }
+    Navigator.pop(context);
   }
 
   Widget _buildFormPage({
@@ -66,54 +234,337 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: screenWidth * 0.055,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text(title,
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
           if (subtitle != null) ...[
             SizedBox(height: screenWidth * 0.02),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: screenWidth * 0.04,
-                color: Colors.grey,
-              ),
-            ),
+            Text(subtitle,
+                style: TextStyle(
+                    fontSize: screenWidth * 0.04, color: Colors.grey)),
           ],
           SizedBox(height: screenWidth * 0.06),
           TextFormField(
             controller: controller,
             keyboardType: keyboardType,
             maxLines: keyboardType == TextInputType.multiline ? 3 : 1,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-            ),
+            decoration: const InputDecoration(border: OutlineInputBorder()),
           ),
         ],
       ),
     );
   }
 
-  void _saveMedication(BuildContext context) {
-    final provider = Provider.of<MedicationProvider>(context, listen: false);
+  Widget _buildTypeSelectionPage({
+    required double screenWidth,
+  }) {
+    const types = [
+      'Comprimido',
+      'Injeção',
+      'Gotas',
+      'Líquido',
+      'Inalação',
+      'Pó',
+      'Outros'
+    ];
+    const blueColor = Color(0xFF23AFDC);
 
-    final newMedication = MedicationEntity(
-      id: MedicationUtils.generateId(),
-      name: _nameController.text,
-      dose: _doseController.text,
-      type: _selectedType ?? MedicationConstants().defaultType,
-      stock: int.tryParse(_stockController.text) ?? 0,
-      firstDoseTime: _firstDoseTimeController.text,
-      doseIntervalInHours: int.tryParse(_intervalController.text) ?? 0,
-      totalDoses: int.tryParse(_totalDosesController.text) ?? 0,
-      notes: _notesController.text.isNotEmpty ? _notesController.text : null,
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Qual o tipo do medicamento?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 24),
+          Wrap(
+            spacing: 8.0,
+            runSpacing: 8.0,
+            children: types.map((type) {
+              final isSelected = _selectedType == type;
+              return ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _selectedType = type;
+                    _validatePage();
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isSelected ? blueColor : Colors.grey[200],
+                  foregroundColor: isSelected ? Colors.white : Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: Text(type),
+              );
+            }).toList(),
+          ),
+          if (_selectedType == 'Outros') ...[
+            const SizedBox(height: 24),
+            TextFormField(
+              controller: _customTypeController,
+              decoration: const InputDecoration(
+                labelText: 'Digite o tipo do medicamento',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ]
+        ],
+      ),
     );
+  }
 
-    provider.addMedication(newMedication);
-    Navigator.pop(context);
+  Widget _buildDosePage({
+    required double screenWidth,
+    required double screenHeight,
+  }) {
+    // Encontra o índice inicial para o carrossel de unidades
+    final initialUnitIndex = _allDoseUnits.indexOf(_selectedDoseUnit);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+              'Qual a quantidade de "${_nameController.text}" você deve tomar por vez?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          SizedBox(height: screenWidth * 0.06),
+          Row(
+            children: [
+              // Campo de texto para a quantidade
+              Expanded(
+                flex: 2, // Ocupa 2/3 do espaço
+                child: TextFormField(
+                  controller: _doseQuantityController,
+                  keyboardType: TextInputType.number,
+                  decoration:
+                      const InputDecoration(border: OutlineInputBorder()),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Carrossel para a unidade
+              Expanded(
+                flex: 3, // Ocupa 3/3 do espaço
+                child: SizedBox(
+                  height: screenHeight * 0.1, // Altura do carrossel
+                  child: CupertinoPicker(
+                    itemExtent: 40,
+                    onSelectedItemChanged: (index) {
+                      setState(() {
+                        _selectedDoseUnit = _allDoseUnits[index];
+                      });
+                    },
+                    scrollController: FixedExtentScrollController(
+                        initialItem:
+                            initialUnitIndex != -1 ? initialUnitIndex : 0),
+                    children: _allDoseUnits.map((unit) {
+                      return Center(child: Text(unit));
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimePickerPage({
+    required double screenWidth,
+    required double screenHeight,
+  }) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Qual o horário da primeira dose?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          SizedBox(height: screenWidth * 0.06),
+          SizedBox(
+            height: screenHeight * 0.2,
+            child: Row(
+              children: [
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 40,
+                    onSelectedItemChanged: (index) {
+                      setState(() {
+                        _selectedHour = index;
+                      });
+                    },
+                    scrollController:
+                        FixedExtentScrollController(initialItem: _selectedHour),
+                    looping: true,
+                    children: List.generate(24, (index) {
+                      return Center(
+                          child: Text('${index.toString().padLeft(2, '0')} h'));
+                    }),
+                  ),
+                ),
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 40,
+                    onSelectedItemChanged: (index) {
+                      setState(() {
+                        _selectedMinute = index;
+                      });
+                    },
+                    scrollController: FixedExtentScrollController(
+                        initialItem: _selectedMinute),
+                    looping: true,
+                    children: List.generate(60, (index) {
+                      return Center(
+                          child:
+                              Text('${index.toString().padLeft(2, '0')} min'));
+                    }),
+                  ),
+                ),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIntervalPickerPage({
+    required double screenWidth,
+    required double screenHeight,
+  }) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Qual o intervalo entre as doses?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          SizedBox(height: screenWidth * 0.06),
+          SizedBox(
+            height: screenHeight * 0.2,
+            child: Row(
+              children: [
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 40,
+                    onSelectedItemChanged: (index) {
+                      setState(() {
+                        _selectedIntervalHour = index;
+                      });
+                    },
+                    scrollController: FixedExtentScrollController(
+                        initialItem: _selectedIntervalHour),
+                    looping: true,
+                    children: List.generate(24, (index) {
+                      return Center(
+                          child: Text('${index.toString().padLeft(2, '0')} h'));
+                    }),
+                  ),
+                ),
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 40,
+                    onSelectedItemChanged: (index) {
+                      setState(() {
+                        _selectedIntervalMinute = index;
+                      });
+                    },
+                    scrollController: FixedExtentScrollController(
+                        initialItem: _selectedIntervalMinute),
+                    looping: true,
+                    children: List.generate(60, (index) {
+                      return Center(
+                          child:
+                              Text('${index.toString().padLeft(2, '0')} min'));
+                    }),
+                  ),
+                ),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDurationPage({
+    required double screenWidth,
+  }) {
+    final units = ['Dias', 'Semanas', 'Meses', 'Anos'];
+    const blueColor = Color(0xFF23AFDC);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Qual a duração do tratamento?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          SizedBox(height: screenWidth * 0.06),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _treatmentLengthController,
+                  enabled: !_isContinuous,
+                  keyboardType: TextInputType.number,
+                  decoration:
+                      const InputDecoration(border: OutlineInputBorder()),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  // CORREÇÃO: `value` trocado por `initialValue`
+                  initialValue: _selectedTreatmentUnit,
+                  onChanged: _isContinuous
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _selectedTreatmentUnit = value!;
+                          });
+                        },
+                  items: units.map((unit) {
+                    return DropdownMenuItem(value: unit, child: Text(unit));
+                  }).toList(),
+                  decoration:
+                      const InputDecoration(border: OutlineInputBorder()),
+                ),
+              ),
+            ],
+          ),
+          CheckboxListTile(
+            title: const Text('Uso constante'),
+            value: _isContinuous,
+            onChanged: (value) {
+              setState(() {
+                _isContinuous = value!;
+                if (_isContinuous) {
+                  _treatmentLengthController.clear();
+                  _selectedTreatmentUnit = 'Dias';
+                }
+                _validatePage(); // Revalida a página ao mudar o checkbox
+              });
+            },
+            activeColor: blueColor,
+            controlAffinity: ListTileControlAffinity.leading,
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -121,141 +572,172 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
+    const orangeColor = Color(0xFFDC5023);
+    const blueColor = Color(0xFF23AFDC);
+
     final List<Widget> formPages = [
       _buildFormPage(
-        title: 'Qual o nome do medicamento?',
-        controller: _nameController,
-        keyboardType: TextInputType.text,
-        screenWidth: screenWidth,
-      ),
+          title: 'Qual o nome do medicamento?',
+          controller: _nameController,
+          keyboardType: TextInputType.text,
+          screenWidth: screenWidth),
+      _buildTypeSelectionPage(screenWidth: screenWidth),
       _buildFormPage(
-        title: 'Qual a dose?',
-        subtitle: 'Ex: 1 comprimido, 500mg, 10ml',
-        controller: _doseController,
-        keyboardType: TextInputType.text,
-        screenWidth: screenWidth,
-      ),
-      MedicationTypeSelection(
-        selectedType: _selectedType,
-        onTypeSelected: (type) {
-          setState(() {
-            _selectedType = type;
-          });
-        },
-        screenWidth: screenWidth,
-      ),
+          title:
+              'Qual a quantidade de "${_nameController.text}" você deve tomar por vez?',
+          subtitle: 'Ex: 1 comprimido, 500mg, 10ml',
+          controller: _doseController,
+          keyboardType: TextInputType.text,
+          screenWidth: screenWidth),
       _buildFormPage(
-        title: 'Quantas doses você tem em estoque?',
-        controller: _stockController,
-        keyboardType: TextInputType.number,
-        screenWidth: screenWidth,
-      ),
+          title: 'Quantas doses você tem em estoque?',
+          controller: _stockController,
+          keyboardType: TextInputType.number,
+          screenWidth: screenWidth),
+      _buildTimePickerPage(
+          screenWidth: screenWidth, screenHeight: screenHeight),
+      _buildIntervalPickerPage(
+          screenWidth: screenWidth, screenHeight: screenHeight),
+      _buildDurationPage(screenWidth: screenWidth),
       _buildFormPage(
-        title: 'Qual o horário da primeira dose?',
-        subtitle: 'Use o formato HH:MM (ex: 08:00)',
-        controller: _firstDoseTimeController,
-        keyboardType: TextInputType.datetime,
-        screenWidth: screenWidth,
-      ),
-      _buildFormPage(
-        title: 'Qual o intervalo entre as doses (em horas)?',
-        controller: _intervalController,
-        keyboardType: TextInputType.number,
-        screenWidth: screenWidth,
-      ),
-      _buildFormPage(
-        title: 'Qual o total de doses do tratamento?',
-        controller: _totalDosesController,
-        keyboardType: TextInputType.number,
-        screenWidth: screenWidth,
-      ),
-      _buildFormPage(
-        title: 'Alguma observação?',
-        subtitle: 'Este campo é opcional',
-        controller: _notesController,
-        keyboardType: TextInputType.multiline,
-        screenWidth: screenWidth,
-        isLastPage: true,
-      ),
+          title: 'Alguma observação?',
+          subtitle: 'Este campo é opcional',
+          controller: _notesController,
+          keyboardType: TextInputType.multiline,
+          screenWidth: screenWidth,
+          isLastPage: true),
     ];
 
-    return SizedBox(
-      height: screenHeight * 0.7,
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-          ),
-          title: const Text('Adicionar Medicamento'),
-          leading: IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => Navigator.pop(context),
-          ),
-          automaticallyImplyLeading: false,
-        ),
-        body: Column(
-          children: [
-            FormProgressBar(
-              totalPages: formPages.length,
-              currentPage: _currentPage,
-              activeColor: AppColors.primaryOrange,
-              completedColor: AppColors.primaryBlue,
-            ),
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
-                children: formPages,
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Padding(
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppBar(
+                shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(20.0))),
+                // ADICIONADO: Lógica para alterar o título com base no modo de edição/adição.
+                title: Text(widget.prescription != null
+                    ? 'Editar Medicamento'
+                    : 'Adicionar Medicamento'),
+                leading: IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context)),
+                automaticallyImplyLeading: false,
               ),
-            ),
-            if (_currentPage == formPages.length - 1)
+              FormProgressBar(
+                  totalPages: formPages.length,
+                  currentPage: _currentPage,
+                  activeColor: orangeColor,
+                  completedColor: blueColor),
+              SizedBox(
+                height: screenHeight * 0.4,
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: formPages,
+                ),
+              ),
+              if (_currentPage == formPages.length - 1)
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.04,
+                      vertical: screenWidth * 0.02),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        minimumSize: Size.fromHeight(screenHeight * 0.06),
+                        backgroundColor: blueColor,
+                        foregroundColor: Colors.black),
+                    onPressed: _onSave,
+                    child: const Text('Salvar Medicamento'),
+                  ),
+                ),
               Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: screenWidth * 0.04,
-                  vertical: screenWidth * 0.02,
-                ),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size.fromHeight(screenHeight * 0.06),
-                    backgroundColor: AppColors.primaryBlue,
-                  ),
-                  onPressed: () => _saveMedication(context),
-                  child: const Text('Salvar Medicamento'),
+                padding: EdgeInsets.all(screenWidth * 0.04),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ElevatedButton(
+                      onPressed: _currentPage == 0
+                          ? null
+                          : () {
+                              FocusScope.of(context).unfocus();
+                              _pageController.previousPage(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeIn);
+                            },
+                      child: const Text('Anterior'),
+                    ),
+                    ElevatedButton(
+                      onPressed: (_isPageValid &&
+                              _currentPage < formPages.length - 1)
+                          ? () {
+                              FocusScope.of(context).unfocus();
+                              _pageController.nextPage(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeIn);
+                            }
+                          : null,
+                      child: const Text('Próximo'),
+                    ),
+                  ],
                 ),
               ),
-            Padding(
-              padding: EdgeInsets.all(screenWidth * 0.04),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ElevatedButton(
-                    onPressed: _currentPage == 0
-                        ? null
-                        : () {
-                            _pageController.previousPage(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeIn,
-                            );
-                          },
-                    child: const Text('Anterior'),
-                  ),
-                  ElevatedButton(
-                    onPressed: _currentPage == formPages.length - 1
-                        ? null
-                        : () {
-                            _pageController.nextPage(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeIn,
-                            );
-                          },
-                    child: const Text('Próximo'),
-                  ),
-                ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class FormProgressBar extends StatelessWidget {
+  final int totalPages;
+  final int currentPage;
+  final Color activeColor;
+  final Color completedColor;
+
+  const FormProgressBar({
+    super.key,
+    required this.totalPages,
+    required this.currentPage,
+    required this.activeColor,
+    required this.completedColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 24.0),
+      child: Row(
+        children: List.generate(totalPages, (index) {
+          bool isCompleted = currentPage == totalPages - 1;
+          bool isActive = index <= currentPage;
+          Color barColor;
+          if (isCompleted) {
+            barColor = completedColor;
+          } else if (isActive) {
+            barColor = activeColor;
+          } else {
+            barColor = Colors.grey[300]!;
+          }
+
+          return Expanded(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 2.0),
+              height: 4.0,
+              decoration: BoxDecoration(
+                color: barColor,
+                borderRadius: BorderRadius.circular(2.0),
               ),
             ),
-          ],
-        ),
+          );
+        }),
       ),
     );
   }

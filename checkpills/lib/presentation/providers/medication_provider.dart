@@ -1,70 +1,121 @@
-import 'package:flutter/foundation.dart';
-import 'package:checkpills/domain/entities/medication_entity.dart';
-import 'package:checkpills/domain/usecases/get_medications_usecase.dart';
-import 'package:checkpills/domain/usecases/add_medication_usecase.dart';
-import 'package:checkpills/domain/repositories/medication_repository.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:CheckPills/data/datasources/database.dart';
+import 'package:drift/drift.dart' hide Column;
 
 class MedicationProvider with ChangeNotifier {
-  final GetMedicationsUseCase getMedicationsUseCase;
-  final AddMedicationUseCase addMedicationUseCase;
-  final MedicationRepository repository;
+  final AppDatabase database;
 
-  List<MedicationEntity> _medications = [];
-  bool _isLoading = false;
-  String? _error;
+  List<Prescription> _prescriptionList = [];
+  List<DoseEventWithPrescription> _doseEventsForDay = [];
+  StreamSubscription? _doseEventsSubscription;
 
-  MedicationProvider({
-    required this.getMedicationsUseCase,
-    required this.addMedicationUseCase,
-    required this.repository,
-  });
+  List<Prescription> get prescriptionList => _prescriptionList;
+  List<DoseEventWithPrescription> get doseEventsForDay => _doseEventsForDay;
 
-  List<MedicationEntity> get medications => _medications;
-  bool get isLoading => _isLoading;
-  String? get error => _error;
-
-  Future<void> initialize() async {
-    await repository.initializeDefaultMedications();
-    await loadMedications();
+  MedicationProvider({required this.database}) {
+    _loadPrescriptions();
   }
 
-  Future<void> loadMedications() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+  @override
+  void dispose() {
+    _doseEventsSubscription?.cancel();
+    super.dispose();
+  }
 
-    try {
-      _medications = await getMedicationsUseCase();
-    } catch (e) {
-      _error = 'Erro ao carregar medicamentos: $e';
-      if (kDebugMode) {
-        print(_error);
-      }
-    } finally {
-      _isLoading = false;
+  Future<void> _loadPrescriptions() async {
+    _prescriptionList = await database.prescriptionsDao.getAllPrescriptions();
+    fetchDoseEventsForDay(DateTime.now());
+  }
+
+  void fetchDoseEventsForDay(DateTime date) {
+    _doseEventsSubscription?.cancel();
+    _doseEventsSubscription =
+        database.doseEventsDao.watchDoseEventsForDay(date).listen((doses) {
+      _doseEventsForDay = doses;
       notifyListeners();
+    });
+  }
+
+  Future<void> addPrescription(PrescriptionsCompanion prescription) async {
+    final newId = await database.prescriptionsDao.addPrescription(prescription);
+    final newPrescription =
+        await database.prescriptionsDao.getPrescriptionById(newId);
+    await _generateAndInsertDoseEvents(newPrescription);
+    await _loadPrescriptions();
+  }
+
+  Future<void> updatePrescription(
+      int id, PrescriptionsCompanion updatedPrescription) async {
+    await database.prescriptionsDao
+        .updatePrescription(updatedPrescription.copyWith(id: Value(id)));
+    await database.doseEventsDao.deleteFutureDoseEventsForPrescription(id);
+    final reloadedPrescription =
+        await database.prescriptionsDao.getPrescriptionById(id);
+    await _generateAndInsertDoseEvents(reloadedPrescription);
+    await _loadPrescriptions();
+  }
+
+  Future<void> deletePrescription(int id) async {
+    await database.prescriptionsDao.deletePrescription(id);
+    await _loadPrescriptions();
+  }
+
+  Future<void> toggleDoseStatus(DoseEvent doseEvent) async {
+    final newStatus = doseEvent.status == DoseStatus.tomada
+        ? DoseStatus.pendente
+        : DoseStatus.tomada;
+    final takenTime = newStatus == DoseStatus.tomada ? DateTime.now() : null;
+    await database.doseEventsDao
+        .updateDoseEventStatus(doseEvent.id, newStatus, takenTime);
+  }
+
+  Future<void> _generateAndInsertDoseEvents(Prescription prescription) async {
+    final endDate = prescription.isContinuous
+        ? DateTime.now().add(const Duration(days: 365))
+        : _calculateTreatmentEndDate(prescription);
+
+    DateTime nextDoseTime = prescription.firstDoseTime;
+
+    while (nextDoseTime.isBefore(endDate)) {
+      final newDoseEvent = DoseEventsCompanion.insert(
+        prescriptionId: prescription.id,
+        scheduledTime: nextDoseTime,
+        status: const Value(DoseStatus.pendente),
+        // MUDANÇA AQUI: Embrulhamos o DateTime com Value()
+        createdAt: Value(DateTime.now()),
+        // E AQUI TAMBÉM
+        updatedAt: Value(DateTime.now()),
+      );
+      await database.doseEventsDao.addDoseEvent(newDoseEvent);
+
+      nextDoseTime =
+          nextDoseTime.add(Duration(minutes: prescription.doseInterval));
     }
   }
 
-  Future<void> addMedication(MedicationEntity medication) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      await addMedicationUseCase(medication);
-      await loadMedications(); // Recarrega a lista após adicionar
-    } catch (e) {
-      _error = 'Erro ao adicionar medicamento: $e';
-      if (kDebugMode) {
-        print(_error);
-      }
-      rethrow;
+  DateTime _calculateTreatmentEndDate(Prescription prescription) {
+    if (prescription.durationTreatment == null ||
+        prescription.unitTreatment == null) {
+      return prescription.firstDoseTime.add(const Duration(days: 365 * 5));
     }
-  }
-
-  void clearError() {
-    _error = null;
-    notifyListeners();
+    switch (prescription.unitTreatment) {
+      case 'Dias':
+        return prescription.firstDoseTime
+            .add(Duration(days: prescription.durationTreatment!));
+      case 'Semanas':
+        return prescription.firstDoseTime
+            .add(Duration(days: prescription.durationTreatment! * 7));
+      case 'Meses':
+        var d = prescription.firstDoseTime;
+        return DateTime(d.year, d.month + prescription.durationTreatment!,
+            d.day, d.hour, d.minute);
+      case 'Anos':
+        var d = prescription.firstDoseTime;
+        return DateTime(d.year + prescription.durationTreatment!, d.month,
+            d.day, d.hour, d.minute);
+      default:
+        return prescription.firstDoseTime.add(const Duration(days: 365 * 5));
+    }
   }
 }

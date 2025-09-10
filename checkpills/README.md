@@ -1,4 +1,4 @@
-# checkpills
+# CheckPills
 
 A new Flutter project.
 
