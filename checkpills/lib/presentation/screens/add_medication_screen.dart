@@ -582,13 +582,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           keyboardType: TextInputType.text,
           screenWidth: screenWidth),
       _buildTypeSelectionPage(screenWidth: screenWidth),
-      _buildFormPage(
-          title:
-              'Qual a quantidade de "${_nameController.text}" você deve tomar por vez?',
-          subtitle: 'Ex: 1 comprimido, 500mg, 10ml',
-          controller: _doseController,
-          keyboardType: TextInputType.text,
-          screenWidth: screenWidth),
+      _buildDosePage(screenWidth: screenWidth, screenHeight: screenHeight),
       _buildFormPage(
           title: 'Quantas doses você tem em estoque?',
           controller: _stockController,
@@ -621,7 +615,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                 shape: const RoundedRectangleBorder(
                     borderRadius:
                         BorderRadius.vertical(top: Radius.circular(20.0))),
-                // ADICIONADO: Lógica para alterar o título com base no modo de edição/adição.
                 title: Text(widget.prescription != null
                     ? 'Editar Medicamento'
                     : 'Adicionar Medicamento'),
