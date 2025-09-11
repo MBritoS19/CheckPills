@@ -39,7 +39,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   final _doseQuantityController = TextEditingController();
 
   final Map<String, String> _medicationTypeToUnitMap = {
-    'Comprimido': 'unidade(s)',
+    'Comprimido': 'comprimido(s)',
     'Cápsula': 'unidade(s)',
     'Injeção': 'ml',
     'Gotas': 'gota(s)',
@@ -71,9 +71,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     _pageController.addListener(() {
       setState(() {
         _currentPage = _pageController.page!.round();
-        if (_currentPage == 2) {
-          _preselectDoseUnit();
-        }
         _validatePage();
       });
     });
@@ -671,6 +668,11 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                               _currentPage < formPages.length - 1)
                           ? () {
                               FocusScope.of(context).unfocus();
+                              // Se estamos na página de tipo (índice 1),
+                              // pré-selecionamos a unidade ANTES de navegar.
+                              if (_currentPage == 1) {
+                                _preselectDoseUnit();
+                              }
                               _pageController.nextPage(
                                   duration: const Duration(milliseconds: 300),
                                   curve: Curves.easeIn);
