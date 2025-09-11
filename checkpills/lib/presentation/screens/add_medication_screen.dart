@@ -30,6 +30,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   bool _isContinuous = false;
   String _selectedTreatmentUnit = 'Dias';
   String _selectedDoseUnit = 'unidade(s)';
+  bool _dontTrackStock = false;
 
   final _customTypeController = TextEditingController();
   final _nameController = TextEditingController();
@@ -94,7 +95,12 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
       }
     }
     _selectedType = p.type;
-    _stockController.text = p.stock.toString();
+    if (p.stock == -1) {
+      _dontTrackStock = true;
+    } else {
+      _dontTrackStock = false;
+      _stockController.text = p.stock.toString();
+    }
     _selectedHour = p.firstDoseTime.hour;
     _selectedMinute = p.firstDoseTime.minute;
     final interval = Duration(minutes: p.doseInterval);
@@ -142,7 +148,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         isValid = _doseQuantityController.text.isNotEmpty;
         break;
       case 3:
-        isValid = _stockController.text.isNotEmpty;
+        isValid = _dontTrackStock || _stockController.text.isNotEmpty;
         break;
       case 4:
       case 5:
@@ -162,6 +168,57 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         _isPageValid = isValid;
       });
     }
+  }
+
+  // Adicione este método inteiro na classe
+
+  Widget _buildStockPage({
+    required double screenWidth,
+  }) {
+    const blueColor = Color(0xFF23AFDC);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Quantas doses você tem em estoque?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          SizedBox(height: screenWidth * 0.06),
+          TextFormField(
+            controller: _stockController,
+            enabled:
+                !_dontTrackStock, // Desabilitado se o checkbox estiver marcado
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              fillColor:
+                  _dontTrackStock ? Colors.grey[200] : Colors.transparent,
+              filled: true,
+            ),
+          ),
+          CheckboxListTile(
+            title: const Text('Não controlar estoque'),
+            value: _dontTrackStock,
+            onChanged: (value) {
+              setState(() {
+                _dontTrackStock = value!;
+                if (_dontTrackStock) {
+                  _stockController.clear(); // Limpa o campo ao marcar
+                  FocusScope.of(context).unfocus();
+                }
+                _validatePage(); // Revalida a página
+              });
+            },
+            activeColor: blueColor,
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+          ),
+        ],
+      ),
+    );
   }
 
   void _preselectDoseUnit() {
@@ -194,7 +251,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
       name: Value(_nameController.text),
       doseDescription: Value(doseDescription),
       type: Value(finalType),
-      stock: Value(int.tryParse(_stockController.text) ?? 0),
+      stock: Value(
+          _dontTrackStock ? -1 : (int.tryParse(_stockController.text) ?? 0)),
       firstDoseTime: Value(firstDoseDateTime),
       doseInterval: Value(doseIntervalDuration.inMinutes),
       isContinuous: Value(_isContinuous),
@@ -580,11 +638,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           screenWidth: screenWidth),
       _buildTypeSelectionPage(screenWidth: screenWidth),
       _buildDosePage(screenWidth: screenWidth, screenHeight: screenHeight),
-      _buildFormPage(
-          title: 'Quantas doses você tem em estoque?',
-          controller: _stockController,
-          keyboardType: TextInputType.number,
-          screenWidth: screenWidth),
+      _buildStockPage(screenWidth: screenWidth),
       _buildTimePickerPage(
           screenWidth: screenWidth, screenHeight: screenHeight),
       _buildIntervalPickerPage(
