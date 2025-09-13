@@ -450,10 +450,13 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     );
   }
 
+  // Substitua o método inteiro por este
   Widget _buildTimePickerPage({
     required double screenWidth,
     required double screenHeight,
   }) {
+    const blueColor = Color(0xFF23AFDC);
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
       child: Column(
@@ -463,7 +466,21 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           Text('Qual o horário da primeira dose?',
               style: TextStyle(
                   fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
-          SizedBox(height: screenWidth * 0.06),
+          SizedBox(height: screenWidth * 0.04),
+          CheckboxListTile(
+            title: const Text('Uma dose apenas'),
+            value: _isSingleDose,
+            onChanged: (value) {
+              setState(() {
+                _isSingleDose = value!;
+                _validatePage();
+              });
+            },
+            activeColor: blueColor,
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+          ),
+          SizedBox(height: screenWidth * 0.04),
           SizedBox(
             height: screenHeight * 0.2,
             child: Row(
@@ -513,16 +530,16 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
   // Substitua o método inteiro por este
   // Substitua o método inteiro por este
+  // Substitua o método inteiro por este
   Widget _buildIntervalPickerPage({
     required double screenWidth,
     required double screenHeight,
   }) {
-    const blueColor = Color(0xFF23AFDC);
     const animationDuration = Duration(milliseconds: 300);
     const animationCurve = Curves.easeOut;
 
-    // Condição para desabilitar o seletor de minutos
-    final isMinutePickerDisabled = _isSingleDose || _selectedIntervalHour == 24;
+    // A condição para desabilitar agora é mais simples
+    final isMinutePickerDisabled = _selectedIntervalHour == 24;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
@@ -533,107 +550,77 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           Text('Qual o intervalo entre as doses?',
               style: TextStyle(
                   fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
-          SizedBox(height: screenWidth * 0.04),
-          CheckboxListTile(
-            title: const Text('Uma dose apenas'),
-            value: _isSingleDose,
-            onChanged: (value) {
-              setState(() {
-                _isSingleDose = value!;
-                _validatePage();
-              });
-            },
-            activeColor: blueColor,
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-          ),
-          SizedBox(height: screenWidth * 0.04),
-          Opacity(
-            opacity: _isSingleDose ? 0.5 : 1.0,
-            child: AbsorbPointer(
-              absorbing: _isSingleDose,
-              child: SizedBox(
-                height: screenHeight * 0.2,
-                child: Row(
-                  children: [
-                    // Seletor de Horas
-                    Expanded(
+          SizedBox(height: screenWidth * 0.06),
+          SizedBox(
+            height: screenHeight * 0.2,
+            child: Row(
+              children: [
+                // Seletor de Horas
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 40,
+                    scrollController: _hourIntervalController,
+                    onSelectedItemChanged: (newHour) {
+                      setState(() {
+                        _selectedIntervalHour = newHour;
+                        if (newHour == 24) {
+                          if (_selectedIntervalMinute != 0) {
+                            _selectedIntervalMinute = 0;
+                            _minuteIntervalController.animateToItem(0,
+                                duration: animationDuration,
+                                curve: animationCurve);
+                          }
+                        } else if (newHour == 0 &&
+                            _selectedIntervalMinute < 30) {
+                          _selectedIntervalMinute = 30;
+                          _minuteIntervalController.animateToItem(30,
+                              duration: animationDuration,
+                              curve: animationCurve);
+                        }
+                      });
+                    },
+                    looping: true,
+                    children: List.generate(25, (index) {
+                      return Center(
+                          child: Text('${index.toString().padLeft(2, '0')} h'));
+                    }),
+                  ),
+                ),
+                // Seletor de Minutos
+                Expanded(
+                  child: Opacity(
+                    opacity: isMinutePickerDisabled ? 0.5 : 1.0,
+                    child: AbsorbPointer(
+                      absorbing: isMinutePickerDisabled,
                       child: CupertinoPicker(
                         itemExtent: 40,
-                        scrollController: _hourIntervalController,
-                        onSelectedItemChanged: (newHour) {
+                        scrollController: _minuteIntervalController,
+                        onSelectedItemChanged: (newMinute) {
                           setState(() {
-                            _selectedIntervalHour = newHour;
-
-                            // Regra 2: Se hora for 24, trava minutos em 0
-                            if (newHour == 24) {
-                              if (_selectedIntervalMinute != 0) {
-                                _selectedIntervalMinute = 0;
-                                _minuteIntervalController.animateToItem(0,
-                                    duration: animationDuration,
-                                    curve: animationCurve);
-                              }
+                            int targetMinute = newMinute;
+                            if (_selectedIntervalHour == 0 && newMinute < 30) {
+                              targetMinute = 30;
                             }
-                            // Regra 1: Se hora for 0 e minutos < 30, ajusta para 30
-                            else if (newHour == 0 &&
-                                _selectedIntervalMinute < 30) {
-                              _selectedIntervalMinute = 30;
-                              _minuteIntervalController.animateToItem(30,
+                            _selectedIntervalMinute = targetMinute;
+                            if (targetMinute != newMinute) {
+                              _minuteIntervalController.animateToItem(
+                                  targetMinute,
                                   duration: animationDuration,
                                   curve: animationCurve);
                             }
                           });
                         },
                         looping: true,
-                        // Aumenta o número de itens para 25 (0 a 24)
-                        children: List.generate(25, (index) {
+                        children: List.generate(60, (index) {
                           return Center(
                               child: Text(
-                                  '${index.toString().padLeft(2, '0')} h'));
+                                  '${index.toString().padLeft(2, '0')} min'));
                         }),
                       ),
                     ),
-                    // Seletor de Minutos
-                    Expanded(
-                      child: Opacity(
-                        opacity: isMinutePickerDisabled ? 0.5 : 1.0,
-                        child: AbsorbPointer(
-                          absorbing: isMinutePickerDisabled,
-                          child: CupertinoPicker(
-                            itemExtent: 40,
-                            scrollController: _minuteIntervalController,
-                            onSelectedItemChanged: (newMinute) {
-                              setState(() {
-                                int targetMinute = newMinute;
-                                // Regra 1: Se hora for 0 e tentar selecionar < 30, força 30
-                                if (_selectedIntervalHour == 0 &&
-                                    newMinute < 30) {
-                                  targetMinute = 30;
-                                }
-                                _selectedIntervalMinute = targetMinute;
-
-                                // Se a seleção foi invalidada, anima de volta
-                                if (targetMinute != newMinute) {
-                                  _minuteIntervalController.animateToItem(
-                                      targetMinute,
-                                      duration: animationDuration,
-                                      curve: animationCurve);
-                                }
-                              });
-                            },
-                            looping: true,
-                            children: List.generate(60, (index) {
-                              return Center(
-                                  child: Text(
-                                      '${index.toString().padLeft(2, '0')} min'));
-                            }),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],
@@ -729,9 +716,14 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
       _buildStockPage(screenWidth: screenWidth),
       _buildTimePickerPage(
           screenWidth: screenWidth, screenHeight: screenHeight),
-      _buildIntervalPickerPage(
-          screenWidth: screenWidth, screenHeight: screenHeight),
-      if (!_isSingleDose) _buildDurationPage(screenWidth: screenWidth),
+
+      // Lógica de navegação condicional
+      if (!_isSingleDose) ...[
+        _buildIntervalPickerPage(
+            screenWidth: screenWidth, screenHeight: screenHeight),
+        _buildDurationPage(screenWidth: screenWidth),
+      ],
+
       _buildFormPage(
           title: 'Alguma observação?',
           subtitle: 'Este campo é opcional',
