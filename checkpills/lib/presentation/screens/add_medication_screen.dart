@@ -33,6 +33,9 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   bool _dontTrackStock = false;
   bool _isSingleDose = false;
 
+  late FixedExtentScrollController _hourIntervalController;
+  late FixedExtentScrollController _minuteIntervalController;
+
   final _customTypeController = TextEditingController();
   final _nameController = TextEditingController();
   final _stockController = TextEditingController();
@@ -66,6 +69,12 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   @override
   void initState() {
     super.initState();
+
+    _hourIntervalController =
+        FixedExtentScrollController(initialItem: _selectedIntervalHour);
+    _minuteIntervalController =
+        FixedExtentScrollController(initialItem: _selectedIntervalMinute);
+
     if (widget.prescription != null) {
       _prefillFields();
     }
@@ -126,6 +135,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     _treatmentLengthController.removeListener(_validatePage);
     _doseQuantityController.removeListener(_validatePage);
 
+    _hourIntervalController.dispose();
+    _minuteIntervalController.dispose();
     _pageController.dispose();
     _customTypeController.dispose();
     _nameController.dispose();
@@ -501,11 +512,17 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   }
 
   // Substitua o método inteiro por este
+  // Substitua o método inteiro por este
   Widget _buildIntervalPickerPage({
     required double screenWidth,
     required double screenHeight,
   }) {
     const blueColor = Color(0xFF23AFDC);
+    const animationDuration = Duration(milliseconds: 300);
+    const animationCurve = Curves.easeOut;
+
+    // Condição para desabilitar o seletor de minutos
+    final isMinutePickerDisabled = _isSingleDose || _selectedIntervalHour == 24;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
@@ -523,7 +540,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
             onChanged: (value) {
               setState(() {
                 _isSingleDose = value!;
-                // Revalida a página, o que também afeta a lista de páginas
                 _validatePage();
               });
             },
@@ -533,48 +549,86 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           ),
           SizedBox(height: screenWidth * 0.04),
           Opacity(
-            opacity:
-                _isSingleDose ? 0.5 : 1.0, // Fica esmaecido se desabilitado
+            opacity: _isSingleDose ? 0.5 : 1.0,
             child: AbsorbPointer(
-              absorbing: _isSingleDose, // Bloqueia a interação
+              absorbing: _isSingleDose,
               child: SizedBox(
                 height: screenHeight * 0.2,
                 child: Row(
                   children: [
+                    // Seletor de Horas
                     Expanded(
                       child: CupertinoPicker(
                         itemExtent: 40,
-                        onSelectedItemChanged: (index) {
+                        scrollController: _hourIntervalController,
+                        onSelectedItemChanged: (newHour) {
                           setState(() {
-                            _selectedIntervalHour = index;
+                            _selectedIntervalHour = newHour;
+
+                            // Regra 2: Se hora for 24, trava minutos em 0
+                            if (newHour == 24) {
+                              if (_selectedIntervalMinute != 0) {
+                                _selectedIntervalMinute = 0;
+                                _minuteIntervalController.animateToItem(0,
+                                    duration: animationDuration,
+                                    curve: animationCurve);
+                              }
+                            }
+                            // Regra 1: Se hora for 0 e minutos < 30, ajusta para 30
+                            else if (newHour == 0 &&
+                                _selectedIntervalMinute < 30) {
+                              _selectedIntervalMinute = 30;
+                              _minuteIntervalController.animateToItem(30,
+                                  duration: animationDuration,
+                                  curve: animationCurve);
+                            }
                           });
                         },
-                        scrollController: FixedExtentScrollController(
-                            initialItem: _selectedIntervalHour),
                         looping: true,
-                        children: List.generate(24, (index) {
+                        // Aumenta o número de itens para 25 (0 a 24)
+                        children: List.generate(25, (index) {
                           return Center(
                               child: Text(
                                   '${index.toString().padLeft(2, '0')} h'));
                         }),
                       ),
                     ),
+                    // Seletor de Minutos
                     Expanded(
-                      child: CupertinoPicker(
-                        itemExtent: 40,
-                        onSelectedItemChanged: (index) {
-                          setState(() {
-                            _selectedIntervalMinute = index;
-                          });
-                        },
-                        scrollController: FixedExtentScrollController(
-                            initialItem: _selectedIntervalMinute),
-                        looping: true,
-                        children: List.generate(60, (index) {
-                          return Center(
-                              child: Text(
-                                  '${index.toString().padLeft(2, '0')} min'));
-                        }),
+                      child: Opacity(
+                        opacity: isMinutePickerDisabled ? 0.5 : 1.0,
+                        child: AbsorbPointer(
+                          absorbing: isMinutePickerDisabled,
+                          child: CupertinoPicker(
+                            itemExtent: 40,
+                            scrollController: _minuteIntervalController,
+                            onSelectedItemChanged: (newMinute) {
+                              setState(() {
+                                int targetMinute = newMinute;
+                                // Regra 1: Se hora for 0 e tentar selecionar < 30, força 30
+                                if (_selectedIntervalHour == 0 &&
+                                    newMinute < 30) {
+                                  targetMinute = 30;
+                                }
+                                _selectedIntervalMinute = targetMinute;
+
+                                // Se a seleção foi invalidada, anima de volta
+                                if (targetMinute != newMinute) {
+                                  _minuteIntervalController.animateToItem(
+                                      targetMinute,
+                                      duration: animationDuration,
+                                      curve: animationCurve);
+                                }
+                              });
+                            },
+                            looping: true,
+                            children: List.generate(60, (index) {
+                              return Center(
+                                  child: Text(
+                                      '${index.toString().padLeft(2, '0')} min'));
+                            }),
+                          ),
+                        ),
                       ),
                     ),
                   ],
