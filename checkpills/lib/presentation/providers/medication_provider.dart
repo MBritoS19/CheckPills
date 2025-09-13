@@ -71,6 +71,20 @@ class MedicationProvider with ChangeNotifier {
   }
 
   Future<void> _generateAndInsertDoseEvents(Prescription prescription) async {
+    // NOVO: Adiciona um tratamento especial para dose única
+    if (prescription.doseInterval == 0) {
+      final newDoseEvent = DoseEventsCompanion.insert(
+        prescriptionId: prescription.id,
+        scheduledTime: prescription.firstDoseTime,
+        status: const Value(DoseStatus.pendente),
+        createdAt: Value(DateTime.now()),
+        updatedAt: Value(DateTime.now()),
+      );
+      await database.doseEventsDao.addDoseEvent(newDoseEvent);
+      return; // Sai da função para não entrar no loop abaixo
+    }
+
+    // O código existente continua daqui para baixo, sem alterações
     final endDate = prescription.isContinuous
         ? DateTime.now().add(const Duration(days: 365))
         : _calculateTreatmentEndDate(prescription);
@@ -82,9 +96,7 @@ class MedicationProvider with ChangeNotifier {
         prescriptionId: prescription.id,
         scheduledTime: nextDoseTime,
         status: const Value(DoseStatus.pendente),
-        // MUDANÇA AQUI: Embrulhamos o DateTime com Value()
         createdAt: Value(DateTime.now()),
-        // E AQUI TAMBÉM
         updatedAt: Value(DateTime.now()),
       );
       await database.doseEventsDao.addDoseEvent(newDoseEvent);

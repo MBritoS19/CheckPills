@@ -31,6 +31,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   String _selectedTreatmentUnit = 'Dias';
   String _selectedDoseUnit = 'unidade(s)';
   bool _dontTrackStock = false;
+  bool _isSingleDose = false;
 
   final _customTypeController = TextEditingController();
   final _nameController = TextEditingController();
@@ -95,6 +96,9 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
       }
     }
     _selectedType = p.type;
+    if (p.doseInterval == 0) {
+      _isSingleDose = true;
+    }
     if (p.stock == -1) {
       _dontTrackStock = true;
     } else {
@@ -254,12 +258,16 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
       stock: Value(
           _dontTrackStock ? -1 : (int.tryParse(_stockController.text) ?? 0)),
       firstDoseTime: Value(firstDoseDateTime),
-      doseInterval: Value(doseIntervalDuration.inMinutes),
-      isContinuous: Value(_isContinuous),
-      durationTreatment: Value(_isContinuous
-          ? null
-          : int.tryParse(_treatmentLengthController.text) ?? 0),
-      unitTreatment: Value(_isContinuous ? null : _selectedTreatmentUnit),
+      doseInterval: Value(_isSingleDose ? 0 : doseIntervalDuration.inMinutes),
+      isContinuous: Value(_isSingleDose ? false : _isContinuous),
+      durationTreatment: Value(_isSingleDose
+          ? 1
+          : (_isContinuous
+              ? null
+              : int.tryParse(_treatmentLengthController.text) ?? 0)),
+      unitTreatment: Value(_isSingleDose
+          ? 'Dias'
+          : (_isContinuous ? null : _selectedTreatmentUnit)),
       notes: Value(_notesController.text),
       updatedAt: Value(DateTime.now()),
     );
@@ -492,10 +500,13 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     );
   }
 
+  // Substitua o método inteiro por este
   Widget _buildIntervalPickerPage({
     required double screenWidth,
     required double screenHeight,
   }) {
+    const blueColor = Color(0xFF23AFDC);
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
       child: Column(
@@ -505,49 +516,72 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           Text('Qual o intervalo entre as doses?',
               style: TextStyle(
                   fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
-          SizedBox(height: screenWidth * 0.06),
-          SizedBox(
-            height: screenHeight * 0.2,
-            child: Row(
-              children: [
-                Expanded(
-                  child: CupertinoPicker(
-                    itemExtent: 40,
-                    onSelectedItemChanged: (index) {
-                      setState(() {
-                        _selectedIntervalHour = index;
-                      });
-                    },
-                    scrollController: FixedExtentScrollController(
-                        initialItem: _selectedIntervalHour),
-                    looping: true,
-                    children: List.generate(24, (index) {
-                      return Center(
-                          child: Text('${index.toString().padLeft(2, '0')} h'));
-                    }),
-                  ),
+          SizedBox(height: screenWidth * 0.04),
+          CheckboxListTile(
+            title: const Text('Uma dose apenas'),
+            value: _isSingleDose,
+            onChanged: (value) {
+              setState(() {
+                _isSingleDose = value!;
+                // Revalida a página, o que também afeta a lista de páginas
+                _validatePage();
+              });
+            },
+            activeColor: blueColor,
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+          ),
+          SizedBox(height: screenWidth * 0.04),
+          Opacity(
+            opacity:
+                _isSingleDose ? 0.5 : 1.0, // Fica esmaecido se desabilitado
+            child: AbsorbPointer(
+              absorbing: _isSingleDose, // Bloqueia a interação
+              child: SizedBox(
+                height: screenHeight * 0.2,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: CupertinoPicker(
+                        itemExtent: 40,
+                        onSelectedItemChanged: (index) {
+                          setState(() {
+                            _selectedIntervalHour = index;
+                          });
+                        },
+                        scrollController: FixedExtentScrollController(
+                            initialItem: _selectedIntervalHour),
+                        looping: true,
+                        children: List.generate(24, (index) {
+                          return Center(
+                              child: Text(
+                                  '${index.toString().padLeft(2, '0')} h'));
+                        }),
+                      ),
+                    ),
+                    Expanded(
+                      child: CupertinoPicker(
+                        itemExtent: 40,
+                        onSelectedItemChanged: (index) {
+                          setState(() {
+                            _selectedIntervalMinute = index;
+                          });
+                        },
+                        scrollController: FixedExtentScrollController(
+                            initialItem: _selectedIntervalMinute),
+                        looping: true,
+                        children: List.generate(60, (index) {
+                          return Center(
+                              child: Text(
+                                  '${index.toString().padLeft(2, '0')} min'));
+                        }),
+                      ),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: CupertinoPicker(
-                    itemExtent: 40,
-                    onSelectedItemChanged: (index) {
-                      setState(() {
-                        _selectedIntervalMinute = index;
-                      });
-                    },
-                    scrollController: FixedExtentScrollController(
-                        initialItem: _selectedIntervalMinute),
-                    looping: true,
-                    children: List.generate(60, (index) {
-                      return Center(
-                          child:
-                              Text('${index.toString().padLeft(2, '0')} min'));
-                    }),
-                  ),
-                ),
-              ],
+              ),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -643,7 +677,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           screenWidth: screenWidth, screenHeight: screenHeight),
       _buildIntervalPickerPage(
           screenWidth: screenWidth, screenHeight: screenHeight),
-      _buildDurationPage(screenWidth: screenWidth),
+      if (!_isSingleDose) _buildDurationPage(screenWidth: screenWidth),
       _buildFormPage(
           title: 'Alguma observação?',
           subtitle: 'Este campo é opcional',
