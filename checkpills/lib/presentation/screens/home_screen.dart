@@ -4,6 +4,7 @@ import 'package:CheckPills/presentation/providers/medication_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
+import 'package:CheckPills/presentation/screens/calendar_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -104,7 +105,19 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.calendar_month),
-            onPressed: () {},
+            // Substitua o onPressed por este
+            onPressed: () async {
+              // Navega e espera por um resultado (uma data)
+              final selectedDate = await Navigator.push<DateTime>(
+                context,
+                MaterialPageRoute(builder: (context) => const CalendarScreen()),
+              );
+
+              // Se uma data foi retornada, atualiza a tela inicial
+              if (selectedDate != null && context.mounted) {
+                _updateSelectedDate(selectedDate);
+              }
+            },
           ),
         ],
       ),

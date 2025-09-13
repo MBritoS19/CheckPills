@@ -42,8 +42,8 @@ class Prescriptions extends Table {
 @DataClassName('DoseEvent')
 class DoseEvents extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get prescriptionId => integer()
-      .references(Prescriptions, #id, onDelete: KeyAction.cascade)();
+  IntColumn get prescriptionId =>
+      integer().references(Prescriptions, #id, onDelete: KeyAction.cascade)();
   DateTimeColumn get scheduledTime => dateTime()();
   DateTimeColumn get takenTime => dateTime().nullable()();
   IntColumn get status =>
@@ -63,9 +63,10 @@ class DoseEventWithPrescription {
   });
 }
 
-
 // A classe AppDatabase agora vai usar DAOs
-@DriftDatabase(tables: [Settings, Prescriptions, DoseEvents], daos: [SettingsDao, PrescriptionsDao, DoseEventsDao])
+@DriftDatabase(
+    tables: [Settings, Prescriptions, DoseEvents],
+    daos: [SettingsDao, PrescriptionsDao, DoseEventsDao])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -75,7 +76,8 @@ class AppDatabase extends _$AppDatabase {
 
 // DAO para a tabela DoseEvents
 @DriftAccessor(tables: [DoseEvents, Prescriptions])
-class DoseEventsDao extends DatabaseAccessor<AppDatabase> with _$DoseEventsDaoMixin {
+class DoseEventsDao extends DatabaseAccessor<AppDatabase>
+    with _$DoseEventsDaoMixin {
   DoseEventsDao(AppDatabase db) : super(db);
 
   // A nossa nova função reativa para buscar as doses do dia
@@ -84,7 +86,8 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase> with _$DoseEventsDaoMi
     final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
 
     final query = select(doseEvents).join([
-      innerJoin(prescriptions, prescriptions.id.equalsExp(doseEvents.prescriptionId))
+      innerJoin(
+          prescriptions, prescriptions.id.equalsExp(doseEvents.prescriptionId))
     ])
       ..where(doseEvents.scheduledTime.isBetweenValues(startOfDay, endOfDay))
       ..orderBy([OrderingTerm.asc(doseEvents.scheduledTime)]);
@@ -98,11 +101,29 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase> with _$DoseEventsDaoMi
       }).toList();
     });
   }
-  
+
+  Stream<List<DoseEventWithPrescription>> watchAllDoseEvents() {
+    final query = select(doseEvents).join([
+      innerJoin(
+          prescriptions, prescriptions.id.equalsExp(doseEvents.prescriptionId))
+    ])
+      ..orderBy([OrderingTerm.asc(doseEvents.scheduledTime)]);
+
+    return query.watch().map((rows) {
+      return rows.map((row) {
+        return DoseEventWithPrescription(
+          doseEvent: row.readTable(doseEvents),
+          prescription: row.readTable(prescriptions),
+        );
+      }).toList();
+    });
+  }
+
   Future<void> addDoseEvent(DoseEventsCompanion companion) =>
       into(doseEvents).insert(companion);
 
-  Future<void> updateDoseEventStatus(int id, DoseStatus newStatus, DateTime? takenTime) =>
+  Future<void> updateDoseEventStatus(
+          int id, DoseStatus newStatus, DateTime? takenTime) =>
       (update(doseEvents)..where((t) => t.id.equals(id))).write(
         DoseEventsCompanion(
           status: Value(newStatus),
@@ -110,7 +131,7 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase> with _$DoseEventsDaoMi
           updatedAt: Value(DateTime.now()),
         ),
       );
-  
+
   Future<void> deleteFutureDoseEventsForPrescription(int prescriptionId) {
     final today = DateTime.now();
     final startOfToday = DateTime(today.year, today.month, today.day);
@@ -123,21 +144,27 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase> with _$DoseEventsDaoMi
 
 // DAOs para as outras tabelas (mesmo que ainda não tenham funções customizadas, é uma boa prática criá-los)
 @DriftAccessor(tables: [Prescriptions])
-class PrescriptionsDao extends DatabaseAccessor<AppDatabase> with _$PrescriptionsDaoMixin {
+class PrescriptionsDao extends DatabaseAccessor<AppDatabase>
+    with _$PrescriptionsDaoMixin {
   PrescriptionsDao(AppDatabase db) : super(db);
 
-  Future<List<Prescription>> getAllPrescriptions() => select(prescriptions).get();
-  Future<int> addPrescription(PrescriptionsCompanion companion) => into(prescriptions).insert(companion);
-  Future<bool> updatePrescription(PrescriptionsCompanion companion) => update(prescriptions).replace(companion);
-  Future<int> deletePrescription(int id) => (delete(prescriptions)..where((t) => t.id.equals(id))).go();
-  Future<Prescription> getPrescriptionById(int id) => (select(prescriptions)..where((t) => t.id.equals(id))).getSingle();
+  Future<List<Prescription>> getAllPrescriptions() =>
+      select(prescriptions).get();
+  Future<int> addPrescription(PrescriptionsCompanion companion) =>
+      into(prescriptions).insert(companion);
+  Future<bool> updatePrescription(PrescriptionsCompanion companion) =>
+      update(prescriptions).replace(companion);
+  Future<int> deletePrescription(int id) =>
+      (delete(prescriptions)..where((t) => t.id.equals(id))).go();
+  Future<Prescription> getPrescriptionById(int id) =>
+      (select(prescriptions)..where((t) => t.id.equals(id))).getSingle();
 }
 
 @DriftAccessor(tables: [Settings])
-class SettingsDao extends DatabaseAccessor<AppDatabase> with _$SettingsDaoMixin {
+class SettingsDao extends DatabaseAccessor<AppDatabase>
+    with _$SettingsDaoMixin {
   SettingsDao(AppDatabase db) : super(db);
 }
-
 
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {

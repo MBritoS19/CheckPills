@@ -13,14 +13,41 @@ class MedicationProvider with ChangeNotifier {
   List<Prescription> get prescriptionList => _prescriptionList;
   List<DoseEventWithPrescription> get doseEventsForDay => _doseEventsForDay;
 
+  StreamSubscription? _allEventsSubscription; // Nova variável
+  Map<DateTime, List<DoseEventWithPrescription>> eventsByDay =
+      {}; // Nova variável
+
   MedicationProvider({required this.database}) {
     _loadPrescriptions();
+    _listenToAllDoseEvents();
   }
 
   @override
   void dispose() {
     _doseEventsSubscription?.cancel();
+    _allEventsSubscription?.cancel(); // Nova linha
     super.dispose();
+  }
+
+  void _listenToAllDoseEvents() {
+    _allEventsSubscription?.cancel();
+    _allEventsSubscription =
+        database.doseEventsDao.watchAllDoseEvents().listen((allDoses) {
+      // Agrupa a lista de doses em um mapa por dia
+      final newEventsByDay = <DateTime, List<DoseEventWithPrescription>>{};
+      for (final dose in allDoses) {
+        final day = DateTime.utc(
+            dose.doseEvent.scheduledTime.year,
+            dose.doseEvent.scheduledTime.month,
+            dose.doseEvent.scheduledTime.day);
+        final existingDoses = newEventsByDay[day] ?? [];
+        existingDoses.add(dose);
+        newEventsByDay[day] = existingDoses;
+      }
+
+      eventsByDay = newEventsByDay;
+      notifyListeners();
+    });
   }
 
   Future<void> _loadPrescriptions() async {
