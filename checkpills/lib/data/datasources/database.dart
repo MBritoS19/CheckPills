@@ -164,6 +164,16 @@ class PrescriptionsDao extends DatabaseAccessor<AppDatabase>
 class SettingsDao extends DatabaseAccessor<AppDatabase>
     with _$SettingsDaoMixin {
   SettingsDao(AppDatabase db) : super(db);
+
+  // Busca as configurações (sempre a linha com id=1)
+  Future<Setting> getSettings() async {
+    return (select(settings)..where((t) => t.id.equals(1))).getSingle();
+  }
+
+  // ATUALIZADO: Atualiza as configurações
+  Future<void> updateSettings(SettingsCompanion entry) async {
+    await (update(settings)..where((t) => t.id.equals(1))).write(entry);
+  }
 }
 
 LazyDatabase _openConnection() {
