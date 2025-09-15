@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:CheckPills/presentation/providers/medication_provider.dart';
 import 'package:CheckPills/presentation/providers/settings_provider.dart';
+import 'package:CheckPills/presentation/providers/patient_provider.dart';
 import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
 import 'package:CheckPills/presentation/screens/configuration_screen.dart';
 import 'package:CheckPills/presentation/screens/home_screen.dart';
@@ -31,6 +32,11 @@ Future<void> main() async {
           ),
           ChangeNotifierProvider(
             create: (context) => SettingsProvider(
+              database: Provider.of<AppDatabase>(context, listen: false),
+            ),
+          ),
+           ChangeNotifierProvider(
+            create: (context) => PatientProvider(
               database: Provider.of<AppDatabase>(context, listen: false),
             ),
           ),

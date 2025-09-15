@@ -6,62 +6,44 @@ import 'package:flutter/material.dart';
 
 class SettingsProvider with ChangeNotifier {
   final AppDatabase database;
-  Setting? _currentSettings;
 
   SettingsProvider({required this.database}) {
     _loadSettings();
   }
 
-  Setting? get currentSettings => _currentSettings;
+  Setting? _settings;
+
+  Setting? get settings => _settings;
 
   Future<void> _loadSettings() async {
-    try {
-      _currentSettings = await database.settingsDao.getSettings();
-      notifyListeners();
-    } catch (e) {
-      // Se não houver configurações, cria a primeira.
-      if (_currentSettings == null) {
-        await database.settingsDao.updateSettings(
-          const SettingsCompanion(
-            userName: Value(''),
-            standardPillType: Value(''),
-            darkMode: Value(false),
-            refillReminder: Value(5),
-          ),
-        );
-        _currentSettings = await database.settingsDao.getSettings();
-      }
-      notifyListeners();
-    }
-  }
-
-  Future<void> updateUserName(String? name) async {
-    await database.settingsDao.updateSettings(
-      SettingsCompanion(
-        userName: Value(name),
-      ),
-    );
-    _currentSettings = _currentSettings!.copyWith(userName: Value(name));
+    _settings = await database.settingsDao.getSettings();
     notifyListeners();
   }
 
-  Future<void> toggleDarkMode(bool isDarkMode) async {
-    await database.settingsDao.updateSettings(
-      SettingsCompanion(
-        darkMode: Value(isDarkMode),
-      ),
+  Future<void> saveUserName(String name) async {
+    final settingsCompanion = SettingsCompanion(
+      userName: Value(name),
+      updatedAt: Value(DateTime.now()),
     );
-    _currentSettings = _currentSettings!.copyWith(darkMode: isDarkMode);
-    notifyListeners();
+    await database.settingsDao.saveSettings(settingsCompanion);
+    await _loadSettings();
   }
 
-  Future<void> updateRefillReminder(int days) async {
-    await database.settingsDao.updateSettings(
-      SettingsCompanion(
-        refillReminder: Value(days),
-      ),
+  Future<void> saveRefillReminder(int days) async {
+    final settingsCompanion = SettingsCompanion(
+      refillReminder: Value(days),
+      updatedAt: Value(DateTime.now()),
     );
-    _currentSettings = _currentSettings!.copyWith(refillReminder: days);
-    notifyListeners();
+    await database.settingsDao.saveSettings(settingsCompanion);
+    await _loadSettings();
+  }
+
+  Future<void> toggleDarkMode(bool isEnabled) async {
+    final settingsCompanion = SettingsCompanion(
+      darkMode: Value(isEnabled),
+      updatedAt: Value(DateTime.now()),
+    );
+    await database.settingsDao.saveSettings(settingsCompanion);
+    await _loadSettings();
   }
 }
