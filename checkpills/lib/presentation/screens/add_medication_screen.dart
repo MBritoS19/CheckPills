@@ -1,12 +1,9 @@
-// lib/presentation/screens/add_medication_screen.dart
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:CheckPills/data/datasources/database.dart';
 import 'package:CheckPills/presentation/providers/medication_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' hide Column;
-import 'package:CheckPills/presentation/providers/patient_provider.dart';
 
 class AddMedicationScreen extends StatefulWidget {
   final Prescription? prescription;
@@ -40,387 +37,660 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   late FixedExtentScrollController _minuteIntervalController;
 
   final _customTypeController = TextEditingController();
-  final _medicationNameController = TextEditingController();
-  final _doseDescriptionController = TextEditingController();
+  final _nameController = TextEditingController();
   final _stockController = TextEditingController();
-  final _durationController = TextEditingController();
-  final _refillReminderController = TextEditingController();
+  final _notesController = TextEditingController();
+  final _treatmentLengthController = TextEditingController();
+  final _doseQuantityController = TextEditingController();
 
-  Patient? _selectedPatient;
+  final Map<String, String> _medicationTypeToUnitMap = {
+    'Comprimido': 'comprimido(s)',
+    'Cápsula': 'unidade(s)',
+    'Injeção': 'ml',
+    'Gotas': 'gota(s)',
+    'Líquido': 'ml',
+    'Xarope': 'ml',
+    'Inalação': 'dose(s)',
+    'Pó': 'mg',
+    'Outros': 'unidade(s)',
+  };
+  final List<String> _allDoseUnits = [
+    'unidade(s)',
+    'comprimido(s)',
+    'cápsula(s)',
+    'gota(s)',
+    'ml',
+    'mg',
+    'g',
+    'L',
+    'dose(s)'
+  ];
 
   @override
   void initState() {
     super.initState();
-    _hourIntervalController = FixedExtentScrollController(
-      initialItem: _selectedIntervalHour,
-    );
-    _minuteIntervalController = FixedExtentScrollController(
-      initialItem: _selectedIntervalMinute,
-    );
+
+    _hourIntervalController =
+        FixedExtentScrollController(initialItem: _selectedIntervalHour);
+    _minuteIntervalController =
+        FixedExtentScrollController(initialItem: _selectedIntervalMinute);
 
     if (widget.prescription != null) {
-      final p = widget.prescription!;
-      _medicationNameController.text = p.name;
-      _doseDescriptionController.text = p.doseDescription;
-      _selectedType = p.type;
-      _stockController.text = p.stock.toString();
-      _isContinuous = p.isContinuous;
-      if (p.durationTreatment != null) {
-        _durationController.text = p.durationTreatment.toString();
-      }
-      _selectedTreatmentUnit = p.unitTreatment ?? 'Dias';
-      _selectedHour = p.firstDoseTime.hour;
-      _selectedMinute = p.firstDoseTime.minute;
+      _prefillFields();
     }
+
+    _pageController.addListener(() {
+      setState(() {
+        _currentPage = _pageController.page!.round();
+        _validatePage();
+      });
+    });
+
+    _nameController.addListener(_validatePage);
+    _stockController.addListener(_validatePage);
+    _customTypeController.addListener(_validatePage);
+    _treatmentLengthController.addListener(_validatePage);
+    _doseQuantityController.addListener(_validatePage);
+    _validatePage();
+  }
+
+  void _prefillFields() {
+    final p = widget.prescription!;
+    _nameController.text = p.name;
+    final doseParts = p.doseDescription.split(' ');
+    if (doseParts.isNotEmpty) {
+      _doseQuantityController.text = doseParts.first;
+      if (doseParts.length > 1) {
+        _selectedDoseUnit = doseParts.sublist(1).join(' ');
+      }
+    }
+    _selectedType = p.type;
+    if (p.doseInterval == 0) {
+      _isSingleDose = true;
+    }
+    if (p.stock == -1) {
+      _dontTrackStock = true;
+    } else {
+      _dontTrackStock = false;
+      _stockController.text = p.stock.toString();
+    }
+    _selectedHour = p.firstDoseTime.hour;
+    _selectedMinute = p.firstDoseTime.minute;
+    final interval = Duration(minutes: p.doseInterval);
+    _selectedIntervalHour = interval.inHours;
+    _selectedIntervalMinute = interval.inMinutes.remainder(60);
+    _isContinuous = p.isContinuous;
+    if (!p.isContinuous) {
+      _treatmentLengthController.text = p.durationTreatment?.toString() ?? '';
+      _selectedTreatmentUnit = p.unitTreatment ?? 'Dias';
+    }
+    _notesController.text = p.notes ?? '';
   }
 
   @override
   void dispose() {
-    _pageController.dispose();
-    _customTypeController.dispose();
-    _medicationNameController.dispose();
-    _doseDescriptionController.dispose();
-    _stockController.dispose();
-    _durationController.dispose();
-    _refillReminderController.dispose();
+    _nameController.removeListener(_validatePage);
+    _stockController.removeListener(_validatePage);
+    _customTypeController.removeListener(_validatePage);
+    _treatmentLengthController.removeListener(_validatePage);
+    _doseQuantityController.removeListener(_validatePage);
+
     _hourIntervalController.dispose();
     _minuteIntervalController.dispose();
+    _pageController.dispose();
+    _customTypeController.dispose();
+    _nameController.dispose();
+    _stockController.dispose();
+    _treatmentLengthController.dispose();
+    _notesController.dispose();
+    _doseQuantityController.dispose();
     super.dispose();
   }
 
-  void _onPageChanged(int page) {
-    setState(() {
-      _currentPage = page;
-      _isPageValid = _validatePage();
-    });
-  }
-
-  bool _validatePage() {
+  void _validatePage() {
+    bool isValid = false;
     switch (_currentPage) {
       case 0:
-        return _validatePage1();
+        isValid = _nameController.text.isNotEmpty;
+        break;
       case 1:
-        return _validatePage2();
-      case 2:
-        return _validatePage3();
+        isValid = _selectedType != null;
+        if (_selectedType == 'Outros') {
+          isValid = _customTypeController.text.isNotEmpty;
+        }
+        break;
+      case 2: // Validação com o novo controller
+        isValid = _doseQuantityController.text.isNotEmpty;
+        break;
+      case 3:
+        isValid = _dontTrackStock || _stockController.text.isNotEmpty;
+        break;
+      case 4:
+      case 5:
+        isValid = true;
+        break;
+      case 6:
+        isValid = _isContinuous || _treatmentLengthController.text.isNotEmpty;
+        break;
+      case 7:
+        isValid = true;
+        break;
       default:
-        return false;
+        isValid = false;
+    }
+    if (mounted) {
+      setState(() {
+        _isPageValid = isValid;
+      });
     }
   }
 
-  bool _validatePage1() {
-    return _selectedPatient != null && _medicationNameController.text.isNotEmpty;
-  }
+  // Adicione este método inteiro na classe
 
-  bool _validatePage2() {
-    if (_isContinuous) {
-      return _stockController.text.isNotEmpty;
-    } else {
-      return _stockController.text.isNotEmpty &&
-          _durationController.text.isNotEmpty;
-    }
-  }
-
-  bool _validatePage3() {
-    return _selectedType != null &&
-        (_selectedType != 'Outro' || _customTypeController.text.isNotEmpty);
-  }
-
-  void _nextPage() {
-    if (_validatePage()) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.ease,
-      );
-    }
-  }
-
-  void _previousPage() {
-    _pageController.previousPage(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.ease,
-    );
-  }
-
-  Future<void> _savePrescription() async {
-    final medicationProvider =
-        Provider.of<MedicationProvider>(context, listen: false);
-
-    final durationTreatment =
-        _isContinuous ? null : int.tryParse(_durationController.text);
-    final durationUnit = _isContinuous ? null : _selectedTreatmentUnit;
-    final firstDoseTime = DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day,
-      _selectedHour,
-      _selectedMinute,
-    );
-    final doseInterval =
-        (_selectedIntervalHour * 60) + _selectedIntervalMinute;
-
-    if (widget.prescription == null) {
-      final newPrescription = PrescriptionsCompanion.insert(
-        patientId: _selectedPatient!.id,
-        name: _medicationNameController.text,
-        doseDescription: _doseDescriptionController.text,
-        type: _selectedType!,
-        stock: int.parse(_stockController.text),
-        doseInterval: doseInterval,
-        isContinuous: _isContinuous,
-        durationTreatment: Value(durationTreatment),
-        unitTreatment: Value(durationUnit),
-        firstDoseTime: firstDoseTime,
-      );
-
-      await medicationProvider.addPrescription(newPrescription);
-    } else {
-      final updatedPrescription = PrescriptionsCompanion(
-        id: Value(widget.prescription!.id),
-        patientId: Value(_selectedPatient!.id),
-        name: Value(_medicationNameController.text),
-        doseDescription: Value(_doseDescriptionController.text),
-        type: Value(_selectedType!),
-        stock: Value(int.parse(_stockController.text)),
-        doseInterval: Value(doseInterval),
-        isContinuous: Value(_isContinuous),
-        durationTreatment: Value(durationTreatment),
-        unitTreatment: Value(durationUnit),
-        firstDoseTime: Value(firstDoseTime),
-      );
-
-      await medicationProvider.updatePrescription(updatedPrescription);
-    }
-    if (context.mounted) Navigator.of(context).pop();
-  }
-
-  Widget _buildPage1() {
-    final patientProvider = context.watch<PatientProvider>();
-    final patients = patientProvider.patientList;
-
-    if (patients.isEmpty) {
-      return const Center(
-        child: Text(
-          'Por favor, adicione um paciente antes de criar uma prescrição.',
-          textAlign: TextAlign.center,
-        ),
-      );
-    }
+  Widget _buildStockPage({
+    required double screenWidth,
+  }) {
+    const blueColor = Color(0xFF23AFDC);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: ListView(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          DropdownButtonFormField<Patient>(
-            decoration: const InputDecoration(labelText: 'Paciente'),
-            value: _selectedPatient,
-            items: patients.map((patient) {
-              return DropdownMenuItem<Patient>(
-                value: patient,
-                child: Text(patient.name),
-              );
-            }).toList(),
-            onChanged: (Patient? newValue) {
-              setState(() {
-                _selectedPatient = newValue;
-                _isPageValid = _validatePage1();
-              });
-            },
-            validator: (value) =>
-                value == null ? 'Por favor, selecione um paciente' : null,
-          ),
-          const SizedBox(height: 16),
+          Text('Quantas doses você tem em estoque?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          SizedBox(height: screenWidth * 0.06),
           TextFormField(
-            controller: _medicationNameController,
-            decoration:
-                const InputDecoration(labelText: 'Nome do Medicamento'),
-            onChanged: (value) {
-              setState(() => _isPageValid = _validatePage1());
-            },
-            validator: (value) => value!.isEmpty
-                ? 'Por favor, insira o nome do medicamento'
-                : null,
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _doseDescriptionController,
-            decoration: const InputDecoration(labelText: 'Dose (ex: 1 comprimido)'),
-            onChanged: (value) {
-              setState(() => _isPageValid = _validatePage1());
-            },
-            validator: (value) =>
-                value!.isEmpty ? 'Por favor, insira a dose' : null,
-          ),
-          const SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPage2() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: ListView(
-        children: [
-          SwitchListTile(
-            title: const Text('Medicação de uso contínuo?'),
-            value: _isContinuous,
-            onChanged: (bool value) {
-              setState(() {
-                _isContinuous = value;
-                _isPageValid = _validatePage2();
-              });
-            },
-          ),
-          const SizedBox(height: 16),
-          TextField(
             controller: _stockController,
-            decoration: const InputDecoration(labelText: 'Estoque inicial'),
+            enabled:
+                !_dontTrackStock, // Desabilitado se o checkbox estiver marcado
             keyboardType: TextInputType.number,
-            onChanged: (value) {
-              setState(() => _isPageValid = _validatePage2());
-            },
-          ),
-          const SizedBox(height: 16),
-          if (!_isContinuous)
-            TextField(
-              controller: _durationController,
-              decoration: InputDecoration(
-                labelText: 'Duração do tratamento',
-                suffixIcon: DropdownButtonFormField<String>(
-                  value: _selectedTreatmentUnit,
-                  items: ['Dias', 'Semanas', 'Meses', 'Anos']
-                      .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedTreatmentUnit = newValue!;
-                    });
-                  },
-                ),
-              ),
-              keyboardType: TextInputType.number,
-              onChanged: (value) {
-                  setState(() => _isPageValid = _validatePage2());
-                },
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              fillColor:
+                  _dontTrackStock ? Colors.grey[200] : Colors.transparent,
+              filled: true,
             ),
+          ),
+          CheckboxListTile(
+            title: const Text('Não controlar estoque'),
+            value: _dontTrackStock,
+            onChanged: (value) {
+              setState(() {
+                _dontTrackStock = value!;
+                if (_dontTrackStock) {
+                  _stockController.clear(); // Limpa o campo ao marcar
+                  FocusScope.of(context).unfocus();
+                }
+                _validatePage(); // Revalida a página
+              });
+            },
+            activeColor: blueColor,
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildPage3() {
+  void _preselectDoseUnit() {
+    if (_selectedType != null &&
+        _medicationTypeToUnitMap.containsKey(_selectedType)) {
+      setState(() {
+        _selectedDoseUnit = _medicationTypeToUnitMap[_selectedType]!;
+      });
+    }
+  }
+
+  void _onSave() {
+    final provider = Provider.of<MedicationProvider>(context, listen: false);
+    String finalType;
+    if (_selectedType == 'Outros') {
+      finalType = _customTypeController.text;
+    } else {
+      finalType = _selectedType ?? 'Não definido';
+    }
+    final now = DateTime.now();
+    final firstDoseDateTime =
+        DateTime(now.year, now.month, now.day, _selectedHour, _selectedMinute);
+    final doseIntervalDuration = Duration(
+        hours: _selectedIntervalHour, minutes: _selectedIntervalMinute);
+
+    final doseDescription =
+        '${_doseQuantityController.text} $_selectedDoseUnit'.trim();
+
+    final prescriptionCompanion = PrescriptionsCompanion(
+      name: Value(_nameController.text),
+      doseDescription: Value(doseDescription),
+      type: Value(finalType),
+      stock: Value(
+          _dontTrackStock ? -1 : (int.tryParse(_stockController.text) ?? 0)),
+      firstDoseTime: Value(firstDoseDateTime),
+      doseInterval: Value(_isSingleDose ? 0 : doseIntervalDuration.inMinutes),
+      isContinuous: Value(_isSingleDose ? false : _isContinuous),
+      durationTreatment: Value(_isSingleDose
+          ? 1
+          : (_isContinuous
+              ? null
+              : int.tryParse(_treatmentLengthController.text) ?? 0)),
+      unitTreatment: Value(_isSingleDose
+          ? 'Dias'
+          : (_isContinuous ? null : _selectedTreatmentUnit)),
+      notes: Value(_notesController.text),
+      updatedAt: Value(DateTime.now()),
+    );
+
+    if (widget.prescription != null) {
+      provider.updatePrescription(
+          widget.prescription!.id, prescriptionCompanion);
+    } else {
+      provider.addPrescription(prescriptionCompanion.copyWith(
+        createdAt: Value(DateTime.now()),
+      ));
+    }
+    Navigator.pop(context);
+  }
+
+  Widget _buildFormPage({
+    required String title,
+    String? subtitle,
+    required TextEditingController controller,
+    required TextInputType keyboardType,
+    required double screenWidth,
+    bool isLastPage = false,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: ListView(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _refillReminderController,
-                  decoration: const InputDecoration(
-                    labelText: 'Lembrete de refil',
-                    suffixText: 'doses restantes',
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-            ],
+          Text(title,
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          if (subtitle != null) ...[
+            SizedBox(height: screenWidth * 0.02),
+            Text(subtitle,
+                style: TextStyle(
+                    fontSize: screenWidth * 0.04, color: Colors.grey)),
+          ],
+          SizedBox(height: screenWidth * 0.06),
+          TextFormField(
+            controller: controller,
+            keyboardType: keyboardType,
+            maxLines: keyboardType == TextInputType.multiline ? 3 : 1,
+            decoration: const InputDecoration(border: OutlineInputBorder()),
           ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            decoration: const InputDecoration(labelText: 'Tipo de Medicamento'),
-            value: _selectedType,
-            items: [
-              'Comprimido',
-              'Cápsula',
-              'Líquido (ml)',
-              'Gotas',
-              'Outro',
-            ].map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTypeSelectionPage({
+    required double screenWidth,
+  }) {
+    const types = [
+      'Comprimido',
+      'Injeção',
+      'Gotas',
+      'Líquido',
+      'Inalação',
+      'Pó',
+      'Outros'
+    ];
+    const blueColor = Color(0xFF23AFDC);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Qual o tipo do medicamento?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 24),
+          Wrap(
+            spacing: 8.0,
+            runSpacing: 8.0,
+            children: types.map((type) {
+              final isSelected = _selectedType == type;
+              return ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _selectedType = type;
+                    _validatePage();
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isSelected ? blueColor : Colors.grey[200],
+                  foregroundColor: isSelected ? Colors.white : Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: Text(type),
               );
             }).toList(),
-            onChanged: (String? newValue) {
-              setState(() {
-                _selectedType = newValue;
-                _isPageValid = _validatePage3();
-              });
-            },
-            validator: (value) =>
-                value == null ? 'Por favor, selecione um tipo' : null,
           ),
-          const SizedBox(height: 16),
-          if (_selectedType == 'Outro')
-            TextField(
+          if (_selectedType == 'Outros') ...[
+            const SizedBox(height: 24),
+            TextFormField(
               controller: _customTypeController,
-              decoration:
-                  const InputDecoration(labelText: 'Descreva o tipo'),
-              onChanged: (value) {
-                setState(() => _isPageValid = _validatePage3());
-              },
+              decoration: const InputDecoration(
+                labelText: 'Digite o tipo do medicamento',
+                border: OutlineInputBorder(),
+              ),
             ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 150,
-            child: CupertinoDatePicker(
-              mode: CupertinoDatePickerMode.time,
-              initialDateTime: DateTime.now(),
-              onDateTimeChanged: (DateTime newDateTime) {
-                setState(() {
-                  _selectedHour = newDateTime.hour;
-                  _selectedMinute = newDateTime.minute;
-                });
-              },
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Intervalo entre as doses',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          ]
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDosePage({
+    required double screenWidth,
+    required double screenHeight,
+  }) {
+    // Encontra o índice inicial para o carrossel de unidades
+    final initialUnitIndex = _allDoseUnits.indexOf(_selectedDoseUnit);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+              'Qual a quantidade de "${_nameController.text}" você deve tomar por vez?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          SizedBox(height: screenWidth * 0.06),
           Row(
             children: [
+              // Campo de texto para a quantidade
               Expanded(
-                child: SizedBox(
-                  height: 150,
-                  child: CupertinoPicker(
-                    scrollController: _hourIntervalController,
-                    itemExtent: 32,
-                    onSelectedItemChanged: (index) {
-                      _selectedIntervalHour = index;
-                    },
-                    children: List.generate(
-                      24,
-                      (index) => Text('$index h'),
-                    ),
-                  ),
+                flex: 2, // Ocupa 2/3 do espaço
+                child: TextFormField(
+                  controller: _doseQuantityController,
+                  keyboardType: TextInputType.number,
+                  decoration:
+                      const InputDecoration(border: OutlineInputBorder()),
                 ),
               ),
+              const SizedBox(width: 16),
+              // Carrossel para a unidade
               Expanded(
+                flex: 3, // Ocupa 3/3 do espaço
                 child: SizedBox(
-                  height: 150,
+                  height: screenHeight * 0.1, // Altura do carrossel
                   child: CupertinoPicker(
-                    scrollController: _minuteIntervalController,
-                    itemExtent: 32,
+                    itemExtent: 40,
                     onSelectedItemChanged: (index) {
-                      _selectedIntervalMinute = index;
+                      setState(() {
+                        _selectedDoseUnit = _allDoseUnits[index];
+                      });
                     },
-                    children: List.generate(
-                      60,
-                      (index) => Text('$index min'),
-                    ),
+                    scrollController: FixedExtentScrollController(
+                        initialItem:
+                            initialUnitIndex != -1 ? initialUnitIndex : 0),
+                    children: _allDoseUnits.map((unit) {
+                      return Center(child: Text(unit));
+                    }).toList(),
                   ),
                 ),
               ),
             ],
+          )
+        ],
+      ),
+    );
+  }
+
+  // Substitua o método inteiro por este
+  Widget _buildTimePickerPage({
+    required double screenWidth,
+    required double screenHeight,
+  }) {
+    const blueColor = Color(0xFF23AFDC);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Qual o horário da primeira dose?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          SizedBox(height: screenWidth * 0.04),
+          CheckboxListTile(
+            title: const Text('Uma dose apenas'),
+            value: _isSingleDose,
+            onChanged: (value) {
+              setState(() {
+                _isSingleDose = value!;
+                _validatePage();
+              });
+            },
+            activeColor: blueColor,
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+          ),
+          SizedBox(height: screenWidth * 0.04),
+          SizedBox(
+            height: screenHeight * 0.2,
+            child: Row(
+              children: [
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 40,
+                    onSelectedItemChanged: (index) {
+                      setState(() {
+                        _selectedHour = index;
+                      });
+                    },
+                    scrollController:
+                        FixedExtentScrollController(initialItem: _selectedHour),
+                    looping: true,
+                    children: List.generate(24, (index) {
+                      return Center(
+                          child: Text('${index.toString().padLeft(2, '0')} h'));
+                    }),
+                  ),
+                ),
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 40,
+                    onSelectedItemChanged: (index) {
+                      setState(() {
+                        _selectedMinute = index;
+                      });
+                    },
+                    scrollController: FixedExtentScrollController(
+                        initialItem: _selectedMinute),
+                    looping: true,
+                    children: List.generate(60, (index) {
+                      return Center(
+                          child:
+                              Text('${index.toString().padLeft(2, '0')} min'));
+                    }),
+                  ),
+                ),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  // Substitua o método inteiro por este
+  // Substitua o método inteiro por este
+  // Substitua o método inteiro por este
+  Widget _buildIntervalPickerPage({
+    required double screenWidth,
+    required double screenHeight,
+  }) {
+    const animationDuration = Duration(milliseconds: 300);
+    const animationCurve = Curves.easeOut;
+
+    // A condição para desabilitar agora é mais simples
+    final isMinutePickerDisabled = _selectedIntervalHour == 24;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Qual o intervalo entre as doses?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          SizedBox(height: screenWidth * 0.06),
+          SizedBox(
+            height: screenHeight * 0.2,
+            child: Row(
+              children: [
+                // Seletor de Horas
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 40,
+                    scrollController: _hourIntervalController,
+                    onSelectedItemChanged: (newHour) {
+                      setState(() {
+                        _selectedIntervalHour = newHour;
+                        if (newHour == 24) {
+                          if (_selectedIntervalMinute != 0) {
+                            _selectedIntervalMinute = 0;
+                            _minuteIntervalController.animateToItem(0,
+                                duration: animationDuration,
+                                curve: animationCurve);
+                          }
+                        } else if (newHour == 0 &&
+                            _selectedIntervalMinute < 30) {
+                          _selectedIntervalMinute = 30;
+                          _minuteIntervalController.animateToItem(30,
+                              duration: animationDuration,
+                              curve: animationCurve);
+                        }
+                      });
+                    },
+                    looping: true,
+                    children: List.generate(25, (index) {
+                      return Center(
+                          child: Text('${index.toString().padLeft(2, '0')} h'));
+                    }),
+                  ),
+                ),
+                // Seletor de Minutos
+                Expanded(
+                  child: Opacity(
+                    opacity: isMinutePickerDisabled ? 0.5 : 1.0,
+                    child: AbsorbPointer(
+                      absorbing: isMinutePickerDisabled,
+                      child: CupertinoPicker(
+                        itemExtent: 40,
+                        scrollController: _minuteIntervalController,
+                        onSelectedItemChanged: (newMinute) {
+                          setState(() {
+                            int targetMinute = newMinute;
+                            if (_selectedIntervalHour == 0 && newMinute < 30) {
+                              targetMinute = 30;
+                            }
+                            _selectedIntervalMinute = targetMinute;
+                            if (targetMinute != newMinute) {
+                              _minuteIntervalController.animateToItem(
+                                  targetMinute,
+                                  duration: animationDuration,
+                                  curve: animationCurve);
+                            }
+                          });
+                        },
+                        looping: true,
+                        children: List.generate(60, (index) {
+                          return Center(
+                              child: Text(
+                                  '${index.toString().padLeft(2, '0')} min'));
+                        }),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDurationPage({
+    required double screenWidth,
+  }) {
+    final units = ['Dias', 'Semanas', 'Meses', 'Anos'];
+    const blueColor = Color(0xFF23AFDC);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Qual a duração do tratamento?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          SizedBox(height: screenWidth * 0.06),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _treatmentLengthController,
+                  enabled: !_isContinuous,
+                  keyboardType: TextInputType.number,
+                  decoration:
+                      const InputDecoration(border: OutlineInputBorder()),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  // CORREÇÃO: `value` trocado por `initialValue`
+                  initialValue: _selectedTreatmentUnit,
+                  onChanged: _isContinuous
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _selectedTreatmentUnit = value!;
+                          });
+                        },
+                  items: units.map((unit) {
+                    return DropdownMenuItem(value: unit, child: Text(unit));
+                  }).toList(),
+                  decoration:
+                      const InputDecoration(border: OutlineInputBorder()),
+                ),
+              ),
+            ],
+          ),
+          CheckboxListTile(
+            title: const Text('Uso constante'),
+            value: _isContinuous,
+            onChanged: (value) {
+              setState(() {
+                _isContinuous = value!;
+                if (_isContinuous) {
+                  _treatmentLengthController.clear();
+                  _selectedTreatmentUnit = 'Dias';
+                }
+                _validatePage(); // Revalida a página ao mudar o checkbox
+              });
+            },
+            activeColor: blueColor,
+            controlAffinity: ListTileControlAffinity.leading,
           ),
         ],
       ),
@@ -429,65 +699,120 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.9,
-      child: Scaffold(
-        resizeToAvoidBottomInset: true,
-        appBar: AppBar(
-          title: Text(widget.prescription == null
-              ? 'Adicionar Medicamento'
-              : 'Editar Medicamento'),
-          leading: IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
-        body: SafeArea(
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    const orangeColor = Color(0xFFDC5023);
+    const blueColor = Color(0xFF23AFDC);
+
+    final List<Widget> formPages = [
+      _buildFormPage(
+          title: 'Qual o nome do medicamento?',
+          controller: _nameController,
+          keyboardType: TextInputType.text,
+          screenWidth: screenWidth),
+      _buildTypeSelectionPage(screenWidth: screenWidth),
+      _buildDosePage(screenWidth: screenWidth, screenHeight: screenHeight),
+      _buildStockPage(screenWidth: screenWidth),
+      _buildTimePickerPage(
+          screenWidth: screenWidth, screenHeight: screenHeight),
+
+      // Lógica de navegação condicional
+      if (!_isSingleDose) ...[
+        _buildIntervalPickerPage(
+            screenWidth: screenWidth, screenHeight: screenHeight),
+        _buildDurationPage(screenWidth: screenWidth),
+      ],
+
+      _buildFormPage(
+          title: 'Alguma observação?',
+          subtitle: 'Este campo é opcional',
+          controller: _notesController,
+          keyboardType: TextInputType.multiline,
+          screenWidth: screenWidth,
+          isLastPage: true),
+    ];
+
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Padding(
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: SingleChildScrollView(
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              FormProgressBar(
-                totalPages: 3,
-                currentPage: _currentPage,
-                activeColor: const Color(0xFF23AFDC),
-                completedColor: const Color(0xFF23AFDC),
+              AppBar(
+                shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(20.0))),
+                title: Text(widget.prescription != null
+                    ? 'Editar Medicamento'
+                    : 'Adicionar Medicamento'),
+                leading: IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context)),
+                automaticallyImplyLeading: false,
               ),
-              Expanded(
+              FormProgressBar(
+                  totalPages: formPages.length,
+                  currentPage: _currentPage,
+                  activeColor: orangeColor,
+                  completedColor: blueColor),
+              SizedBox(
+                height: screenHeight * 0.4,
                 child: PageView(
                   controller: _pageController,
                   physics: const NeverScrollableScrollPhysics(),
-                  onPageChanged: _onPageChanged,
-                  children: [
-                    _buildPage1(),
-                    _buildPage2(),
-                    _buildPage3(),
-                  ],
+                  children: formPages,
                 ),
               ),
+              if (_currentPage == formPages.length - 1)
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.04,
+                      vertical: screenWidth * 0.02),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        minimumSize: Size.fromHeight(screenHeight * 0.06),
+                        backgroundColor: blueColor,
+                        foregroundColor: Colors.black),
+                    onPressed: _onSave,
+                    child: const Text('Salvar Medicamento'),
+                  ),
+                ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                padding: EdgeInsets.all(screenWidth * 0.04),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    if (_currentPage > 0)
-                      ElevatedButton(
-                        onPressed: _previousPage,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text('Anterior'),
-                      ),
                     ElevatedButton(
-                      onPressed: _isPageValid
-                          ? (_currentPage < 2 ? _nextPage : _savePrescription)
+                      onPressed: _currentPage == 0
+                          ? null
+                          : () {
+                              FocusScope.of(context).unfocus();
+                              _pageController.previousPage(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeIn);
+                            },
+                      child: const Text('Anterior'),
+                    ),
+                    ElevatedButton(
+                      onPressed: (_isPageValid &&
+                              _currentPage < formPages.length - 1)
+                          ? () {
+                              FocusScope.of(context).unfocus();
+                              // Se estamos na página de tipo (índice 1),
+                              // pré-selecionamos a unidade ANTES de navegar.
+                              if (_currentPage == 1) {
+                                _preselectDoseUnit();
+                              }
+                              _pageController.nextPage(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeIn);
+                            }
                           : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isPageValid
-                            ? const Color(0xFF23AFDC)
-                            : Colors.grey,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: Text(_currentPage < 2 ? 'Próximo' : 'Salvar'),
+                      child: const Text('Próximo'),
                     ),
                   ],
                 ),

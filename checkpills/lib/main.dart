@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:CheckPills/presentation/providers/medication_provider.dart';
-import 'package:CheckPills/presentation/providers/settings_provider.dart';
-import 'package:CheckPills/presentation/providers/patient_provider.dart';
 import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
 import 'package:CheckPills/presentation/screens/configuration_screen.dart';
 import 'package:CheckPills/presentation/screens/home_screen.dart';
@@ -23,24 +21,10 @@ Future<void> main() async {
     Provider<AppDatabase>(
       create: (context) => AppDatabase(),
       dispose: (context, db) => db.close(),
-      child: MultiProvider(
-        providers: [
-          ChangeNotifierProvider(
-            create: (context) => MedicationProvider(
-              database: Provider.of<AppDatabase>(context, listen: false),
-            ),
-          ),
-          ChangeNotifierProvider(
-            create: (context) => SettingsProvider(
-              database: Provider.of<AppDatabase>(context, listen: false),
-            ),
-          ),
-           ChangeNotifierProvider(
-            create: (context) => PatientProvider(
-              database: Provider.of<AppDatabase>(context, listen: false),
-            ),
-          ),
-        ],
+      child: ChangeNotifierProvider(
+        create: (context) => MedicationProvider(
+          database: Provider.of<AppDatabase>(context, listen: false),
+        ),
         child: const MyApp(),
       ),
     ),
@@ -70,10 +54,7 @@ class _MainScreenState extends State<MainScreen> {
   // A variável não precisa mais de ser nula. Começa sempre em 0.
   int _selectedIndex = 0;
 
-  static const List<Widget> _widgetOptions = <Widget>[
-    HomeScreen(),
-    ConfigurationScreen(),
-  ];
+  // A lista `_widgetOptions` desnecessária foi removida.
 
   void _onItemTapped(int index) {
     // A lógica de abrir o modal foi movida para o onPressed do FAB.
@@ -101,11 +82,7 @@ class _MainScreenState extends State<MainScreen> {
     const blueColor = Color(0xFF23AFDC);
 
     return Scaffold(
-      // NOVO: Adicione esta linha para evitar que a tela seja redimensionada
-      resizeToAvoidBottomInset: false,
-      body: Center(
-        child: _widgetOptions.elementAt(_selectedIndex),
-      ),
+      body: currentScreen,
       floatingActionButton: SizedBox(
         height: screenWidth * 0.18,
         width: screenWidth * 0.18,

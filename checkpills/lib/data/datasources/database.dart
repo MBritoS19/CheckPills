@@ -1,5 +1,3 @@
-// lib/data/datasources/database.dart
-
 import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
@@ -8,7 +6,7 @@ import 'package:path/path.dart' as p;
 
 part 'database.g.dart';
 
-// Enums e Tabelas
+// Enums e Tabelas continuam como planeado
 enum DoseStatus { pendente, tomada, pulada }
 
 @DataClassName('Setting')
@@ -24,19 +22,9 @@ class Settings extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DataClassName('Patient')
-class Patients extends Table {
-  IntColumn get id => integer().autoIncrement()();
-  TextColumn get name => text()();
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
-  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
-}
-
 @DataClassName('Prescription')
 class Prescriptions extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get patientId =>
-      integer().references(Patients, #id, onDelete: KeyAction.cascade)();
   TextColumn get name => text()();
   TextColumn get doseDescription => text()();
   TextColumn get type => text()();
@@ -46,7 +34,7 @@ class Prescriptions extends Table {
   IntColumn get durationTreatment => integer().nullable()();
   TextColumn get unitTreatment => text().nullable()();
   DateTimeColumn get firstDoseTime => dateTime()();
-  IntColumn get remainingStock => integer().nullable()();
+  TextColumn get notes => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -57,127 +45,94 @@ class DoseEvents extends Table {
   IntColumn get prescriptionId =>
       integer().references(Prescriptions, #id, onDelete: KeyAction.cascade)();
   DateTimeColumn get scheduledTime => dateTime()();
+  DateTimeColumn get takenTime => dateTime().nullable()();
   IntColumn get status =>
-      intEnum<DoseStatus>().withDefault(const Constant(0))();
+      intEnum<DoseStatus>().withDefault(const Constant(0))(); // 0 = pendente
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-// Classes de dados para combinar informações
+// Classe auxiliar para juntar os dados de uma Dose e sua Prescrição
 class DoseEventWithPrescription {
   final DoseEvent doseEvent;
   final Prescription prescription;
-  DoseEventWithPrescription(this.doseEvent, this.prescription);
-}
 
-class DoseEventWithPrescriptionAndPatient {
-  final DoseEvent doseEvent;
-  final Prescription prescription;
-  final Patient patient;
-  DoseEventWithPrescriptionAndPatient(
-      this.doseEvent, this.prescription, this.patient);
-}
-
-LazyDatabase _openConnection() {
-  return LazyDatabase(() async {
-    final dbFolder = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dbFolder.path, 'db.sqlite'));
-    return NativeDatabase.createInBackground(file);
+  DoseEventWithPrescription({
+    required this.doseEvent,
+    required this.prescription,
   });
 }
 
+// A classe AppDatabase agora vai usar DAOs
 @DriftDatabase(
-    tables: [Settings, Prescriptions, DoseEvents, Patients],
-    daos: [SettingsDao, PrescriptionsDao, DoseEventsDao, PatientsDao])
+    tables: [Settings, Prescriptions, DoseEvents],
+    daos: [SettingsDao, PrescriptionsDao, DoseEventsDao])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
-
-  @override
-  MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (Migrator m) {
-          return m.createAll();
-        },
-        onUpgrade: (Migrator m, int from, int to) async {
-          if (from < 2) {
-            await m.createTable(patients);
-            await m.addColumn(prescriptions, prescriptions.patientId);
-          }
-        },
-      );
-
-  SettingsDao get settingsDao => SettingsDao(this);
-  PrescriptionsDao get prescriptionsDao => PrescriptionsDao(this);
-  DoseEventsDao get doseEventsDao => DoseEventsDao(this);
-  PatientsDao get patientsDao => PatientsDao(this);
+  int get schemaVersion => 1;
 }
 
-// DAOs para as tabelas
-@DriftAccessor(tables: [DoseEvents, Prescriptions, Patients])
+// DAO para a tabela DoseEvents
+@DriftAccessor(tables: [DoseEvents, Prescriptions])
 class DoseEventsDao extends DatabaseAccessor<AppDatabase>
     with _$DoseEventsDaoMixin {
   DoseEventsDao(AppDatabase db) : super(db);
 
-  Stream<List<DoseEventWithPrescriptionAndPatient>> watchAllDoseEvents() {
-    final query = select(doseEvents).join([
-      innerJoin(
-        prescriptions,
-        prescriptions.id.equalsExp(doseEvents.prescriptionId),
-      ),
-      innerJoin(
-        patients,
-        patients.id.equalsExp(prescriptions.patientId),
-      )
-    ]);
-
-    return query.map((row) {
-      return DoseEventWithPrescriptionAndPatient(
-        row.readTable(doseEvents),
-        row.readTable(prescriptions),
-        row.readTable(patients),
-      );
-    }).watch();
-  }
-
-  Stream<List<DoseEventWithPrescriptionAndPatient>> watchDoseEventsForDay(
-      DateTime date) {
-    final normalizedDate = DateTime(date.year, date.month, date.day);
-    final nextDay = normalizedDate.add(const Duration(days: 1));
+  // A nossa nova função reativa para buscar as doses do dia
+  Stream<List<DoseEventWithPrescription>> watchDoseEventsForDay(DateTime date) {
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
 
     final query = select(doseEvents).join([
       innerJoin(
-        prescriptions,
-        prescriptions.id.equalsExp(doseEvents.prescriptionId),
-      ),
-      innerJoin(
-        patients,
-        patients.id.equalsExp(prescriptions.patientId),
-      )
+          prescriptions, prescriptions.id.equalsExp(doseEvents.prescriptionId))
     ])
-      ..where(doseEvents.scheduledTime.isBetweenValues(normalizedDate, nextDay));
+      ..where(doseEvents.scheduledTime.isBetweenValues(startOfDay, endOfDay))
+      ..orderBy([OrderingTerm.asc(doseEvents.scheduledTime)]);
 
-    return query.map((row) {
-      return DoseEventWithPrescriptionAndPatient(
-        row.readTable(doseEvents),
-        row.readTable(prescriptions),
-        row.readTable(patients),
-      );
-    }).watch();
+    return query.watch().map((rows) {
+      return rows.map((row) {
+        return DoseEventWithPrescription(
+          doseEvent: row.readTable(doseEvents),
+          prescription: row.readTable(prescriptions),
+        );
+      }).toList();
+    });
   }
 
-  Future<int> addDoseEvent(DoseEventsCompanion companion) =>
+  Stream<List<DoseEventWithPrescription>> watchAllDoseEvents() {
+    final query = select(doseEvents).join([
+      innerJoin(
+          prescriptions, prescriptions.id.equalsExp(doseEvents.prescriptionId))
+    ])
+      ..orderBy([OrderingTerm.asc(doseEvents.scheduledTime)]);
+
+    return query.watch().map((rows) {
+      return rows.map((row) {
+        return DoseEventWithPrescription(
+          doseEvent: row.readTable(doseEvents),
+          prescription: row.readTable(prescriptions),
+        );
+      }).toList();
+    });
+  }
+
+  Future<void> addDoseEvent(DoseEventsCompanion companion) =>
       into(doseEvents).insert(companion);
 
-  Future<bool> updateDoseEvent(DoseEventsCompanion companion) =>
-      update(doseEvents).replace(companion);
+  Future<void> updateDoseEventStatus(
+          int id, DoseStatus newStatus, DateTime? takenTime) =>
+      (update(doseEvents)..where((t) => t.id.equals(id))).write(
+        DoseEventsCompanion(
+          status: Value(newStatus),
+          takenTime: Value(takenTime),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
 
-  Future<List<DoseEvent>> getEventsForPrescription(int prescriptionId) =>
-      (select(doseEvents)..where((t) => t.prescriptionId.equals(prescriptionId)))
-          .get();
-
-  Future<int> deleteEventsForPrescription(int prescriptionId) async {
+  Future<void> deleteFutureDoseEventsForPrescription(int prescriptionId) {
     final today = DateTime.now();
     final startOfToday = DateTime(today.year, today.month, today.day);
     return (delete(doseEvents)
@@ -187,6 +142,7 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase>
   }
 }
 
+// DAOs para as outras tabelas (mesmo que ainda não tenham funções customizadas, é uma boa prática criá-los)
 @DriftAccessor(tables: [Prescriptions])
 class PrescriptionsDao extends DatabaseAccessor<AppDatabase>
     with _$PrescriptionsDaoMixin {
@@ -200,28 +156,20 @@ class PrescriptionsDao extends DatabaseAccessor<AppDatabase>
       update(prescriptions).replace(companion);
   Future<int> deletePrescription(int id) =>
       (delete(prescriptions)..where((t) => t.id.equals(id))).go();
-  Future<Prescription?> getPrescriptionById(int id) =>
-      (select(prescriptions)..where((t) => t.id.equals(id))).getSingleOrNull();
+  Future<Prescription> getPrescriptionById(int id) =>
+      (select(prescriptions)..where((t) => t.id.equals(id))).getSingle();
 }
 
 @DriftAccessor(tables: [Settings])
 class SettingsDao extends DatabaseAccessor<AppDatabase>
     with _$SettingsDaoMixin {
   SettingsDao(AppDatabase db) : super(db);
-
-  Future<Setting?> getSettings() => (select(settings).getSingleOrNull());
-
-  Future<int> saveSettings(SettingsCompanion entry) {
-    return into(settings).insertOnConflictUpdate(entry);
-  }
 }
 
-@DriftAccessor(tables: [Patients])
-class PatientsDao extends DatabaseAccessor<AppDatabase>
-    with _$PatientsDaoMixin {
-  PatientsDao(AppDatabase db) : super(db);
-
-  Future<List<Patient>> getAllPatients() => select(patients).get();
-  Future<int> addPatient(PatientsCompanion companion) =>
-      into(patients).insert(companion);
+LazyDatabase _openConnection() {
+  return LazyDatabase(() async {
+    final dbFolder = await getApplicationDocumentsDirectory();
+    final file = File(p.join(dbFolder.path, 'db.sqlite'));
+    return NativeDatabase(file);
+  });
 }

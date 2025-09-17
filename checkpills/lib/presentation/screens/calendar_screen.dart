@@ -26,9 +26,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   // Função para buscar os eventos de um dia específico
-  List<DoseEventWithPrescriptionAndPatient> _getEventsForDay(
-      DateTime day,
-      Map<DateTime, List<DoseEventWithPrescriptionAndPatient>> events) {
+  List<DoseEventWithPrescription> _getEventsForDay(
+      DateTime day, Map<DateTime, List<DoseEventWithPrescription>> events) {
     // Normaliza a data para ignorar a hora
     final dayUtc = DateTime.utc(day.year, day.month, day.day);
     return events[dayUtc] ?? [];
@@ -39,36 +38,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
     // Assiste às mudanças no provider
     final provider = context.watch<MedicationProvider>();
     final allEvents = provider.eventsByDay;
-
     final selectedDayEvents = _getEventsForDay(_selectedDay!, allEvents);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Calendário'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ],
+        title: const Text('Calendário de Doses'),
       ),
       body: Column(
         children: [
-          TableCalendar(
+          TableCalendar<DoseEventWithPrescription>(
             locale: 'pt_BR',
             firstDay: DateTime.utc(2020, 1, 1),
             lastDay: DateTime.utc(2030, 12, 31),
             focusedDay: _focusedDay,
             calendarFormat: _calendarFormat,
             eventLoader: (day) => _getEventsForDay(day, allEvents),
+            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
             onDaySelected: (selectedDay, focusedDay) {
               setState(() {
                 _selectedDay = selectedDay;
                 _focusedDay = focusedDay;
               });
-            },
-            selectedDayPredicate: (day) {
-              return isSameDay(_selectedDay, day);
             },
             onFormatChanged: (format) {
               if (_calendarFormat != format) {
@@ -80,27 +70,30 @@ class _CalendarScreenState extends State<CalendarScreen> {
             onPageChanged: (focusedDay) {
               _focusedDay = focusedDay;
             },
-            calendarBuilders: CalendarBuilders(
-              markerBuilder: (context, day, events) {
-                if (events.isNotEmpty) {
-                  return Positioned(
-                    right: 1,
-                    bottom: 1,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.orange[400],
-                      ),
-                      width: 10,
-                      height: 10,
-                    ),
-                  );
-                }
-                return null;
-              },
+            headerStyle: const HeaderStyle(
+              titleCentered: true,
+              formatButtonVisible: false,
+            ),
+            calendarStyle: const CalendarStyle(
+              todayDecoration: BoxDecoration(
+                color: Colors.grey,
+                shape: BoxShape.circle,
+              ),
+              selectedDecoration: BoxDecoration(
+                color: Color(0xFF23AFDC),
+                shape: BoxShape.circle,
+              ),
+              // Estilo para o marcador de evento
+              markerDecoration: BoxDecoration(
+                color: Color(0xFFDC5023), // Cor laranja do seu app
+                shape: BoxShape.circle,
+              ),
             ),
           ),
           const SizedBox(height: 8.0),
+          const Text('Doses do dia selecionado:',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          // Lista de doses para o dia selecionado
           Expanded(
             child: ListView.builder(
               itemCount: selectedDayEvents.length,
