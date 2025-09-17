@@ -4,6 +4,10 @@ import 'package:CheckPills/data/datasources/database.dart';
 import 'package:CheckPills/presentation/providers/medication_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' hide Column;
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 
 class AddMedicationScreen extends StatefulWidget {
   final Prescription? prescription;
@@ -27,6 +31,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   int _selectedIntervalHour = 8;
   int _selectedIntervalMinute = 0;
   String? _selectedType;
+  String? _imagePath;
   bool _isContinuous = false;
   String _selectedTreatmentUnit = 'Dias';
   String _selectedDoseUnit = 'unidade(s)';
@@ -96,6 +101,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
   void _prefillFields() {
     final p = widget.prescription!;
+    _imagePath = p.imagePath;
     _nameController.text = p.name;
     final doseParts = p.doseDescription.split(' ');
     if (doseParts.isNotEmpty) {
@@ -185,6 +191,30 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     }
   }
 
+  // Adicione este método dentro da classe _AddMedicationScreenState
+  Future<void> _pickAndSaveImage(ImageSource source) async {
+    final imagePicker = ImagePicker();
+    final pickedFile =
+        await imagePicker.pickImage(source: source, imageQuality: 50);
+
+    if (pickedFile == null) return;
+
+    // Encontra a pasta de documentos do app
+    final appDir = await getApplicationDocumentsDirectory();
+    // Cria um nome de arquivo único
+    final fileName = p.basename(pickedFile.path);
+    // Define o caminho de destino para salvar a imagem
+    final savedImagePath = p.join(appDir.path, fileName);
+
+    // Copia o arquivo para o novo caminho
+    final file = File(pickedFile.path);
+    await file.copy(savedImagePath);
+
+    setState(() {
+      _imagePath = savedImagePath;
+    });
+  }
+
   // Adicione este método inteiro na classe
 
   Widget _buildStockPage({
@@ -264,6 +294,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
     final prescriptionCompanion = PrescriptionsCompanion(
       name: Value(_nameController.text),
+      imagePath: Value(_imagePath),
       doseDescription: Value(doseDescription),
       type: Value(finalType),
       stock: Value(
@@ -528,9 +559,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     );
   }
 
-  // Substitua o método inteiro por este
-  // Substitua o método inteiro por este
-  // Substitua o método inteiro por este
   Widget _buildIntervalPickerPage({
     required double screenWidth,
     required double screenHeight,
@@ -538,7 +566,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     const animationDuration = Duration(milliseconds: 300);
     const animationCurve = Curves.easeOut;
 
-    // A condição para desabilitar agora é mais simples
     final isMinutePickerDisabled = _selectedIntervalHour == 24;
 
     return Padding(
@@ -586,7 +613,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                     }),
                   ),
                 ),
-                // Seletor de Minutos
                 Expanded(
                   child: Opacity(
                     opacity: isMinutePickerDisabled ? 0.5 : 1.0,
@@ -706,11 +732,31 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     const blueColor = Color(0xFF23AFDC);
 
     final List<Widget> formPages = [
-      _buildFormPage(
-          title: 'Qual o nome do medicamento?',
-          controller: _nameController,
-          keyboardType: TextInputType.text,
-          screenWidth: screenWidth),
+      Padding(
+        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+        child: SingleChildScrollView(
+          // Usamos um SingleChildScrollView para evitar overflow
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Qual o nome do medicamento?',
+                  style: TextStyle(
+                      fontSize: screenWidth * 0.055,
+                      fontWeight: FontWeight.bold)),
+              SizedBox(height: screenWidth * 0.04),
+              TextFormField(
+                controller: _nameController,
+                keyboardType: TextInputType.text,
+                decoration: const InputDecoration(border: OutlineInputBorder()),
+              ),
+              SizedBox(height: screenWidth * 0.06),
+              _buildImagePicker(), // Nosso novo widget!
+            ],
+          ),
+        ),
+      ),
+
       _buildTypeSelectionPage(screenWidth: screenWidth),
       _buildDosePage(screenWidth: screenWidth, screenHeight: screenHeight),
       _buildStockPage(screenWidth: screenWidth),
@@ -820,6 +866,76 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // Adicione este método dentro da classe _AddMedicationScreenState
+  Widget _buildImagePicker() {
+    const blueColor = Color(0xFF23AFDC);
+
+    return Center(
+      child: Column(
+        children: [
+          if (_imagePath == null)
+            // Se não houver imagem, mostra um ícone e um botão
+            Container(
+              height: 120,
+              width: 120,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.image_outlined,
+                  size: 50, color: Colors.grey),
+            )
+          else
+            // Se houver uma imagem, mostra a miniatura
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.file(
+                File(_imagePath!),
+                width: 120,
+                height: 120,
+                fit: BoxFit.cover,
+              ),
+            ),
+          const SizedBox(height: 10),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: blueColor,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              // Mostra um diálogo para escolher entre câmera ou galeria
+              showModalBottomSheet(
+                context: context,
+                builder: (ctx) => Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.camera_alt),
+                      title: const Text('Tirar Foto'),
+                      onTap: () {
+                        Navigator.of(ctx).pop();
+                        _pickAndSaveImage(ImageSource.camera);
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.photo_library),
+                      title: const Text('Escolher da Galeria'),
+                      onTap: () {
+                        Navigator.of(ctx).pop();
+                        _pickAndSaveImage(ImageSource.gallery);
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+            child: Text(_imagePath == null ? 'Adicionar Foto' : 'Alterar Foto'),
+          ),
+        ],
       ),
     );
   }

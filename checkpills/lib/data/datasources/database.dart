@@ -35,6 +35,7 @@ class Prescriptions extends Table {
   TextColumn get unitTreatment => text().nullable()();
   DateTimeColumn get firstDoseTime => dateTime()();
   TextColumn get notes => text().nullable()();
+  TextColumn get imagePath => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -71,7 +72,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 }
 
 // DAO para a tabela DoseEvents

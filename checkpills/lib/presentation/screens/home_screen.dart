@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
 import 'package:CheckPills/presentation/screens/calendar_screen.dart';
+import 'dart:io';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,6 +31,27 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     Provider.of<MedicationProvider>(context, listen: false)
         .fetchDoseEventsForDay(newDate);
+  }
+
+  void _showImageDialog(
+      BuildContext context, String imagePath, int prescriptionId) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: GestureDetector(
+          // Permite fechar o dialog ao tocar na imagem
+          onTap: () => Navigator.of(context).pop(),
+          child: Hero(
+            // A tag precisa ser única para cada imagem. Usamos o ID da prescrição.
+            tag: 'med_image_$prescriptionId',
+            child: Image.file(
+              File(imagePath),
+              fit: BoxFit.contain, // Garante que a imagem inteira apareça
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _goToPreviousWeek() {
@@ -228,16 +250,51 @@ class _HomeScreenState extends State<HomeScreen> {
                           provider.deletePrescription(prescription.id);
                         }
                       },
+                      // Dentro do itemBuilder do ListView.builder
                       child: Card(
                         child: ListTile(
-                          leading: Text(
-                            DateFormat('HH:mm').format(doseEvent.scheduledTime),
-                            style: TextStyle(
-                                fontSize: screenWidth * 0.04,
-                                fontWeight: FontWeight.bold),
+                          // --- NOSSO NOVO LEADING ---
+                          leading: GestureDetector(
+                            onTap: () {
+                              // Só abre o dialog se existir uma imagem
+                              if (prescription.imagePath != null) {
+                                _showImageDialog(context,
+                                    prescription.imagePath!, prescription.id);
+                              }
+                            },
+                            child: Hero(
+                              // A mesma tag única
+                              tag: 'med_image_${prescription.id}',
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8.0),
+                                child: Container(
+                                  width: 50,
+                                  height: 50,
+                                  color: Colors.grey[200],
+                                  // Mostra a imagem se ela existir, senão mostra um ícone
+                                  child: prescription.imagePath != null
+                                      ? Image.file(
+                                          File(prescription.imagePath!),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : const Icon(Icons.medication_liquid,
+                                          color: Colors.grey),
+                                ),
+                              ),
+                            ),
                           ),
+                          // --- O RESTO DO LISTTILE ---
                           title: Text(prescription.name),
-                          subtitle: Text(prescription.doseDescription),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(prescription.doseDescription),
+                              Text(
+                                'Horário: ${DateFormat('HH:mm').format(doseEvent.scheduledTime)}',
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
+                            ],
+                          ),
                           trailing: IconButton(
                             icon: Icon(
                               isTaken

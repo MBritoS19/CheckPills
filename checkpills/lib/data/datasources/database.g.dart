@@ -466,6 +466,12 @@ class $PrescriptionsTable extends Prescriptions
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
       'notes', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _imagePathMeta =
+      const VerificationMeta('imagePath');
+  @override
+  late final GeneratedColumn<String> imagePath = GeneratedColumn<String>(
+      'image_path', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -495,6 +501,7 @@ class $PrescriptionsTable extends Prescriptions
         unitTreatment,
         firstDoseTime,
         notes,
+        imagePath,
         createdAt,
         updatedAt
       ];
@@ -577,6 +584,10 @@ class $PrescriptionsTable extends Prescriptions
       context.handle(
           _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
     }
+    if (data.containsKey('image_path')) {
+      context.handle(_imagePathMeta,
+          imagePath.isAcceptableOrUnknown(data['image_path']!, _imagePathMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -616,6 +627,8 @@ class $PrescriptionsTable extends Prescriptions
           DriftSqlType.dateTime, data['${effectivePrefix}first_dose_time'])!,
       notes: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}notes']),
+      imagePath: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}image_path']),
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
@@ -641,6 +654,7 @@ class Prescription extends DataClass implements Insertable<Prescription> {
   final String? unitTreatment;
   final DateTime firstDoseTime;
   final String? notes;
+  final String? imagePath;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Prescription(
@@ -655,6 +669,7 @@ class Prescription extends DataClass implements Insertable<Prescription> {
       this.unitTreatment,
       required this.firstDoseTime,
       this.notes,
+      this.imagePath,
       required this.createdAt,
       required this.updatedAt});
   @override
@@ -676,6 +691,9 @@ class Prescription extends DataClass implements Insertable<Prescription> {
     map['first_dose_time'] = Variable<DateTime>(firstDoseTime);
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
+    }
+    if (!nullToAbsent || imagePath != null) {
+      map['image_path'] = Variable<String>(imagePath);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -700,6 +718,9 @@ class Prescription extends DataClass implements Insertable<Prescription> {
       firstDoseTime: Value(firstDoseTime),
       notes:
           notes == null && nullToAbsent ? const Value.absent() : Value(notes),
+      imagePath: imagePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imagePath),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -720,6 +741,7 @@ class Prescription extends DataClass implements Insertable<Prescription> {
       unitTreatment: serializer.fromJson<String?>(json['unitTreatment']),
       firstDoseTime: serializer.fromJson<DateTime>(json['firstDoseTime']),
       notes: serializer.fromJson<String?>(json['notes']),
+      imagePath: serializer.fromJson<String?>(json['imagePath']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -739,6 +761,7 @@ class Prescription extends DataClass implements Insertable<Prescription> {
       'unitTreatment': serializer.toJson<String?>(unitTreatment),
       'firstDoseTime': serializer.toJson<DateTime>(firstDoseTime),
       'notes': serializer.toJson<String?>(notes),
+      'imagePath': serializer.toJson<String?>(imagePath),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -756,6 +779,7 @@ class Prescription extends DataClass implements Insertable<Prescription> {
           Value<String?> unitTreatment = const Value.absent(),
           DateTime? firstDoseTime,
           Value<String?> notes = const Value.absent(),
+          Value<String?> imagePath = const Value.absent(),
           DateTime? createdAt,
           DateTime? updatedAt}) =>
       Prescription(
@@ -773,6 +797,7 @@ class Prescription extends DataClass implements Insertable<Prescription> {
             unitTreatment.present ? unitTreatment.value : this.unitTreatment,
         firstDoseTime: firstDoseTime ?? this.firstDoseTime,
         notes: notes.present ? notes.value : this.notes,
+        imagePath: imagePath.present ? imagePath.value : this.imagePath,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
       );
@@ -801,6 +826,7 @@ class Prescription extends DataClass implements Insertable<Prescription> {
           ? data.firstDoseTime.value
           : this.firstDoseTime,
       notes: data.notes.present ? data.notes.value : this.notes,
+      imagePath: data.imagePath.present ? data.imagePath.value : this.imagePath,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -820,6 +846,7 @@ class Prescription extends DataClass implements Insertable<Prescription> {
           ..write('unitTreatment: $unitTreatment, ')
           ..write('firstDoseTime: $firstDoseTime, ')
           ..write('notes: $notes, ')
+          ..write('imagePath: $imagePath, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -839,6 +866,7 @@ class Prescription extends DataClass implements Insertable<Prescription> {
       unitTreatment,
       firstDoseTime,
       notes,
+      imagePath,
       createdAt,
       updatedAt);
   @override
@@ -856,6 +884,7 @@ class Prescription extends DataClass implements Insertable<Prescription> {
           other.unitTreatment == this.unitTreatment &&
           other.firstDoseTime == this.firstDoseTime &&
           other.notes == this.notes &&
+          other.imagePath == this.imagePath &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -872,6 +901,7 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
   final Value<String?> unitTreatment;
   final Value<DateTime> firstDoseTime;
   final Value<String?> notes;
+  final Value<String?> imagePath;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   const PrescriptionsCompanion({
@@ -886,6 +916,7 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
     this.unitTreatment = const Value.absent(),
     this.firstDoseTime = const Value.absent(),
     this.notes = const Value.absent(),
+    this.imagePath = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -901,6 +932,7 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
     this.unitTreatment = const Value.absent(),
     required DateTime firstDoseTime,
     this.notes = const Value.absent(),
+    this.imagePath = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   })  : name = Value(name),
@@ -922,6 +954,7 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
     Expression<String>? unitTreatment,
     Expression<DateTime>? firstDoseTime,
     Expression<String>? notes,
+    Expression<String>? imagePath,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
   }) {
@@ -937,6 +970,7 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
       if (unitTreatment != null) 'unit_treatment': unitTreatment,
       if (firstDoseTime != null) 'first_dose_time': firstDoseTime,
       if (notes != null) 'notes': notes,
+      if (imagePath != null) 'image_path': imagePath,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -954,6 +988,7 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
       Value<String?>? unitTreatment,
       Value<DateTime>? firstDoseTime,
       Value<String?>? notes,
+      Value<String?>? imagePath,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt}) {
     return PrescriptionsCompanion(
@@ -968,6 +1003,7 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
       unitTreatment: unitTreatment ?? this.unitTreatment,
       firstDoseTime: firstDoseTime ?? this.firstDoseTime,
       notes: notes ?? this.notes,
+      imagePath: imagePath ?? this.imagePath,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -1009,6 +1045,9 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (imagePath.present) {
+      map['image_path'] = Variable<String>(imagePath.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1032,6 +1071,7 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
           ..write('unitTreatment: $unitTreatment, ')
           ..write('firstDoseTime: $firstDoseTime, ')
           ..write('notes: $notes, ')
+          ..write('imagePath: $imagePath, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1670,6 +1710,7 @@ typedef $$PrescriptionsTableCreateCompanionBuilder = PrescriptionsCompanion
   Value<String?> unitTreatment,
   required DateTime firstDoseTime,
   Value<String?> notes,
+  Value<String?> imagePath,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
 });
@@ -1686,6 +1727,7 @@ typedef $$PrescriptionsTableUpdateCompanionBuilder = PrescriptionsCompanion
   Value<String?> unitTreatment,
   Value<DateTime> firstDoseTime,
   Value<String?> notes,
+  Value<String?> imagePath,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
 });
@@ -1754,6 +1796,9 @@ class $$PrescriptionsTableFilterComposer
 
   ColumnFilters<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get imagePath => $composableBuilder(
+      column: $table.imagePath, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -1831,6 +1876,9 @@ class $$PrescriptionsTableOrderingComposer
   ColumnOrderings<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get imagePath => $composableBuilder(
+      column: $table.imagePath, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
@@ -1879,6 +1927,9 @@ class $$PrescriptionsTableAnnotationComposer
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get imagePath =>
+      $composableBuilder(column: $table.imagePath, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -1942,6 +1993,7 @@ class $$PrescriptionsTableTableManager extends RootTableManager<
             Value<String?> unitTreatment = const Value.absent(),
             Value<DateTime> firstDoseTime = const Value.absent(),
             Value<String?> notes = const Value.absent(),
+            Value<String?> imagePath = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
           }) =>
@@ -1957,6 +2009,7 @@ class $$PrescriptionsTableTableManager extends RootTableManager<
             unitTreatment: unitTreatment,
             firstDoseTime: firstDoseTime,
             notes: notes,
+            imagePath: imagePath,
             createdAt: createdAt,
             updatedAt: updatedAt,
           ),
@@ -1972,6 +2025,7 @@ class $$PrescriptionsTableTableManager extends RootTableManager<
             Value<String?> unitTreatment = const Value.absent(),
             required DateTime firstDoseTime,
             Value<String?> notes = const Value.absent(),
+            Value<String?> imagePath = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
           }) =>
@@ -1987,6 +2041,7 @@ class $$PrescriptionsTableTableManager extends RootTableManager<
             unitTreatment: unitTreatment,
             firstDoseTime: firstDoseTime,
             notes: notes,
+            imagePath: imagePath,
             createdAt: createdAt,
             updatedAt: updatedAt,
           ),
