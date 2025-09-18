@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:intl/intl.dart';
 
 class AddMedicationScreen extends StatefulWidget {
   final Prescription? prescription;
@@ -25,6 +26,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   final _pageController = PageController();
   int _currentPage = 0;
   bool _isPageValid = false;
+  DateTime _selectedFirstDoseDate = DateTime.now();
 
   int _selectedHour = DateTime.now().hour;
   int _selectedMinute = DateTime.now().minute;
@@ -283,9 +285,13 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     } else {
       finalType = _selectedType ?? 'Não definido';
     }
-    final now = DateTime.now();
-    final firstDoseDateTime =
-        DateTime(now.year, now.month, now.day, _selectedHour, _selectedMinute);
+    // Dentro do método _onSave()
+    final firstDoseDateTime = DateTime(
+        _selectedFirstDoseDate.year,
+        _selectedFirstDoseDate.month,
+        _selectedFirstDoseDate.day,
+        _selectedHour,
+        _selectedMinute);
     final doseIntervalDuration = Duration(
         hours: _selectedIntervalHour, minutes: _selectedIntervalMinute);
 
@@ -482,11 +488,27 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   }
 
   // Substitua o método inteiro por este
+  // Substitua o método inteiro por este
   Widget _buildTimePickerPage({
     required double screenWidth,
     required double screenHeight,
   }) {
     const blueColor = Color(0xFF23AFDC);
+
+    // Função auxiliar para formatar a data de forma amigável
+    String _formatFirstDoseDate() {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final selectedDay = DateTime(_selectedFirstDoseDate.year,
+          _selectedFirstDoseDate.month, _selectedFirstDoseDate.day);
+
+      if (selectedDay == today) {
+        return 'Hoje, ${DateFormat('d \'de\' MMMM', 'pt_BR').format(_selectedFirstDoseDate)}';
+      } else {
+        return DateFormat('E, d \'de\' MMMM', 'pt_BR')
+            .format(_selectedFirstDoseDate);
+      }
+    }
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
@@ -494,10 +516,61 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('Qual o horário da primeira dose?',
+          // Título atualizado
+          Text('Qual a data e horário da primeira dose?',
               style: TextStyle(
                   fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
-          SizedBox(height: screenWidth * 0.04),
+          const SizedBox(height: 16),
+
+          // NOVO: Botão para selecionar a data
+          Text('Data da primeira dose',
+              style: TextStyle(color: Colors.grey[700])),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () async {
+              // Mostra o pop-up do calendário e espera o usuário escolher uma data
+              final pickedDate = await showDatePicker(
+                context: context,
+                locale: const Locale('pt', 'BR'), // Garante o idioma
+                initialDate: _selectedFirstDoseDate,
+                firstDate:
+                    DateTime.now(), // Não permite escolher uma data no passado
+                lastDate: DateTime(2101),
+              );
+
+              // Se o usuário escolheu uma data, atualiza o estado
+              if (pickedDate != null) {
+                setState(() {
+                  _selectedFirstDoseDate = pickedDate;
+                });
+              }
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 8.0),
+                  child: Text(
+                    _formatFirstDoseDate(),
+                    style: const TextStyle(fontSize: 16, color: Colors.black),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(right: 8.0),
+                  child: Icon(Icons.calendar_today_outlined),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Checkbox que já existia
           CheckboxListTile(
             title: const Text('Uma dose apenas'),
             value: _isSingleDose,
@@ -511,9 +584,10 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
           ),
-          SizedBox(height: screenWidth * 0.04),
+
+          // Seletores de hora e minuto que já existiam
           SizedBox(
-            height: screenHeight * 0.2,
+            height: screenHeight * 0.15, // Altura ajustada para caber tudo
             child: Row(
               children: [
                 Expanded(
