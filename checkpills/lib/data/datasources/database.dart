@@ -159,6 +159,11 @@ class PrescriptionsDao extends DatabaseAccessor<AppDatabase>
       (delete(prescriptions)..where((t) => t.id.equals(id))).go();
   Future<Prescription> getPrescriptionById(int id) =>
       (select(prescriptions)..where((t) => t.id.equals(id))).getSingle();
+  Future<void> updateStock(int id, int newStock) {
+    return (update(prescriptions)..where((t) => t.id.equals(id))).write(
+      PrescriptionsCompanion(stock: Value(newStock)),
+    );
+  }
 }
 
 @DriftAccessor(tables: [Settings])

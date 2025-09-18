@@ -55,6 +55,18 @@ class MedicationProvider with ChangeNotifier {
     fetchDoseEventsForDay(DateTime.now());
   }
 
+  Future<void> updatePrescriptionStock(int prescriptionId, int newStock) async {
+    await database.prescriptionsDao.updateStock(prescriptionId, newStock);
+    // Recarrega as prescrições para que a UI reflita a mudança
+    await _loadPrescriptions();
+  }
+
+  Future<void> stopTrackingStock(int prescriptionId) async {
+    // Define o estoque como -1 para indicar que não é mais controlado
+    await database.prescriptionsDao.updateStock(prescriptionId, -1);
+    await _loadPrescriptions();
+  }
+
   void fetchDoseEventsForDay(DateTime date) {
     _doseEventsSubscription?.cancel();
     _doseEventsSubscription =
@@ -88,13 +100,39 @@ class MedicationProvider with ChangeNotifier {
     await _loadPrescriptions();
   }
 
-  Future<void> toggleDoseStatus(DoseEvent doseEvent) async {
+  // Substitua o método antigo por este
+  Future<void> toggleDoseStatus(DoseEventWithPrescription doseData) async {
+    final doseEvent = doseData.doseEvent;
+    final prescription = doseData.prescription;
+
     final newStatus = doseEvent.status == DoseStatus.tomada
         ? DoseStatus.pendente
         : DoseStatus.tomada;
     final takenTime = newStatus == DoseStatus.tomada ? DateTime.now() : null;
+
+    // Atualiza o status do evento de dose
     await database.doseEventsDao
         .updateDoseEventStatus(doseEvent.id, newStatus, takenTime);
+
+    // Lógica para incrementar/decrementar estoque
+    if (prescription.stock != -1) {
+      // Só altera o estoque se ele estiver sendo controlado
+      // Tenta extrair a quantidade da dose. Ex: "2 comprimidos" -> 2. Se falhar, assume 1.
+      final doseQuantity =
+          int.tryParse(prescription.doseDescription.split(' ').first) ?? 1;
+
+      if (newStatus == DoseStatus.tomada) {
+        // Se marcou como tomada, decrementa o estoque
+        final newStock = prescription.stock - doseQuantity;
+        await database.prescriptionsDao.updateStock(prescription.id, newStock);
+      } else {
+        // Se desmarcou, incrementa o estoque de volta
+        final newStock = prescription.stock + doseQuantity;
+        await database.prescriptionsDao.updateStock(prescription.id, newStock);
+      }
+      // Recarrega os dados para a UI refletir o novo estoque
+      await _loadPrescriptions();
+    }
   }
 
   Future<void> _generateAndInsertDoseEvents(Prescription prescription) async {

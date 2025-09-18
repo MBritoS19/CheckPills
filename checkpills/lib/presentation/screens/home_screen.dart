@@ -25,6 +25,150 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+// Adicione estes dois métodos dentro da classe _HomeScreenState
+
+// Método para o pop-up principal "Sem Estoque"
+  // Substitua o método antigo por este
+  // Substitua o método pela versão final
+  void _showOutOfStockDialog(BuildContext context, Prescription prescription) {
+    final provider = Provider.of<MedicationProvider>(context, listen: false);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.warning_amber_rounded,
+            color: Color(0xFFDC5023), size: 48),
+        title: const Text('Estoque Esgotado', textAlign: TextAlign.center),
+        content: RichText(
+          textAlign: TextAlign.center,
+          text: TextSpan(
+            style: TextStyle(color: Colors.grey[600], fontSize: 16),
+            children: <TextSpan>[
+              const TextSpan(text: 'Seu estoque de '),
+              TextSpan(
+                  text: prescription.name,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.black)),
+              const TextSpan(text: ' acabou. Adicione mais para continuar.'),
+            ],
+          ),
+        ),
+
+        // --- AÇÕES AGORA EM FORMATO DE COLUNA ---
+        actions: <Widget>[
+          Column(
+            // Faz os botões ocuparem toda a largura disponível
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Botão de Ação Primária (Adicionar Estoque)
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF23AFDC), // Azul
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Adicionar Estoque'),
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  _showAddStockDialog(context, prescription);
+                },
+              ),
+              const SizedBox(height: 8), // Espaço vertical entre os botões
+              // Botão de Ação Secundária (Não controlar)
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFDC5023), // Laranja
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Não controlar estoque'), // Texto completo
+                onPressed: () {
+                  provider.stopTrackingStock(prescription.id);
+                  Navigator.of(ctx).pop();
+                },
+              ),
+            ],
+          ),
+        ],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.0),
+        ),
+      ),
+    );
+  }
+
+// Método para o pop-up secundário "Adicionar Estoque"
+  void _showAddStockDialog(BuildContext context, Prescription prescription) {
+    final stockController = TextEditingController();
+    final provider = Provider.of<MedicationProvider>(context, listen: false);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.inventory_2_outlined,
+            color: Color(0xFF23AFDC), size: 48),
+        title: const Text('Adicionar Estoque', textAlign: TextAlign.center),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Digite a nova quantidade total em estoque para ${prescription.name}.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: stockController,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              textAlign: TextAlign.center,
+              decoration: const InputDecoration(
+                labelText: 'Nova quantidade',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF23AFDC),
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Salvar'),
+                onPressed: () {
+                  final newStock = int.tryParse(stockController.text);
+                  if (newStock != null) {
+                    provider.updatePrescriptionStock(prescription.id, newStock);
+                    Navigator.of(ctx).pop();
+                  }
+                },
+              ),
+
+              // NOVO: Espaçamento vertical
+              const SizedBox(height: 8),
+
+              // --- BOTÃO "CANCELAR" ALTERADO ---
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFDC5023), // Cor laranja
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Cancelar'),
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                },
+              ),
+            ],
+          )
+        ],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.0),
+        ),
+      ),
+    );
+  }
+
   void _updateSelectedDate(DateTime newDate) {
     setState(() {
       _selectedDate = newDate;
@@ -216,30 +360,77 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.only(right: 20),
                         child: const Icon(Icons.delete, color: Colors.white),
                       ),
+                      // Substitua pelo novo bloco de código
                       confirmDismiss: (direction) async {
                         if (direction == DismissDirection.endToStart) {
-                          return await showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: const Text('Confirmar Exclusão'),
-                                content: Text(
-                                    'Tem a certeza de que deseja excluir a prescrição de ${prescription.name}? Todas as doses futuras serão removidas.'),
-                                actions: <Widget>[
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(context).pop(false),
-                                    child: const Text('Cancelar'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(context).pop(true),
-                                    child: const Text('Excluir'),
-                                  ),
-                                ],
-                              );
-                            },
-                          );
+                          return await showDialog<bool>(
+                                // Adicionamos <bool> para mais segurança de tipo
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    // Ícone de exclusão para clareza
+                                    icon: const Icon(
+                                        Icons.delete_forever_rounded,
+                                        color: Colors.red,
+                                        size: 48),
+
+                                    title: const Text('Confirmar Exclusão',
+                                        textAlign: TextAlign.center),
+
+                                    content: RichText(
+                                      textAlign: TextAlign.center,
+                                      text: TextSpan(
+                                        style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 16),
+                                        children: <TextSpan>[
+                                          const TextSpan(
+                                              text:
+                                                  'Tem a certeza de que deseja excluir a prescrição de '),
+                                          TextSpan(
+                                              text: prescription.name,
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.black)),
+                                          const TextSpan(
+                                              text:
+                                                  '? Esta ação não pode ser desfeita.'),
+                                        ],
+                                      ),
+                                    ),
+
+                                    actions: <Widget>[
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          // Botão de exclusão com destaque (cor de perigo)
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.red,
+                                              foregroundColor: Colors.white,
+                                            ),
+                                            child: const Text('Sim, Excluir'),
+                                            onPressed: () =>
+                                                Navigator.of(context).pop(true),
+                                          ),
+                                          // Botão de cancelar com menos destaque
+                                          OutlinedButton(
+                                            child: const Text('Cancelar'),
+                                            onPressed: () =>
+                                                Navigator.of(context)
+                                                    .pop(false),
+                                          ),
+                                        ],
+                                      )
+                                    ],
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20.0),
+                                    ),
+                                  );
+                                },
+                              ) ??
+                              false; // Garante que se o dialog for fechado sem clicar, retorne false
                         } else {
                           _navigateToEditScreen(prescription);
                           return false;
@@ -304,7 +495,20 @@ class _HomeScreenState extends State<HomeScreen> {
                               size: 30,
                             ),
                             onPressed: () {
-                              provider.toggleDoseStatus(doseEvent);
+                              if (isTaken) {
+                                provider.toggleDoseStatus(result);
+                                return;
+                              }
+
+                              // Verifica se o estoque não é controlado (-1) ou se há estoque (> 0).
+                              if (prescription.stock == -1 ||
+                                  prescription.stock > 0) {
+                                // Se houver estoque, permite tomar a dose.
+                                provider.toggleDoseStatus(result);
+                              } else {
+                                // Se o estoque for 0, mostra o diálogo de "sem estoque".
+                                _showOutOfStockDialog(context, prescription);
+                              }
                             },
                           ),
                         ),
