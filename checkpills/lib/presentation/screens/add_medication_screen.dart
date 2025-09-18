@@ -226,44 +226,47 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('Quantas doses você tem em estoque?',
-              style: TextStyle(
-                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
-          SizedBox(height: screenWidth * 0.06),
-          TextFormField(
-            controller: _stockController,
-            enabled:
-                !_dontTrackStock, // Desabilitado se o checkbox estiver marcado
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              fillColor:
-                  _dontTrackStock ? Colors.grey[200] : Colors.transparent,
-              filled: true,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Quantas doses você tem em estoque?',
+                style: TextStyle(
+                    fontSize: screenWidth * 0.055,
+                    fontWeight: FontWeight.bold)),
+            SizedBox(height: screenWidth * 0.06),
+            TextFormField(
+              controller: _stockController,
+              enabled:
+                  !_dontTrackStock, // Desabilitado se o checkbox estiver marcado
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                fillColor:
+                    _dontTrackStock ? Colors.grey[200] : Colors.transparent,
+                filled: true,
+              ),
             ),
-          ),
-          CheckboxListTile(
-            title: const Text('Não controlar estoque'),
-            value: _dontTrackStock,
-            onChanged: (value) {
-              setState(() {
-                _dontTrackStock = value!;
-                if (_dontTrackStock) {
-                  _stockController.clear(); // Limpa o campo ao marcar
-                  FocusScope.of(context).unfocus();
-                }
-                _validatePage(); // Revalida a página
-              });
-            },
-            activeColor: blueColor,
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-          ),
-        ],
+            CheckboxListTile(
+              title: const Text('Não controlar estoque'),
+              value: _dontTrackStock,
+              onChanged: (value) {
+                setState(() {
+                  _dontTrackStock = value!;
+                  if (_dontTrackStock) {
+                    _stockController.clear(); // Limpa o campo ao marcar
+                    FocusScope.of(context).unfocus();
+                  }
+                  _validatePage(); // Revalida a página
+                });
+              },
+              activeColor: blueColor,
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -341,27 +344,30 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   }) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(title,
-              style: TextStyle(
-                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
-          if (subtitle != null) ...[
-            SizedBox(height: screenWidth * 0.02),
-            Text(subtitle,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(title,
                 style: TextStyle(
-                    fontSize: screenWidth * 0.04, color: Colors.grey)),
+                    fontSize: screenWidth * 0.055,
+                    fontWeight: FontWeight.bold)),
+            if (subtitle != null) ...[
+              SizedBox(height: screenWidth * 0.02),
+              Text(subtitle,
+                  style: TextStyle(
+                      fontSize: screenWidth * 0.04, color: Colors.grey)),
+            ],
+            SizedBox(height: screenWidth * 0.06),
+            TextFormField(
+              controller: controller,
+              keyboardType: keyboardType,
+              maxLines: keyboardType == TextInputType.multiline ? 3 : 1,
+              decoration: const InputDecoration(border: OutlineInputBorder()),
+            ),
           ],
-          SizedBox(height: screenWidth * 0.06),
-          TextFormField(
-            controller: controller,
-            keyboardType: keyboardType,
-            maxLines: keyboardType == TextInputType.multiline ? 3 : 1,
-            decoration: const InputDecoration(border: OutlineInputBorder()),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -382,48 +388,51 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('Qual o tipo do medicamento?',
-              style: TextStyle(
-                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 24),
-          Wrap(
-            spacing: 8.0,
-            runSpacing: 8.0,
-            children: types.map((type) {
-              final isSelected = _selectedType == type;
-              return ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _selectedType = type;
-                    _validatePage();
-                  });
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isSelected ? blueColor : Colors.grey[200],
-                  foregroundColor: isSelected ? Colors.white : Colors.black,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                child: Text(type),
-              );
-            }).toList(),
-          ),
-          if (_selectedType == 'Outros') ...[
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Qual o tipo do medicamento?',
+                style: TextStyle(
+                    fontSize: screenWidth * 0.055,
+                    fontWeight: FontWeight.bold)),
             const SizedBox(height: 24),
-            TextFormField(
-              controller: _customTypeController,
-              decoration: const InputDecoration(
-                labelText: 'Digite o tipo do medicamento',
-                border: OutlineInputBorder(),
-              ),
+            Wrap(
+              spacing: 8.0,
+              runSpacing: 8.0,
+              children: types.map((type) {
+                final isSelected = _selectedType == type;
+                return ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedType = type;
+                      _validatePage();
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isSelected ? blueColor : Colors.grey[200],
+                    foregroundColor: isSelected ? Colors.white : Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: Text(type),
+                );
+              }).toList(),
             ),
-          ]
-        ],
+            if (_selectedType == 'Outros') ...[
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _customTypeController,
+                decoration: const InputDecoration(
+                  labelText: 'Digite o tipo do medicamento',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ]
+          ],
+        ),
       ),
     );
   }
@@ -437,52 +446,55 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-              'Qual a quantidade de "${_nameController.text}" você deve tomar por vez?',
-              style: TextStyle(
-                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
-          SizedBox(height: screenWidth * 0.06),
-          Row(
-            children: [
-              // Campo de texto para a quantidade
-              Expanded(
-                flex: 2, // Ocupa 2/3 do espaço
-                child: TextFormField(
-                  controller: _doseQuantityController,
-                  keyboardType: TextInputType.number,
-                  decoration:
-                      const InputDecoration(border: OutlineInputBorder()),
-                ),
-              ),
-              const SizedBox(width: 16),
-              // Carrossel para a unidade
-              Expanded(
-                flex: 3, // Ocupa 3/3 do espaço
-                child: SizedBox(
-                  height: screenHeight * 0.1, // Altura do carrossel
-                  child: CupertinoPicker(
-                    itemExtent: 40,
-                    onSelectedItemChanged: (index) {
-                      setState(() {
-                        _selectedDoseUnit = _allDoseUnits[index];
-                      });
-                    },
-                    scrollController: FixedExtentScrollController(
-                        initialItem:
-                            initialUnitIndex != -1 ? initialUnitIndex : 0),
-                    children: _allDoseUnits.map((unit) {
-                      return Center(child: Text(unit));
-                    }).toList(),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+                'Qual a quantidade de "${_nameController.text}" você deve tomar por vez?',
+                style: TextStyle(
+                    fontSize: screenWidth * 0.055,
+                    fontWeight: FontWeight.bold)),
+            SizedBox(height: screenWidth * 0.06),
+            Row(
+              children: [
+                // Campo de texto para a quantidade
+                Expanded(
+                  flex: 2, // Ocupa 2/3 do espaço
+                  child: TextFormField(
+                    controller: _doseQuantityController,
+                    keyboardType: TextInputType.number,
+                    decoration:
+                        const InputDecoration(border: OutlineInputBorder()),
                   ),
                 ),
-              ),
-            ],
-          )
-        ],
+                const SizedBox(width: 16),
+                // Carrossel para a unidade
+                Expanded(
+                  flex: 3, // Ocupa 3/3 do espaço
+                  child: SizedBox(
+                    height: screenHeight * 0.1, // Altura do carrossel
+                    child: CupertinoPicker(
+                      itemExtent: 40,
+                      onSelectedItemChanged: (index) {
+                        setState(() {
+                          _selectedDoseUnit = _allDoseUnits[index];
+                        });
+                      },
+                      scrollController: FixedExtentScrollController(
+                          initialItem:
+                              initialUnitIndex != -1 ? initialUnitIndex : 0),
+                      children: _allDoseUnits.map((unit) {
+                        return Center(child: Text(unit));
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          ],
+        ),
       ),
     );
   }
@@ -512,123 +524,127 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Título atualizado
-          Text('Qual a data e horário da primeira dose?',
-              style: TextStyle(
-                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Título atualizado
+            Text('Qual a data e horário da primeira dose?',
+                style: TextStyle(
+                    fontSize: screenWidth * 0.055,
+                    fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
 
-          // NOVO: Botão para selecionar a data
-          Text('Data da primeira dose',
-              style: TextStyle(color: Colors.grey[700])),
-          const SizedBox(height: 8),
-          OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+            // NOVO: Botão para selecionar a data
+            Text('Data da primeira dose',
+                style: TextStyle(color: Colors.grey[700])),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () async {
+                // Mostra o pop-up do calendário e espera o usuário escolher uma data
+                final pickedDate = await showDatePicker(
+                  context: context,
+                  locale: const Locale('pt', 'BR'), // Garante o idioma
+                  initialDate: _selectedFirstDoseDate,
+                  firstDate: DateTime
+                      .now(), // Não permite escolher uma data no passado
+                  lastDate: DateTime(2101),
+                );
+
+                // Se o usuário escolheu uma data, atualiza o estado
+                if (pickedDate != null) {
+                  setState(() {
+                    _selectedFirstDoseDate = pickedDate;
+                  });
+                }
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: Text(
+                      _formatFirstDoseDate(),
+                      style: const TextStyle(fontSize: 16, color: Colors.black),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8.0),
+                    child: Icon(Icons.calendar_today_outlined),
+                  ),
+                ],
               ),
             ),
-            onPressed: () async {
-              // Mostra o pop-up do calendário e espera o usuário escolher uma data
-              final pickedDate = await showDatePicker(
-                context: context,
-                locale: const Locale('pt', 'BR'), // Garante o idioma
-                initialDate: _selectedFirstDoseDate,
-                firstDate:
-                    DateTime.now(), // Não permite escolher uma data no passado
-                lastDate: DateTime(2101),
-              );
+            const SizedBox(height: 16),
 
-              // Se o usuário escolheu uma data, atualiza o estado
-              if (pickedDate != null) {
+            // Checkbox que já existia
+            CheckboxListTile(
+              title: const Text('Uma dose apenas'),
+              value: _isSingleDose,
+              onChanged: (value) {
                 setState(() {
-                  _selectedFirstDoseDate = pickedDate;
+                  _isSingleDose = value!;
+                  _validatePage();
                 });
-              }
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: Text(
-                    _formatFirstDoseDate(),
-                    style: const TextStyle(fontSize: 16, color: Colors.black),
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.only(right: 8.0),
-                  child: Icon(Icons.calendar_today_outlined),
-                ),
-              ],
+              },
+              activeColor: blueColor,
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
             ),
-          ),
-          const SizedBox(height: 16),
 
-          // Checkbox que já existia
-          CheckboxListTile(
-            title: const Text('Uma dose apenas'),
-            value: _isSingleDose,
-            onChanged: (value) {
-              setState(() {
-                _isSingleDose = value!;
-                _validatePage();
-              });
-            },
-            activeColor: blueColor,
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-          ),
-
-          // Seletores de hora e minuto que já existiam
-          SizedBox(
-            height: screenHeight * 0.15, // Altura ajustada para caber tudo
-            child: Row(
-              children: [
-                Expanded(
-                  child: CupertinoPicker(
-                    itemExtent: 40,
-                    onSelectedItemChanged: (index) {
-                      setState(() {
-                        _selectedHour = index;
-                      });
-                    },
-                    scrollController:
-                        FixedExtentScrollController(initialItem: _selectedHour),
-                    looping: true,
-                    children: List.generate(24, (index) {
-                      return Center(
-                          child: Text('${index.toString().padLeft(2, '0')} h'));
-                    }),
+            // Seletores de hora e minuto que já existiam
+            SizedBox(
+              height: screenHeight * 0.15, // Altura ajustada para caber tudo
+              child: Row(
+                children: [
+                  Expanded(
+                    child: CupertinoPicker(
+                      itemExtent: 40,
+                      onSelectedItemChanged: (index) {
+                        setState(() {
+                          _selectedHour = index;
+                        });
+                      },
+                      scrollController: FixedExtentScrollController(
+                          initialItem: _selectedHour),
+                      looping: true,
+                      children: List.generate(24, (index) {
+                        return Center(
+                            child:
+                                Text('${index.toString().padLeft(2, '0')} h'));
+                      }),
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: CupertinoPicker(
-                    itemExtent: 40,
-                    onSelectedItemChanged: (index) {
-                      setState(() {
-                        _selectedMinute = index;
-                      });
-                    },
-                    scrollController: FixedExtentScrollController(
-                        initialItem: _selectedMinute),
-                    looping: true,
-                    children: List.generate(60, (index) {
-                      return Center(
-                          child:
-                              Text('${index.toString().padLeft(2, '0')} min'));
-                    }),
+                  Expanded(
+                    child: CupertinoPicker(
+                      itemExtent: 40,
+                      onSelectedItemChanged: (index) {
+                        setState(() {
+                          _selectedMinute = index;
+                        });
+                      },
+                      scrollController: FixedExtentScrollController(
+                          initialItem: _selectedMinute),
+                      looping: true,
+                      children: List.generate(60, (index) {
+                        return Center(
+                            child: Text(
+                                '${index.toString().padLeft(2, '0')} min'));
+                      }),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          )
-        ],
+                ],
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
@@ -644,86 +660,91 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('Qual o intervalo entre as doses?',
-              style: TextStyle(
-                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
-          SizedBox(height: screenWidth * 0.06),
-          SizedBox(
-            height: screenHeight * 0.2,
-            child: Row(
-              children: [
-                // Seletor de Horas
-                Expanded(
-                  child: CupertinoPicker(
-                    itemExtent: 40,
-                    scrollController: _hourIntervalController,
-                    onSelectedItemChanged: (newHour) {
-                      setState(() {
-                        _selectedIntervalHour = newHour;
-                        if (newHour == 24) {
-                          if (_selectedIntervalMinute != 0) {
-                            _selectedIntervalMinute = 0;
-                            _minuteIntervalController.animateToItem(0,
-                                duration: animationDuration,
-                                curve: animationCurve);
-                          }
-                        } else if (newHour == 0 &&
-                            _selectedIntervalMinute < 30) {
-                          _selectedIntervalMinute = 30;
-                          _minuteIntervalController.animateToItem(30,
-                              duration: animationDuration,
-                              curve: animationCurve);
-                        }
-                      });
-                    },
-                    looping: true,
-                    children: List.generate(25, (index) {
-                      return Center(
-                          child: Text('${index.toString().padLeft(2, '0')} h'));
-                    }),
-                  ),
-                ),
-                Expanded(
-                  child: Opacity(
-                    opacity: isMinutePickerDisabled ? 0.5 : 1.0,
-                    child: AbsorbPointer(
-                      absorbing: isMinutePickerDisabled,
-                      child: CupertinoPicker(
-                        itemExtent: 40,
-                        scrollController: _minuteIntervalController,
-                        onSelectedItemChanged: (newMinute) {
-                          setState(() {
-                            int targetMinute = newMinute;
-                            if (_selectedIntervalHour == 0 && newMinute < 30) {
-                              targetMinute = 30;
-                            }
-                            _selectedIntervalMinute = targetMinute;
-                            if (targetMinute != newMinute) {
-                              _minuteIntervalController.animateToItem(
-                                  targetMinute,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Qual o intervalo entre as doses?',
+                style: TextStyle(
+                    fontSize: screenWidth * 0.055,
+                    fontWeight: FontWeight.bold)),
+            SizedBox(height: screenWidth * 0.06),
+            SizedBox(
+              height: screenHeight * 0.2,
+              child: Row(
+                children: [
+                  // Seletor de Horas
+                  Expanded(
+                    child: CupertinoPicker(
+                      itemExtent: 40,
+                      scrollController: _hourIntervalController,
+                      onSelectedItemChanged: (newHour) {
+                        setState(() {
+                          _selectedIntervalHour = newHour;
+                          if (newHour == 24) {
+                            if (_selectedIntervalMinute != 0) {
+                              _selectedIntervalMinute = 0;
+                              _minuteIntervalController.animateToItem(0,
                                   duration: animationDuration,
                                   curve: animationCurve);
                             }
-                          });
-                        },
-                        looping: true,
-                        children: List.generate(60, (index) {
-                          return Center(
-                              child: Text(
-                                  '${index.toString().padLeft(2, '0')} min'));
-                        }),
+                          } else if (newHour == 0 &&
+                              _selectedIntervalMinute < 30) {
+                            _selectedIntervalMinute = 30;
+                            _minuteIntervalController.animateToItem(30,
+                                duration: animationDuration,
+                                curve: animationCurve);
+                          }
+                        });
+                      },
+                      looping: true,
+                      children: List.generate(25, (index) {
+                        return Center(
+                            child:
+                                Text('${index.toString().padLeft(2, '0')} h'));
+                      }),
+                    ),
+                  ),
+                  Expanded(
+                    child: Opacity(
+                      opacity: isMinutePickerDisabled ? 0.5 : 1.0,
+                      child: AbsorbPointer(
+                        absorbing: isMinutePickerDisabled,
+                        child: CupertinoPicker(
+                          itemExtent: 40,
+                          scrollController: _minuteIntervalController,
+                          onSelectedItemChanged: (newMinute) {
+                            setState(() {
+                              int targetMinute = newMinute;
+                              if (_selectedIntervalHour == 0 &&
+                                  newMinute < 30) {
+                                targetMinute = 30;
+                              }
+                              _selectedIntervalMinute = targetMinute;
+                              if (targetMinute != newMinute) {
+                                _minuteIntervalController.animateToItem(
+                                    targetMinute,
+                                    duration: animationDuration,
+                                    curve: animationCurve);
+                              }
+                            });
+                          },
+                          looping: true,
+                          children: List.generate(60, (index) {
+                            return Center(
+                                child: Text(
+                                    '${index.toString().padLeft(2, '0')} min'));
+                          }),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -736,63 +757,66 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('Qual a duração do tratamento?',
-              style: TextStyle(
-                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
-          SizedBox(height: screenWidth * 0.06),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _treatmentLengthController,
-                  enabled: !_isContinuous,
-                  keyboardType: TextInputType.number,
-                  decoration:
-                      const InputDecoration(border: OutlineInputBorder()),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Qual a duração do tratamento?',
+                style: TextStyle(
+                    fontSize: screenWidth * 0.055,
+                    fontWeight: FontWeight.bold)),
+            SizedBox(height: screenWidth * 0.06),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _treatmentLengthController,
+                    enabled: !_isContinuous,
+                    keyboardType: TextInputType.number,
+                    decoration:
+                        const InputDecoration(border: OutlineInputBorder()),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  // CORREÇÃO: `value` trocado por `initialValue`
-                  initialValue: _selectedTreatmentUnit,
-                  onChanged: _isContinuous
-                      ? null
-                      : (value) {
-                          setState(() {
-                            _selectedTreatmentUnit = value!;
-                          });
-                        },
-                  items: units.map((unit) {
-                    return DropdownMenuItem(value: unit, child: Text(unit));
-                  }).toList(),
-                  decoration:
-                      const InputDecoration(border: OutlineInputBorder()),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    // CORREÇÃO: `value` trocado por `initialValue`
+                    initialValue: _selectedTreatmentUnit,
+                    onChanged: _isContinuous
+                        ? null
+                        : (value) {
+                            setState(() {
+                              _selectedTreatmentUnit = value!;
+                            });
+                          },
+                    items: units.map((unit) {
+                      return DropdownMenuItem(value: unit, child: Text(unit));
+                    }).toList(),
+                    decoration:
+                        const InputDecoration(border: OutlineInputBorder()),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          CheckboxListTile(
-            title: const Text('Uso constante'),
-            value: _isContinuous,
-            onChanged: (value) {
-              setState(() {
-                _isContinuous = value!;
-                if (_isContinuous) {
-                  _treatmentLengthController.clear();
-                  _selectedTreatmentUnit = 'Dias';
-                }
-                _validatePage(); // Revalida a página ao mudar o checkbox
-              });
-            },
-            activeColor: blueColor,
-            controlAffinity: ListTileControlAffinity.leading,
-          ),
-        ],
+              ],
+            ),
+            CheckboxListTile(
+              title: const Text('Uso constante'),
+              value: _isContinuous,
+              onChanged: (value) {
+                setState(() {
+                  _isContinuous = value!;
+                  if (_isContinuous) {
+                    _treatmentLengthController.clear();
+                    _selectedTreatmentUnit = 'Dias';
+                  }
+                  _validatePage(); // Revalida a página ao mudar o checkbox
+                });
+              },
+              activeColor: blueColor,
+              controlAffinity: ListTileControlAffinity.leading,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -805,12 +829,12 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     const orangeColor = Color(0xFFDC5023);
     const blueColor = Color(0xFF23AFDC);
 
+    // A lista de páginas permanece a mesma
     final List<Widget> formPages = [
       Padding(
-        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-        child: SingleChildScrollView(
-          // Usamos um SingleChildScrollView para evitar overflow
-          child: Column(
+          padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+          child: SingleChildScrollView(
+              child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -825,25 +849,19 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                 decoration: const InputDecoration(border: OutlineInputBorder()),
               ),
               SizedBox(height: screenWidth * 0.06),
-              _buildImagePicker(), // Nosso novo widget!
+              _buildImagePicker(),
             ],
-          ),
-        ),
-      ),
-
+          ))),
       _buildTypeSelectionPage(screenWidth: screenWidth),
       _buildDosePage(screenWidth: screenWidth, screenHeight: screenHeight),
       _buildStockPage(screenWidth: screenWidth),
       _buildTimePickerPage(
           screenWidth: screenWidth, screenHeight: screenHeight),
-
-      // Lógica de navegação condicional
       if (!_isSingleDose) ...[
         _buildIntervalPickerPage(
             screenWidth: screenWidth, screenHeight: screenHeight),
         _buildDurationPage(screenWidth: screenWidth),
       ],
-
       _buildFormPage(
           title: 'Alguma observação?',
           subtitle: 'Este campo é opcional',
@@ -853,42 +871,46 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           isLastPage: true),
     ];
 
+    // --- ESTRUTURA PRINCIPAL ALTERADA ---
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
+      // O Padding agora envolve um Column, não um SingleChildScrollView
       child: Padding(
         padding:
             EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppBar(
-                shape: const RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(20.0))),
-                title: Text(widget.prescription != null
-                    ? 'Editar Medicamento'
-                    : 'Adicionar Medicamento'),
-                leading: IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context)),
-                automaticallyImplyLeading: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppBar(
+              shape: const RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.vertical(top: Radius.circular(20.0))),
+              title: Text(widget.prescription != null
+                  ? 'Editar Medicamento'
+                  : 'Adicionar Medicamento'),
+              leading: IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context)),
+              automaticallyImplyLeading: false,
+            ),
+            FormProgressBar(
+                totalPages: formPages.length,
+                currentPage: _currentPage,
+                activeColor: orangeColor,
+                completedColor: blueColor),
+
+            // NOVO: Expanded faz o PageView ocupar o espaço restante
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(),
+                children: formPages,
               ),
-              FormProgressBar(
-                  totalPages: formPages.length,
-                  currentPage: _currentPage,
-                  activeColor: orangeColor,
-                  completedColor: blueColor),
-              SizedBox(
-                height: screenHeight * 0.4,
-                child: PageView(
-                  controller: _pageController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: formPages,
-                ),
-              ),
-              if (_currentPage == formPages.length - 1)
-                Padding(
+            ),
+
+            // Botões de navegação no final
+            if (_currentPage == formPages.length - 1)
+              Padding(
                   padding: EdgeInsets.symmetric(
                       horizontal: screenWidth * 0.04,
                       vertical: screenWidth * 0.02),
@@ -896,13 +918,19 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                     style: ElevatedButton.styleFrom(
                         minimumSize: Size.fromHeight(screenHeight * 0.06),
                         backgroundColor: blueColor,
-                        foregroundColor: Colors.black),
+                        foregroundColor: Colors.white), // Corrigido para branco
                     onPressed: _onSave,
                     child: const Text('Salvar Medicamento'),
-                  ),
-                ),
+                  ))
+            else // Mostra os botões Anterior/Próximo
               Padding(
-                padding: EdgeInsets.all(screenWidth * 0.04),
+                padding: EdgeInsets.fromLTRB(
+                  screenWidth * 0.04, // Espaço da Esquerda
+                  screenWidth * 0.04, // Espaço de Cima
+                  screenWidth * 0.04, // Espaço da Direita
+                  screenWidth * 0.04 +
+                      12, // Espaço de Baixo (original + 12 pixels extras)
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -922,8 +950,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                               _currentPage < formPages.length - 1)
                           ? () {
                               FocusScope.of(context).unfocus();
-                              // Se estamos na página de tipo (índice 1),
-                              // pré-selecionamos a unidade ANTES de navegar.
                               if (_currentPage == 1) {
                                 _preselectDoseUnit();
                               }
@@ -937,8 +963,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   ],
                 ),
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );

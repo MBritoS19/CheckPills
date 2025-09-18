@@ -40,13 +40,13 @@ class MyApp extends StatelessWidget {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
       home: MainScreen(),
-      locale: const Locale('pt', 'BR'),
-      localizationsDelegates: const [
+      locale: Locale('pt', 'BR'),
+      localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
+      supportedLocales: [
         Locale('pt', 'BR'),
       ],
     );
@@ -111,6 +111,7 @@ class _MainScreenState extends State<MainScreen> {
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
               ),
+              useSafeArea: true,
               builder: (BuildContext context) {
                 return const AddMedicationScreen();
               },
