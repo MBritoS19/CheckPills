@@ -1,11 +1,11 @@
 // lib/screens/calendar_screen.dart
 
-import 'package:CheckPills/data/datasources/database.dart';
 import 'package:CheckPills/presentation/providers/medication_provider.dart';
+import 'package:CheckPills/data/datasources/database.dart';
+import 'package:table_calendar/table_calendar.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
-import 'package:table_calendar/table_calendar.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});

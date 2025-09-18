@@ -1,7 +1,7 @@
 // lib/presentation/widgets/dose_event_card.dart
 
+import 'package:CheckPills/data/datasources/database.dart';
 import 'package:flutter/material.dart';
-import 'package:CheckPills/data/datasources/database.dart'; // Importação adicionada
 import 'package:intl/intl.dart';
 
 class DoseEventCard extends StatelessWidget {

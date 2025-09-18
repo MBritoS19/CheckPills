@@ -1,13 +1,13 @@
+import 'package:CheckPills/presentation/screens/configuration_screen.dart';
+import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
+import 'package:CheckPills/presentation/providers/medication_provider.dart';
+import 'package:CheckPills/presentation/screens/home_screen.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:CheckPills/data/datasources/database.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/date_symbol_data_local.dart';
-import 'package:CheckPills/presentation/providers/medication_provider.dart';
-import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
-import 'package:CheckPills/presentation/screens/configuration_screen.dart';
-import 'package:CheckPills/presentation/screens/home_screen.dart';
-import 'package:provider/provider.dart';
-import 'package:CheckPills/data/datasources/database.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
