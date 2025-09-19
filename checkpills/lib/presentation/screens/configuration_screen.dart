@@ -1,7 +1,7 @@
 // lib/screens/configuration_screen.dart
 
-import 'package:CheckPills/data/datasources/database.dart';
 import 'package:CheckPills/presentation/providers/settings_provider.dart';
+import 'package:CheckPills/data/datasources/database.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
