@@ -25,11 +25,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-// Adicione estes dois métodos dentro da classe _HomeScreenState
-
-// Método para o pop-up principal "Sem Estoque"
-  // Substitua o método antigo por este
-  // Substitua o método pela versão final
   void _showOutOfStockDialog(BuildContext context, Prescription prescription) {
     final provider = Provider.of<MedicationProvider>(context, listen: false);
 
