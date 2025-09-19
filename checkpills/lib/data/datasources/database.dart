@@ -1,12 +1,12 @@
+import 'dart:io';
+import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import 'package:drift/native.dart';
-import 'package:drift/drift.dart';
-import 'dart:io';
 
 part 'database.g.dart';
 
-// Enums e Tabelas continuam como planeado
+// Enums e Tabelas continuam como planejado
 enum DoseStatus { pendente, tomada, pulada }
 
 @DataClassName('Setting')
@@ -53,29 +53,24 @@ class DoseEvents extends Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-// Classe auxiliar para juntar os dados de uma Dose e sua Prescrição
-class DoseEventWithPrescription {
-  final DoseEvent doseEvent;
-  final Prescription prescription;
-
-  DoseEventWithPrescription({
-    required this.doseEvent,
-    required this.prescription,
-  });
-}
-
-// A classe AppDatabase agora vai usar DAOs
-@DriftDatabase(
-    tables: [Settings, Prescriptions, DoseEvents],
-    daos: [SettingsDao, PrescriptionsDao, DoseEventsDao])
+// Combine as tabelas em um banco de dados
+@DriftDatabase(tables: [
+  Settings,
+  Prescriptions,
+  DoseEvents,
+], daos: [
+  SettingsDao,
+  PrescriptionsDao,
+  DoseEventsDao,
+])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 1;
 }
 
-// DAO para a tabela DoseEvents
+// Adiciona as classes Dao
 @DriftAccessor(tables: [DoseEvents, Prescriptions])
 class DoseEventsDao extends DatabaseAccessor<AppDatabase>
     with _$DoseEventsDaoMixin {
@@ -113,8 +108,8 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase>
     return query.watch().map((rows) {
       return rows.map((row) {
         return DoseEventWithPrescription(
-          doseEvent: row.readTable(doseEvents),
-          prescription: row.readTable(prescriptions),
+                doseEvent: row.readTable(doseEvents),
+                prescription: row.readTable(prescriptions),
         );
       }).toList();
     });
@@ -126,12 +121,12 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase>
   Future<void> updateDoseEventStatus(
           int id, DoseStatus newStatus, DateTime? takenTime) =>
       (update(doseEvents)..where((t) => t.id.equals(id))).write(
-        DoseEventsCompanion(
-          status: Value(newStatus),
-          takenTime: Value(takenTime),
-          updatedAt: Value(DateTime.now()),
-        ),
-      );
+      DoseEventsCompanion(
+        status: Value(newStatus),
+        takenTime: Value(takenTime),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
 
   Future<void> deleteFutureDoseEventsForPrescription(int prescriptionId) {
     final today = DateTime.now();
@@ -143,7 +138,7 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase>
   }
 }
 
-// DAOs para as outras tabelas (mesmo que ainda não tenham funções customizadas, é uma boa prática criá-los)
+// DAOs para as outras tabelas
 @DriftAccessor(tables: [Prescriptions])
 class PrescriptionsDao extends DatabaseAccessor<AppDatabase>
     with _$PrescriptionsDaoMixin {
@@ -170,12 +165,31 @@ class PrescriptionsDao extends DatabaseAccessor<AppDatabase>
 class SettingsDao extends DatabaseAccessor<AppDatabase>
     with _$SettingsDaoMixin {
   SettingsDao(AppDatabase db) : super(db);
+
+  // NOVO: Adicione estes métodos
+  Stream<Setting?> watchSettings() {
+    return (select(settings)..limit(1)).watchSingle();
+  }
+
+  Future<int> updateSettings(SettingsCompanion entry) {
+    return into(settings).insertOnConflictUpdate(entry);
+  }
 }
 
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationDocumentsDirectory();
     final file = File(p.join(dbFolder.path, 'db.sqlite'));
-    return NativeDatabase(file);
+    return NativeDatabase.createInBackground(file);
+  });
+}
+
+class DoseEventWithPrescription {
+  final DoseEvent doseEvent;
+  final Prescription prescription;
+
+  DoseEventWithPrescription({
+    required this.doseEvent,
+    required this.prescription,
   });
 }

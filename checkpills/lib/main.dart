@@ -1,6 +1,7 @@
 import 'package:CheckPills/presentation/screens/configuration_screen.dart';
 import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
 import 'package:CheckPills/presentation/providers/medication_provider.dart';
+import 'package:CheckPills/presentation/providers/settings_provider.dart';
 import 'package:CheckPills/presentation/screens/home_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:CheckPills/data/datasources/database.dart';
@@ -22,10 +23,19 @@ Future<void> main() async {
     Provider<AppDatabase>(
       create: (context) => AppDatabase(),
       dispose: (context, db) => db.close(),
-      child: ChangeNotifierProvider(
-        create: (context) => MedicationProvider(
-          database: Provider.of<AppDatabase>(context, listen: false),
-        ),
+      child: MultiProvider(
+        providers: [
+          ChangeNotifierProvider(
+            create: (context) => MedicationProvider(
+              database: Provider.of<AppDatabase>(context, listen: false),
+            ),
+          ),
+          ChangeNotifierProvider(
+            create: (context) => SettingsProvider(
+              database: Provider.of<AppDatabase>(context, listen: false),
+            ),
+          ),
+        ],
         child: const MyApp(),
       ),
     ),
@@ -61,14 +71,13 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  // A variável não precisa mais de ser nula. Começa sempre em 0.
   int _selectedIndex = 0;
-
-  // A lista `_widgetOptions` desnecessária foi removida.
+  final List<Widget> _widgetOptions = <Widget>[
+    const HomeScreen(),
+    const ConfigurationScreen(),
+  ];
 
   void _onItemTapped(int index) {
-    // A lógica de abrir o modal foi movida para o onPressed do FAB.
-    // Esta função agora só precisa de atualizar o índice.
     setState(() {
       _selectedIndex = index;
     });
