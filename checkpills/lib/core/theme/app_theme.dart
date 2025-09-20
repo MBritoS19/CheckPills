@@ -4,17 +4,34 @@ import 'package:flutter/material.dart';
 const Color appBackgroundColor = Color(0xFFD9D9D9);
 const Color orangeColor = Color(0xFFF2994A);
 
-final ThemeData appTheme = ThemeData(
+// Renomeie o appTheme existente para lightTheme
+final ThemeData lightTheme = ThemeData(
   scaffoldBackgroundColor: appBackgroundColor,
-  
   appBarTheme: const AppBarTheme(
     backgroundColor: appBackgroundColor,
     elevation: 0,
+    foregroundColor: Colors.black,
   ),
-
-  // MUDANÇA AQUI: Corrigido de `CardTheme` para `CardThemeData`.
   cardTheme: const CardThemeData(
-    color: appBackgroundColor,
-    elevation: 1, // Adicionei uma leve elevação para os cards se destacarem.
+    // <-- CORRIGIDO AQUI
+    color: Colors.white,
+    elevation: 1,
+  ),
+  brightness: Brightness.light,
+);
+
+// ADICIONE ESTE NOVO TEMA ESCURO
+final ThemeData darkTheme = ThemeData(
+  brightness: Brightness.dark,
+  scaffoldBackgroundColor: Colors.grey[900],
+  appBarTheme: AppBarTheme(
+    backgroundColor: Colors.grey[900],
+    elevation: 0,
+    foregroundColor: Colors.white,
+  ),
+  cardTheme: CardThemeData(
+    // <-- CORRIGIDO AQUI
+    color: Colors.grey[850],
+    elevation: 1,
   ),
 );

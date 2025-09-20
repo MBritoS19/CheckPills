@@ -1,5 +1,6 @@
 import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
 import 'package:CheckPills/presentation/providers/medication_provider.dart';
+import 'package:CheckPills/presentation/providers/settings_provider.dart';
 import 'package:CheckPills/presentation/screens/calendar_screen.dart';
 import 'package:CheckPills/data/datasources/database.dart';
 import 'package:provider/provider.dart';
@@ -254,39 +255,44 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(children: [
-          SizedBox(
-            height: 40,
-            width: 40,
-            child: Image.asset('assets/images/logo.jpg'),
-          ),
-          const SizedBox(width: 8),
-          const Text('Nome do Usuário'),
-        ]),
+        title: Consumer<SettingsProvider>(
+          builder: (context, settingsProvider, child) {
+            final userName = settingsProvider.settings.userName;
+            return Row(
+              children: [
+                SizedBox(
+                  height: 40,
+                  width: 40,
+                  child: Image.asset('assets/images/logo.jpg'),
+                ),
+                const SizedBox(width: 8),
+                Text(userName ?? 'Bem-vindo(a)!'),
+              ],
+            );
+          },
+        ),
+        // --- A SEÇÃO 'actions' QUE ESTAVA FALTANDO ---
         actions: [
           IconButton(
             icon: const Icon(Icons.calendar_month),
-            // Substitua o onPressed por este
             onPressed: () async {
-              // Navega e espera por um resultado (uma data)
               final selectedDate = await Navigator.push<DateTime>(
                 context,
                 MaterialPageRoute(builder: (context) => const CalendarScreen()),
               );
-
-              // Se uma data foi retornada, atualiza a tela inicial
               if (selectedDate != null && context.mounted) {
                 _updateSelectedDate(selectedDate);
               }
             },
           ),
         ],
+        // --- FIM DA SEÇÃO 'actions' ---
       ),
       body: Column(
         children: [
           const Divider(color: orangeColor, height: 1, thickness: 1),
           Container(
-            color: Colors.grey[200],
+            color: Theme.of(context).cardTheme.color,
             padding: EdgeInsets.symmetric(vertical: screenWidth * 0.02),
             child: Column(
               children: [
@@ -538,11 +544,18 @@ class _DayItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Pega a cor de texto padrão do tema atual (preto ou branco)
+    final Color? defaultTextColor =
+        Theme.of(context).textTheme.bodyLarge?.color;
+
     return Column(
       children: [
         Text(dayOfWeek,
             style: TextStyle(
-                fontSize: screenWidth * 0.03, fontWeight: FontWeight.w500)),
+                fontSize: screenWidth * 0.03,
+                fontWeight: FontWeight.w500,
+                // APLICA A COR DO TEMA
+                color: defaultTextColor)),
         SizedBox(height: screenWidth * 0.01),
         Container(
           padding: EdgeInsets.all(screenWidth * 0.02),
@@ -553,7 +566,8 @@ class _DayItem extends StatelessWidget {
           child: Text(
             dayNumber,
             style: TextStyle(
-              color: isSelected ? Colors.white : Colors.black87,
+              // APLICA A COR DO TEMA QUANDO NÃO ESTÁ SELECIONADO
+              color: isSelected ? Colors.white : defaultTextColor,
               fontWeight: FontWeight.bold,
               fontSize: screenWidth * 0.035,
             ),

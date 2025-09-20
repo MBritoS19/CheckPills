@@ -410,13 +410,22 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                       _validatePage();
                     });
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isSelected ? blueColor : Colors.grey[200],
-                    foregroundColor: isSelected ? Colors.white : Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
+                  style: isSelected
+                      // Se estiver selecionado, aplica nosso estilo azul customizado
+                      ? ElevatedButton.styleFrom(
+                          backgroundColor: blueColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        )
+                      // Se NÃO estiver selecionado, usa o estilo padrão do tema,
+                      // mas mantém as bordas arredondadas.
+                      : ElevatedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
                   child: Text(type),
                 );
               }).toList(),

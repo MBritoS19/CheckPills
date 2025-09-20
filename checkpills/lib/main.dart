@@ -5,6 +5,7 @@ import 'package:CheckPills/presentation/providers/settings_provider.dart';
 import 'package:CheckPills/presentation/screens/home_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:CheckPills/data/datasources/database.dart';
+import 'package:CheckPills/core/theme/app_theme.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
@@ -47,16 +48,26 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    // Escuta o SettingsProvider para saber se o modo noturno está ativo
+    final settingsProvider = context.watch<SettingsProvider>();
+
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: MainScreen(),
-      locale: Locale('pt', 'BR'),
-      localizationsDelegates: [
+
+      // APLICA O TEMA CORRETO
+      theme: lightTheme, // Nosso tema claro
+      darkTheme: darkTheme, // Nosso novo tema escuro
+      themeMode:
+          settingsProvider.settings.darkMode ? ThemeMode.dark : ThemeMode.light,
+
+      home: const MainScreen(),
+      locale: const Locale('pt', 'BR'),
+      localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: [
+      supportedLocales: const [
         Locale('pt', 'BR'),
       ],
     );
@@ -72,10 +83,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  final List<Widget> _widgetOptions = <Widget>[
-    const HomeScreen(),
-    const ConfigurationScreen(),
-  ];
 
   void _onItemTapped(int index) {
     setState(() {

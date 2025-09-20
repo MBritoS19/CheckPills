@@ -1,11 +1,10 @@
-// lib/screens/configuration_screen.dart
+// lib/presentation/screens/configuration_screen.dart
 
 import 'package:CheckPills/presentation/providers/settings_provider.dart';
 import 'package:CheckPills/data/datasources/database.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:CheckPills/core/theme/app_theme.dart';
 
 class ConfigurationScreen extends StatefulWidget {
   const ConfigurationScreen({super.key});
@@ -15,11 +14,28 @@ class ConfigurationScreen extends StatefulWidget {
 }
 
 class _ConfigurationScreenState extends State<ConfigurationScreen> {
+  // NOVO: Helper para criar os títulos de seção
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(
+          top: 24.0, bottom: 8.0, left: 16.0, right: 16.0),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context)
+              .colorScheme
+              .primary, // Usa a cor primária do tema
+          fontSize: 14,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<SettingsProvider>(context);
-    final screenWidth = MediaQuery.of(context).size.width;
+    // Usamos 'watch' para que a UI se reconstrua com as mudanças
+    final provider = context.watch<SettingsProvider>();
     final String? currentUserName = provider.settings.userName;
 
     return Scaffold(
@@ -27,73 +43,52 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
         title: const Text('Configurações'),
       ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: screenWidth * 0.04,
-            vertical: screenWidth * 0.02,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ListTile(
-                title: Text(
-                  currentUserName ?? 'Cadastrar Usuário',
-                  style: TextStyle(
-                    color: currentUserName == null ? Colors.blue : Colors.black,
-                    fontWeight: currentUserName == null ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-                trailing: Icon(
-                  currentUserName == null ? Icons.add_circle_outline : Icons.edit,
-                  color: Colors.blue,
-                ),
-                onTap: () {
-                  _showUserNameDialog(context, provider);
-                },
+        // O padding foi removido daqui para ser aplicado por seção
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.start, // Alinha os headers à esquerda
+          children: [
+            // SEÇÃO DE PERFIL
+            _buildSectionHeader("Perfil"),
+            ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: Text(currentUserName ?? 'Definir nome de usuário'),
+              trailing: const Icon(Icons.edit_outlined, color: Colors.grey),
+              onTap: () {
+                _showUserNameDialog(context, provider);
+              },
+            ),
+
+            // SEÇÃO DE APARÊNCIA
+            _buildSectionHeader("Aparência"),
+            SwitchListTile(
+              secondary: const Icon(Icons.dark_mode_outlined),
+              title: const Text('Modo Noturno'),
+              value: provider.settings.darkMode,
+              onChanged: (bool value) {
+                provider
+                    .updateSettings(SettingsCompanion(darkMode: Value(value)));
+              },
+            ),
+
+            // SEÇÃO DE LEMBRETES
+            _buildSectionHeader("Lembretes"),
+            ListTile(
+              leading: const Icon(Icons.inventory_2_outlined),
+              title: const Text('Lembrete de Estoque'),
+              subtitle:
+                  const Text('Ser notificado quando restarem poucas doses'),
+              // NOVO: Mostra o valor atual e é clicável
+              trailing: Text(
+                '${provider.settings.refillReminder} doses',
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.grey),
               ),
-              const Divider(color: orangeColor),
-              SwitchListTile(
-                title: const Text('Modo Noturno'),
-                value: provider.settings.darkMode,
-                onChanged: (bool value) {
-                  provider.updateSettings(
-                      SettingsCompanion(darkMode: Value(value)));
-                },
-              ),
-              const Divider(color: orangeColor),
-              ListTile(
-                title: const Text('Lembrete de Estoque'),
-                subtitle: const Text(
-                    'Lembre-me para repor o estoque quando faltarem X doses.'),
-                trailing: DropdownButton<int>(
-                  value: provider.settings.refillReminder,
-                  onChanged: (int? newValue) {
-                    if (newValue != null) {
-                      provider.updateSettings(
-                          SettingsCompanion(refillReminder: Value(newValue)));
-                    }
-                  },
-                  items: <int>[
-                    1,
-                    2,
-                    3,
-                    4,
-                    5,
-                    6,
-                    7,
-                    8,
-                    9,
-                    10
-                  ].map<DropdownMenuItem<int>>((int value) {
-                    return DropdownMenuItem<int>(
-                      value: value,
-                      child: Text('$value dose(s)'),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ],
-          ),
+              onTap: () {
+                _showRefillReminderDialog(context, provider);
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -101,16 +96,19 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
 
   void _showUserNameDialog(BuildContext context, SettingsProvider provider) {
     String? currentName = provider.settings.userName;
-    final TextEditingController userNameController = TextEditingController(text: currentName);
+    final TextEditingController userNameController =
+        TextEditingController(text: currentName);
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(currentName == null ? 'Cadastrar Usuário' : 'Alterar Nome'),
+          title:
+              Text(currentName == null ? 'Cadastrar Usuário' : 'Alterar Nome'),
           content: TextField(
             controller: userNameController,
-            decoration: const InputDecoration(hintText: 'Digite o nome do usuário'),
+            decoration:
+                const InputDecoration(hintText: 'Digite o nome do usuário'),
             autofocus: true,
           ),
           actions: <Widget>[
@@ -120,18 +118,45 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
                 Navigator.of(context).pop();
               },
             ),
+            // Dentro de _showUserNameDialog
+            // Dentro de _showUserNameDialog
             TextButton(
               child: const Text('Salvar'),
               onPressed: () {
-                if (userNameController.text.isNotEmpty) {
-                  provider.updateSettings(
-                    SettingsCompanion(userName: Value(userNameController.text)),
-                  );
-                }
+                final newName = userNameController.text;
+
+                provider.updateSettings(
+                  SettingsCompanion(
+                      userName: Value(newName.isEmpty ? null : newName)),
+                );
+
                 Navigator.of(context).pop();
               },
             ),
           ],
+        );
+      },
+    );
+  }
+
+  void _showRefillReminderDialog(
+      BuildContext context, SettingsProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return SimpleDialog(
+          title: const Text('Lembrete de Reposição de Estoque'),
+          children: <int>[1, 2, 3, 5, 10, 15].map((int value) {
+            return SimpleDialogOption(
+              onPressed: () {
+                provider.updateSettings(
+                  SettingsCompanion(refillReminder: Value(value)),
+                );
+                Navigator.pop(context);
+              },
+              child: Text('$value doses restantes'),
+            );
+          }).toList(),
         );
       },
     );
