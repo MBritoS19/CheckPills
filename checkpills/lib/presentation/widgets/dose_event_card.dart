@@ -7,14 +7,14 @@ class DoseEventCard extends StatelessWidget {
   final DoseEventWithPrescription doseData;
   final VoidCallback onToggleStatus;
   final VoidCallback onTap;
-  final VoidCallback onUndoSkip; // NOVO: Callback para desfazer
+  final VoidCallback onUndoSkip;
 
   const DoseEventCard({
     super.key,
     required this.doseData,
     required this.onToggleStatus,
     required this.onTap,
-    required this.onUndoSkip, // NOVO: Parâmetro no construtor
+    required this.onUndoSkip,
   });
 
   @override
@@ -22,9 +22,16 @@ class DoseEventCard extends StatelessWidget {
     final doseEvent = doseData.doseEvent;
     final prescription = doseData.prescription;
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    // --- LÓGICA DE OPACIDADE E RISCADO ---
+    // Doses que não estão pendentes ficam com a opacidade reduzida
+    final bool isActionCompleted = doseEvent.status != DoseStatus.pendente;
+    final double contentOpacity = isActionCompleted ? 0.6 : 1.0;
+    final TextDecoration? textDecoration =
+        isActionCompleted ? TextDecoration.lineThrough : null;
 
     Widget buildStatusIcon() {
-      // ... (código do buildStatusIcon não muda)
       switch (doseEvent.status) {
         case DoseStatus.tomada:
           return Icon(
@@ -47,53 +54,112 @@ class DoseEventCard extends StatelessWidget {
       }
     }
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12.0),
-      child: Card(
-        color: Colors.transparent, 
-        elevation: 0,
-        child: ListTile(
-          leading: Hero(
-            tag: 'med_image_${prescription.id}',
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8.0),
-              child: Container(
-                width: 50,
-                height: 50,
-                color: Colors.grey[200],
-                child: prescription.imagePath != null
-                    ? Image.file(
-                        File(prescription.imagePath!),
-                        fit: BoxFit.cover,
-                      )
-                    : const Icon(Icons.medication_liquid, color: Colors.grey),
-              ),
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12.0),
+        child: Opacity(
+          opacity: contentOpacity,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // --- BLOCO DO HORÁRIO ---
+                Container(
+                  width: 90,
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        DateFormat('HH:mm').format(doseEvent.scheduledTime),
+                        style: textTheme.titleLarge?.copyWith(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        "Horário",
+                        style: textTheme.bodySmall?.copyWith(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // --- DIVISOR VERTICAL ---
+                const VerticalDivider(width: 1, thickness: 1),
+
+                // --- BLOCO DE DETALHES ---
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                    child: Row(
+                      children: [
+                        // Imagem
+                        Hero(
+                          tag: 'med_image_${prescription.id}',
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8.0),
+                            child: Container(
+                              width: 50,
+                              height: 50,
+                              color: Colors.grey[200],
+                              child: prescription.imagePath != null
+                                  ? Image.file(
+                                      File(prescription.imagePath!),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : const Icon(Icons.medication_liquid, color: Colors.grey),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Textos
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                prescription.name,
+                                style: textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  decoration: textDecoration,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                prescription.doseDescription,
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: Colors.grey[700],
+                                  decoration: textDecoration,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Botão de Status
+                        IconButton(
+                          icon: buildStatusIcon(),
+                          onPressed: () {
+                            if (doseEvent.status == DoseStatus.pulada) {
+                              onUndoSkip();
+                            } else {
+                              onToggleStatus();
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-          title: Text(prescription.name),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(prescription.doseDescription),
-              Text(
-                'Horário: ${DateFormat('HH:mm').format(doseEvent.scheduledTime)}',
-                style: const TextStyle(color: Colors.grey),
-              ),
-            ],
-          ),
-          // LÓGICA DO BOTÃO ATUALIZADA
-          trailing: IconButton(
-            icon: buildStatusIcon(),
-            onPressed: () {
-              // Se a dose foi pulada, a ação é DESFAZER
-              if (doseEvent.status == DoseStatus.pulada) {
-                onUndoSkip();
-              } else {
-              // Caso contrário, a ação é TOMAR/DESMARCAR
-                onToggleStatus();
-              }
-            },
           ),
         ),
       ),
