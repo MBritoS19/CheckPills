@@ -1,6 +1,6 @@
 import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
 import 'package:CheckPills/presentation/providers/medication_provider.dart';
-import 'package:CheckPills/presentation/providers/settings_provider.dart';
+import 'package:CheckPills/presentation/providers/user_provider.dart';
 import 'package:CheckPills/presentation/screens/calendar_screen.dart';
 import 'package:CheckPills/presentation/widgets/dose_event_card.dart'; // <- 1. IMPORTAÇÃO ADICIONADA
 import 'package:CheckPills/data/datasources/database.dart';
@@ -235,22 +235,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Consumer<SettingsProvider>(
-          builder: (context, settingsProvider, child) {
-            final userName = settingsProvider.settings.userName;
-            return Row(
-              children: [
-                SizedBox(
-                  height: 40,
-                  width: 40,
-                  child: Image.asset('assets/images/logo.jpg'),
-                ),
-                const SizedBox(width: 8),
-                Text(userName ?? 'Bem-vindo(a)!'),
-              ],
-            );
-          },
-        ),
+  title: Consumer<UserProvider>( // <- Mudou para UserProvider
+    builder: (context, userProvider, child) {
+      // Pega o nome do perfil ativo
+      final userName = userProvider.activeUser?.name; 
+      return Row(
+        children: [
+          SizedBox(
+            height: 40,
+            width: 40,
+            child: Image.asset('assets/images/logo.jpg'),
+          ),
+          const SizedBox(width: 8),
+          // Mostra o nome ou um texto padrão se não houver perfil
+          Text(userName ?? 'Sem Perfil'), 
+        ],
+      );
+    },
+  ),
         actions: [
           IconButton(
             icon: const Icon(Icons.calendar_month),

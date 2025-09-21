@@ -1,87 +1,100 @@
 import 'package:CheckPills/data/datasources/database.dart';
+import 'package:CheckPills/presentation/providers/user_provider.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'dart:async';
 
 class MedicationProvider with ChangeNotifier {
   final AppDatabase database;
+  final UserProvider userProvider;
 
+  // Streams
+  StreamSubscription? _doseEventsForDaySubscription;
+  StreamSubscription? _allDoseEventsSubscription;
+  StreamSubscription? _prescriptionsSubscription;
+
+  // Listas de dados
   List<Prescription> _prescriptionList = [];
   List<DoseEventWithPrescription> _doseEventsForDay = [];
-  StreamSubscription? _doseEventsSubscription;
+  Map<DateTime, List<DoseEventWithPrescription>> _eventsByDay = {};
 
+  // Getters públicos
   List<Prescription> get prescriptionList => _prescriptionList;
   List<DoseEventWithPrescription> get doseEventsForDay => _doseEventsForDay;
+  Map<DateTime, List<DoseEventWithPrescription>> get eventsByDay => _eventsByDay;
 
-  StreamSubscription? _allEventsSubscription; // Nova variável
-  Map<DateTime, List<DoseEventWithPrescription>> eventsByDay =
-      {}; // Nova variável
-
-  MedicationProvider({required this.database}) {
-    _loadPrescriptions();
-    _listenToAllDoseEvents();
+  MedicationProvider({required this.database, required this.userProvider}) {
+    // Ouve as mudanças no UserProvider para recarregar os dados
+    userProvider.addListener(_loadDataForActiveUser);
+    // Carrega os dados iniciais
+    _loadDataForActiveUser();
   }
 
-  @override
-  void dispose() {
-    _doseEventsSubscription?.cancel();
-    _allEventsSubscription?.cancel(); // Nova linha
-    super.dispose();
-  }
+  void _loadDataForActiveUser() {
+    final activeUser = userProvider.activeUser;
 
-  void _listenToAllDoseEvents() {
-    _allEventsSubscription?.cancel();
-    _allEventsSubscription =
-        database.doseEventsDao.watchAllDoseEvents().listen((allDoses) {
-      // Agrupa a lista de doses em um mapa por dia
-      final newEventsByDay = <DateTime, List<DoseEventWithPrescription>>{};
-      for (final dose in allDoses) {
-        final day = DateTime.utc(
-            dose.doseEvent.scheduledTime.year,
-            dose.doseEvent.scheduledTime.month,
-            dose.doseEvent.scheduledTime.day);
-        final existingDoses = newEventsByDay[day] ?? [];
-        existingDoses.add(dose);
-        newEventsByDay[day] = existingDoses;
-      }
+    // Cancela as assinaturas antigas para não receber dados de usuários antigos
+    _prescriptionsSubscription?.cancel();
+    _allDoseEventsSubscription?.cancel();
+    _doseEventsForDaySubscription?.cancel();
 
-      eventsByDay = newEventsByDay;
+    if (activeUser != null) {
+      // Cria novas assinaturas para o usuário ativo
+      _prescriptionsSubscription = database.prescriptionsDao
+          .watchAllPrescriptionsForUser(activeUser.id)
+          .listen((prescriptions) {
+        _prescriptionList = prescriptions;
+        notifyListeners();
+      });
+
+      _allDoseEventsSubscription =
+          database.doseEventsDao.watchAllDoseEvents(activeUser.id).listen((allDoses) {
+        final newEventsByDay = <DateTime, List<DoseEventWithPrescription>>{};
+        for (final dose in allDoses) {
+          final day = DateTime.utc(dose.doseEvent.scheduledTime.year,
+              dose.doseEvent.scheduledTime.month, dose.doseEvent.scheduledTime.day);
+          final existingDoses = newEventsByDay[day] ?? [];
+          existingDoses.add(dose);
+          newEventsByDay[day] = existingDoses;
+        }
+        _eventsByDay = newEventsByDay;
+        notifyListeners();
+      });
+
+      // Recarrega as doses para o dia atualmente selecionado (ou hoje)
+      fetchDoseEventsForDay(
+          _doseEventsForDay.isNotEmpty ? _doseEventsForDay.first.doseEvent.scheduledTime : DateTime.now());
+    } else {
+      // Se não há usuário ativo, limpa todos os dados
+      _prescriptionList = [];
+      _doseEventsForDay = [];
+      _eventsByDay = {};
       notifyListeners();
-    });
-  }
-
-  Future<void> _loadPrescriptions() async {
-    _prescriptionList = await database.prescriptionsDao.getAllPrescriptions();
-    fetchDoseEventsForDay(DateTime.now());
-  }
-
-  Future<void> updatePrescriptionStock(int prescriptionId, int newStock) async {
-    await database.prescriptionsDao.updateStock(prescriptionId, newStock);
-    // Recarrega as prescrições para que a UI reflita a mudança
-    await _loadPrescriptions();
-  }
-
-  Future<void> stopTrackingStock(int prescriptionId) async {
-    // Define o estoque como -1 para indicar que não é mais controlado
-    await database.prescriptionsDao.updateStock(prescriptionId, -1);
-    await _loadPrescriptions();
+    }
   }
 
   void fetchDoseEventsForDay(DateTime date) {
-    _doseEventsSubscription?.cancel();
-    _doseEventsSubscription =
-        database.doseEventsDao.watchDoseEventsForDay(date).listen((doses) {
+    _doseEventsForDaySubscription?.cancel();
+    final activeUser = userProvider.activeUser;
+    if (activeUser == null) return;
+
+    _doseEventsForDaySubscription = database.doseEventsDao
+        .watchDoseEventsForDay(activeUser.id, date)
+        .listen((doses) {
       _doseEventsForDay = doses;
       notifyListeners();
     });
   }
 
   Future<void> addPrescription(PrescriptionsCompanion prescription) async {
-    final newId = await database.prescriptionsDao.addPrescription(prescription);
+    final activeUser = userProvider.activeUser;
+    if (activeUser == null) return;
+
+    final newId = await database.prescriptionsDao
+        .addPrescription(prescription.copyWith(userId: Value(activeUser.id)));
     final newPrescription =
         await database.prescriptionsDao.getPrescriptionById(newId);
     await _generateAndInsertDoseEvents(newPrescription);
-    await _loadPrescriptions();
   }
 
   Future<void> updatePrescription(
@@ -92,51 +105,47 @@ class MedicationProvider with ChangeNotifier {
     final reloadedPrescription =
         await database.prescriptionsDao.getPrescriptionById(id);
     await _generateAndInsertDoseEvents(reloadedPrescription);
-    await _loadPrescriptions();
   }
 
   Future<void> deletePrescription(int id) async {
     await database.prescriptionsDao.deletePrescription(id);
-    await _loadPrescriptions();
   }
 
-  // Substitua o método antigo por este
   Future<void> toggleDoseStatus(DoseEventWithPrescription doseData) async {
     final doseEvent = doseData.doseEvent;
     final prescription = doseData.prescription;
-
     final newStatus = doseEvent.status == DoseStatus.tomada
         ? DoseStatus.pendente
         : DoseStatus.tomada;
     final takenTime = newStatus == DoseStatus.tomada ? DateTime.now() : null;
 
-    // Atualiza o status do evento de dose
     await database.doseEventsDao
         .updateDoseEventStatus(doseEvent.id, newStatus, takenTime);
 
-    // Lógica para incrementar/decrementar estoque
     if (prescription.stock != -1) {
-      // Só altera o estoque se ele estiver sendo controlado
-      // Tenta extrair a quantidade da dose. Ex: "2 comprimidos" -> 2. Se falhar, assume 1.
       final doseQuantity =
           int.tryParse(prescription.doseDescription.split(' ').first) ?? 1;
 
-      if (newStatus == DoseStatus.tomada) {
-        // Se marcou como tomada, decrementa o estoque
-        final newStock = prescription.stock - doseQuantity;
-        await database.prescriptionsDao.updateStock(prescription.id, newStock);
-      } else {
-        // Se desmarcou, incrementa o estoque de volta
-        final newStock = prescription.stock + doseQuantity;
-        await database.prescriptionsDao.updateStock(prescription.id, newStock);
-      }
-      // Recarrega os dados para a UI refletir o novo estoque
-      await _loadPrescriptions();
+      final newStock = newStatus == DoseStatus.tomada
+          ? prescription.stock - doseQuantity
+          : prescription.stock + doseQuantity;
+
+      await database.prescriptionsDao.updateStock(prescription.id, newStock);
     }
+  }
+  
+  // O resto dos métodos (_generateAndInsertDoseEvents, etc.) não precisam de
+  // modificação pois já operam com um objeto `Prescription` que contém o userId.
+  
+  Future<void> updatePrescriptionStock(int prescriptionId, int newStock) async {
+    await database.prescriptionsDao.updateStock(prescriptionId, newStock);
+  }
+
+  Future<void> stopTrackingStock(int prescriptionId) async {
+    await database.prescriptionsDao.updateStock(prescriptionId, -1);
   }
 
   Future<void> _generateAndInsertDoseEvents(Prescription prescription) async {
-    // NOVO: Adiciona um tratamento especial para dose única
     if (prescription.doseInterval == 0) {
       final newDoseEvent = DoseEventsCompanion.insert(
         prescriptionId: prescription.id,
@@ -146,10 +155,9 @@ class MedicationProvider with ChangeNotifier {
         updatedAt: Value(DateTime.now()),
       );
       await database.doseEventsDao.addDoseEvent(newDoseEvent);
-      return; // Sai da função para não entrar no loop abaixo
+      return;
     }
 
-    // O código existente continua daqui para baixo, sem alterações
     final endDate = prescription.isContinuous
         ? DateTime.now().add(const Duration(days: 365))
         : _calculateTreatmentEndDate(prescription);
@@ -194,5 +202,14 @@ class MedicationProvider with ChangeNotifier {
       default:
         return prescription.firstDoseTime.add(const Duration(days: 365 * 5));
     }
+  }
+
+  @override
+  void dispose() {
+    userProvider.removeListener(_loadDataForActiveUser);
+    _doseEventsForDaySubscription?.cancel();
+    _allDoseEventsSubscription?.cancel();
+    _prescriptionsSubscription?.cancel();
+    super.dispose();
   }
 }

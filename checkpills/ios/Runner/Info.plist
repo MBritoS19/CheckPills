@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>NSFaceIDUsageDescription</key>
-    <string>Precisamos da sua autenticação para confirmar a exclusão do medicamento de forma segura.</string>
+    <string>A autenticação é necessária para excluir um perfil de usuário e todos os seus dados de forma segura.</string>
     <key>CFBundleDevelopmentRegion</key>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>

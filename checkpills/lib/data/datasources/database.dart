@@ -9,22 +9,36 @@ part 'database.g.dart';
 // Enums e Tabelas continuam como planejado
 enum DoseStatus { pendente, tomada, pulada }
 
-@DataClassName('Setting')
-class Settings extends Table {
-  IntColumn get id => integer().withDefault(const Constant(1))();
-  TextColumn get userName => text().nullable()();
+@DataClassName('User')
+class Users extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+@DataClassName('UserSetting')
+class UserSettings extends Table {
+  // A id do usuário agora é a chave primária e a ligação com a tabela Users
+  IntColumn get userId =>
+      integer().references(Users, #id, onDelete: KeyAction.cascade)();
+  
+  // As configurações antigas permanecem, exceto userName que está na tabela Users
   TextColumn get standardPillType => text().nullable()();
   BoolColumn get darkMode => boolean().withDefault(const Constant(false))();
   IntColumn get refillReminder => integer().withDefault(const Constant(5))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  // Define a chave primária
   @override
-  Set<Column> get primaryKey => {id};
+  Set<Column> get primaryKey => {userId};
 }
 
 @DataClassName('Prescription')
 class Prescriptions extends Table {
   IntColumn get id => integer().autoIncrement()();
+  IntColumn get userId =>
+      integer().references(Users, #id, onDelete: KeyAction.cascade)();
   TextColumn get name => text()();
   TextColumn get doseDescription => text()();
   TextColumn get type => text()();
@@ -55,11 +69,13 @@ class DoseEvents extends Table {
 
 // Combine as tabelas em um banco de dados
 @DriftDatabase(tables: [
-  Settings,
+  Users, // Adicionada
+  UserSettings, // Substituiu Settings
   Prescriptions,
   DoseEvents,
 ], daos: [
-  SettingsDao,
+  UsersDao, // Adicionado
+  UserSettingsDao, // Substituiu SettingsDao
   PrescriptionsDao,
   DoseEventsDao,
 ])
@@ -67,85 +83,61 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
+
+  // ADICIONE ESTAS 4 LINHAS:
+  UsersDao get usersDao => UsersDao(this);
+  UserSettingsDao get userSettingsDao => UserSettingsDao(this);
+  PrescriptionsDao get prescriptionsDao => PrescriptionsDao(this);
+  DoseEventsDao get doseEventsDao => DoseEventsDao(this);
 }
 
-// Adiciona as classes Dao
-@DriftAccessor(tables: [DoseEvents, Prescriptions])
-class DoseEventsDao extends DatabaseAccessor<AppDatabase>
-    with _$DoseEventsDaoMixin {
-  DoseEventsDao(AppDatabase db) : super(db);
+// SUBSTITUA todos os seus DAOs por este bloco de código
 
-  // A nossa nova função reativa para buscar as doses do dia
-  Stream<List<DoseEventWithPrescription>> watchDoseEventsForDay(DateTime date) {
-    final startOfDay = DateTime(date.year, date.month, date.day);
-    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+// DAO para a nova tabela Users
+@DriftAccessor(tables: [Users])
+class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
+  UsersDao(AppDatabase db) : super(db);
+Future<List<User>> getAllUsers() => select(users).get();
+  Stream<List<User>> watchAllUsers() => select(users).watch();
+  Future<int> addUser(UsersCompanion entry) => into(users).insert(entry);
+  Future<int> deleteUser(int id) =>
+      (delete(users)..where((t) => t.id.equals(id))).go();
+  Future<bool> updateUser(UsersCompanion entry) =>
+      update(users).replace(entry);
+}
 
-    final query = select(doseEvents).join([
-      innerJoin(
-          prescriptions, prescriptions.id.equalsExp(doseEvents.prescriptionId))
-    ])
-      ..where(doseEvents.scheduledTime.isBetweenValues(startOfDay, endOfDay))
-      ..orderBy([OrderingTerm.asc(doseEvents.scheduledTime)]);
+// DAO para a nova tabela UserSettings
+@DriftAccessor(tables: [UserSettings])
+class UserSettingsDao extends DatabaseAccessor<AppDatabase>
+    with _$UserSettingsDaoMixin {
+  UserSettingsDao(AppDatabase db) : super(db);
 
-    return query.watch().map((rows) {
-      return rows.map((row) {
-        return DoseEventWithPrescription(
-          doseEvent: row.readTable(doseEvents),
-          prescription: row.readTable(prescriptions),
-        );
-      }).toList();
-    });
+  Stream<UserSetting?> watchSettingsForUser(int userId) {
+    return (select(userSettings)..where((t) => t.userId.equals(userId)))
+        .watchSingleOrNull();
+  }
+  
+  Future<UserSetting?> getSettingsForUser(int userId) {
+    return (select(userSettings)..where((t) => t.userId.equals(userId)))
+        .getSingleOrNull();
   }
 
-  Stream<List<DoseEventWithPrescription>> watchAllDoseEvents() {
-    final query = select(doseEvents).join([
-      innerJoin(
-          prescriptions, prescriptions.id.equalsExp(doseEvents.prescriptionId))
-    ])
-      ..orderBy([OrderingTerm.asc(doseEvents.scheduledTime)]);
-
-    return query.watch().map((rows) {
-      return rows.map((row) {
-        return DoseEventWithPrescription(
-                doseEvent: row.readTable(doseEvents),
-                prescription: row.readTable(prescriptions),
-        );
-      }).toList();
-    });
-  }
-
-  Future<void> addDoseEvent(DoseEventsCompanion companion) =>
-      into(doseEvents).insert(companion);
-
-  Future<void> updateDoseEventStatus(
-          int id, DoseStatus newStatus, DateTime? takenTime) =>
-      (update(doseEvents)..where((t) => t.id.equals(id))).write(
-      DoseEventsCompanion(
-        status: Value(newStatus),
-        takenTime: Value(takenTime),
-        updatedAt: Value(DateTime.now()),
-      ),
-    );
-
-  Future<void> deleteFutureDoseEventsForPrescription(int prescriptionId) {
-    final today = DateTime.now();
-    final startOfToday = DateTime(today.year, today.month, today.day);
-    return (delete(doseEvents)
-          ..where((t) => t.prescriptionId.equals(prescriptionId))
-          ..where((t) => t.scheduledTime.isBiggerOrEqualValue(startOfToday)))
-        .go();
+  Future<void> updateSettingsForUser(UserSettingsCompanion entry) {
+    return into(userSettings).insertOnConflictUpdate(entry);
   }
 }
 
-// DAOs para as outras tabelas
+// DAO de Prescriptions MODIFICADO
 @DriftAccessor(tables: [Prescriptions])
 class PrescriptionsDao extends DatabaseAccessor<AppDatabase>
     with _$PrescriptionsDaoMixin {
   PrescriptionsDao(AppDatabase db) : super(db);
 
-  Future<List<Prescription>> getAllPrescriptions() =>
-      select(prescriptions).get();
+  // Agora requer um userId
+  Stream<List<Prescription>> watchAllPrescriptionsForUser(int userId) =>
+      (select(prescriptions)..where((t) => t.userId.equals(userId))).watch();
+
   Future<int> addPrescription(PrescriptionsCompanion companion) =>
       into(prescriptions).insert(companion);
   Future<bool> updatePrescription(PrescriptionsCompanion companion) =>
@@ -161,23 +153,76 @@ class PrescriptionsDao extends DatabaseAccessor<AppDatabase>
   }
 }
 
-@DriftAccessor(tables: [Settings])
-class SettingsDao extends DatabaseAccessor<AppDatabase>
-    with _$SettingsDaoMixin {
-  SettingsDao(AppDatabase db) : super(db);
+// DAO de DoseEvents MODIFICADO
+@DriftAccessor(tables: [DoseEvents, Prescriptions])
+class DoseEventsDao extends DatabaseAccessor<AppDatabase>
+    with _$DoseEventsDaoMixin {
+  DoseEventsDao(AppDatabase db) : super(db);
 
-  // NOVO: Adicione estes métodos
-  Stream<Setting?> watchSettings() {
-    return (select(settings)..limit(1)).watchSingle();
+  // Modificado para filtrar por userId
+  Stream<List<DoseEventWithPrescription>> watchDoseEventsForDay(
+      int userId, DateTime date) {
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+
+    final query = select(doseEvents).join([
+      innerJoin(
+          prescriptions, prescriptions.id.equalsExp(doseEvents.prescriptionId))
+    ])
+      ..where(prescriptions.userId.equals(userId)) // <- Filtro adicionado
+      ..where(doseEvents.scheduledTime.isBetweenValues(startOfDay, endOfDay))
+      ..orderBy([OrderingTerm.asc(doseEvents.scheduledTime)]);
+
+    return query.watch().map((rows) {
+      return rows.map((row) {
+        return DoseEventWithPrescription(
+          doseEvent: row.readTable(doseEvents),
+          prescription: row.readTable(prescriptions),
+        );
+      }).toList();
+    });
   }
 
-  Future<int> updateSettings(SettingsCompanion entry) {
-    return into(settings).insertOnConflictUpdate(entry);
+  // Modificado para filtrar por userId
+  Stream<List<DoseEventWithPrescription>> watchAllDoseEvents(int userId) {
+    final query = select(doseEvents).join([
+      innerJoin(
+          prescriptions, prescriptions.id.equalsExp(doseEvents.prescriptionId))
+    ])
+      ..where(prescriptions.userId.equals(userId)) // <- Filtro adicionado
+      ..orderBy([OrderingTerm.asc(doseEvents.scheduledTime)]);
+
+    return query.watch().map((rows) {
+      return rows.map((row) {
+        return DoseEventWithPrescription(
+          doseEvent: row.readTable(doseEvents),
+          prescription: row.readTable(prescriptions),
+        );
+      }).toList();
+    });
   }
 
-  Future<Setting?> getSettings() {
-  return (select(settings)..limit(1)).getSingleOrNull();
-}
+  Future<void> addDoseEvent(DoseEventsCompanion companion) =>
+      into(doseEvents).insert(companion);
+
+  Future<void> updateDoseEventStatus(
+          int id, DoseStatus newStatus, DateTime? takenTime) =>
+      (update(doseEvents)..where((t) => t.id.equals(id))).write(
+        DoseEventsCompanion(
+          status: Value(newStatus),
+          takenTime: Value(takenTime),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+
+  Future<void> deleteFutureDoseEventsForPrescription(int prescriptionId) {
+    final today = DateTime.now();
+    final startOfToday = DateTime(today.year, today.month, today.day);
+    return (delete(doseEvents)
+          ..where((t) => t.prescriptionId.equals(prescriptionId))
+          ..where((t) => t.scheduledTime.isBiggerOrEqualValue(startOfToday)))
+        .go();
+  }
 }
 
 LazyDatabase _openConnection() {
