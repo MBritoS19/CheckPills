@@ -221,6 +221,9 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase>
           ..limit(1))
         .getSingleOrNull();
   }
+
+  Future<void> deleteDoseEvent(int id) =>
+      (delete(doseEvents)..where((t) => t.id.equals(id))).go();
 }
 
 LazyDatabase _openConnection() {

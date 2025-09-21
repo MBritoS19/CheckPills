@@ -166,6 +166,30 @@ class MedicationProvider with ChangeNotifier {
     }
   }
 
+  Future<void> undoSkipDose(DoseEventWithPrescription doseData) async {
+    final doseEvent = doseData.doseEvent;
+    final prescription = doseData.prescription;
+
+    // 1. Reverte o status da dose atual para "pendente"
+    await database.doseEventsDao.updateDoseEventStatus(
+      doseEvent.id,
+      DoseStatus.pendente, // Voltando para pendente
+      null,
+    );
+
+    // Se for dose única, não há o que remover
+    if (prescription.doseInterval == 0) return;
+
+    // 2. Encontra a última dose agendada
+    final lastDose = await database.doseEventsDao
+        .getLastDoseEventForPrescription(prescription.id);
+
+    // 3. Se uma última dose existir, remove-a
+    if (lastDose != null) {
+      await database.doseEventsDao.deleteDoseEvent(lastDose.id);
+    }
+  }
+
   Future<void> updatePrescriptionStock(int prescriptionId, int newStock) async {
     await database.prescriptionsDao.updateStock(prescriptionId, newStock);
   }

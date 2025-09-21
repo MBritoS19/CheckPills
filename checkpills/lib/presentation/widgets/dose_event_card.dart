@@ -7,12 +7,14 @@ class DoseEventCard extends StatelessWidget {
   final DoseEventWithPrescription doseData;
   final VoidCallback onToggleStatus;
   final VoidCallback onTap;
+  final VoidCallback onUndoSkip; // NOVO: Callback para desfazer
 
   const DoseEventCard({
     super.key,
     required this.doseData,
     required this.onToggleStatus,
     required this.onTap,
+    required this.onUndoSkip, // NOVO: Parâmetro no construtor
   });
 
   @override
@@ -21,28 +23,27 @@ class DoseEventCard extends StatelessWidget {
     final prescription = doseData.prescription;
     final colorScheme = Theme.of(context).colorScheme;
 
-    // Helper para construir o ícone de status (sem o '_')
     Widget buildStatusIcon() {
+      // ... (código do buildStatusIcon não muda)
       switch (doseEvent.status) {
         case DoseStatus.tomada:
-          return Icon( // Adicionado 'const'
+          return Icon(
             Icons.check_circle,
             color: colorScheme.primary,
             size: 30,
           );
         case DoseStatus.pulada:
-          return const Icon( // Adicionado 'const'
+          return const Icon(
             Icons.skip_next_outlined,
-            color: Colors.grey, // Cor neutra para 'pulada'
+            color: Colors.grey,
             size: 30,
           );
         case DoseStatus.pendente:
-          return const Icon( // Adicionado 'const'
+          return const Icon(
             Icons.radio_button_unchecked,
             color: Colors.grey,
             size: 30,
           );
-      // Cláusula 'default' removida
       }
     }
 
@@ -77,13 +78,22 @@ class DoseEventCard extends StatelessWidget {
               Text(prescription.doseDescription),
               Text(
                 'Horário: ${DateFormat('HH:mm').format(doseEvent.scheduledTime)}',
-                style: const TextStyle(color: Colors.grey), // Adicionado 'const'
+                style: const TextStyle(color: Colors.grey),
               ),
             ],
           ),
+          // LÓGICA DO BOTÃO ATUALIZADA
           trailing: IconButton(
-            icon: buildStatusIcon(), // Chamando a função renomeada
-            onPressed: doseEvent.status == DoseStatus.pulada ? null : onToggleStatus,
+            icon: buildStatusIcon(),
+            onPressed: () {
+              // Se a dose foi pulada, a ação é DESFAZER
+              if (doseEvent.status == DoseStatus.pulada) {
+                onUndoSkip();
+              } else {
+              // Caso contrário, a ação é TOMAR/DESMARCAR
+                onToggleStatus();
+              }
+            },
           ),
         ),
       ),

@@ -414,21 +414,22 @@ class _HomeScreenState extends State<HomeScreen> {
                         }
                       },
                       child: DoseEventCard(
-                        doseData: result,
-                        onTap: () => _showDoseDetails(result),
-                        onToggleStatus: () {
-                          if (isTaken) {
-                            provider.toggleDoseStatus(result);
-                            return;
-                          }
-                          if (prescription.stock == -1 ||
-                              prescription.stock > 0) {
-                            provider.toggleDoseStatus(result);
-                          } else {
-                            _showOutOfStockDialog(context, prescription);
-                          }
-                        },
-                      ),
+  doseData: result,
+  onTap: () => _showDoseDetails(result),
+  onUndoSkip: () => provider.undoSkipDose(result), // PARÂMETRO ADICIONADO
+  onToggleStatus: () {
+    if (isTaken) {
+      provider.toggleDoseStatus(result);
+      return;
+    }
+    if (prescription.stock == -1 ||
+        prescription.stock > 0) {
+      provider.toggleDoseStatus(result);
+    } else {
+      _showOutOfStockDialog(context, prescription);
+    }
+  },
+),
                     );
                   },
                 );
