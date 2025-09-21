@@ -67,7 +67,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 }
 
 // Adiciona as classes Dao
@@ -174,6 +174,10 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
   Future<int> updateSettings(SettingsCompanion entry) {
     return into(settings).insertOnConflictUpdate(entry);
   }
+
+  Future<Setting?> getSettings() {
+  return (select(settings)..limit(1)).getSingleOrNull();
+}
 }
 
 LazyDatabase _openConnection() {

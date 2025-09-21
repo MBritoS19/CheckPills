@@ -1,3 +1,5 @@
+// lib/main.dart
+
 import 'package:CheckPills/presentation/screens/configuration_screen.dart';
 import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
 import 'package:CheckPills/presentation/providers/medication_provider.dart';
@@ -11,6 +13,8 @@ import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+// lib/main.dart
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt_BR', null);
@@ -20,20 +24,26 @@ Future<void> main() async {
     DeviceOrientation.portraitDown,
   ]);
 
+  final AppDatabase database = AppDatabase();
+
+  // Buscamos as configurações salvas ANTES de rodar o app.
+  final Setting? initialSettings = await database.settingsDao.getSettings();
+
   runApp(
-    Provider<AppDatabase>(
-      create: (context) => AppDatabase(),
-      dispose: (context, db) => db.close(),
+    Provider<AppDatabase>.value(
+      value: database,
       child: MultiProvider(
         providers: [
           ChangeNotifierProvider(
             create: (context) => MedicationProvider(
-              database: Provider.of<AppDatabase>(context, listen: false),
+              database: database,
             ),
           ),
           ChangeNotifierProvider(
             create: (context) => SettingsProvider(
-              database: Provider.of<AppDatabase>(context, listen: false),
+              database: database,
+              // Passamos as configurações iniciais para o provider.
+              initialSettings: initialSettings,
             ),
           ),
         ],
@@ -48,15 +58,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Escuta o SettingsProvider para saber se o modo noturno está ativo
     final settingsProvider = context.watch<SettingsProvider>();
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-
-      // APLICA O TEMA CORRETO
-      theme: lightTheme, // Nosso tema claro
-      darkTheme: darkTheme, // Nosso novo tema escuro
+      // Nossos temas centralizados agora são a única fonte da verdade para o design
+      theme: lightTheme,
+      darkTheme: darkTheme,
       themeMode:
           settingsProvider.settings.darkMode ? ThemeMode.dark : ThemeMode.light,
 
@@ -95,17 +103,15 @@ class _MainScreenState extends State<MainScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    // A lista de telas agora está aqui, de forma mais limpa.
     final List<Widget> screens = [
-      const HomeScreen(), // Índice 0
-      const ConfigurationScreen(), // Índice 1
+      const HomeScreen(),
+      const ConfigurationScreen(),
     ];
 
-    // A lógica para escolher a tela foi simplificada.
-    // `_selectedIndex` nunca será nulo.
     final Widget currentScreen = screens[_selectedIndex];
 
-    const blueColor = Color(0xFF23AFDC);
+    // REMOVEMOS a constante de cor local.
+    // const blueColor = Color(0xFF23AFDC);
 
     return Scaffold(
       body: currentScreen,
@@ -113,12 +119,14 @@ class _MainScreenState extends State<MainScreen> {
         height: screenWidth * 0.18,
         width: screenWidth * 0.18,
         child: FloatingActionButton(
-          backgroundColor: blueColor,
+          // REMOVIDO: backgroundColor: blueColor,
+          // A cor agora é definida pelo 'floatingActionButtonTheme' em app_theme.dart.
           shape: const CircleBorder(),
           child: Icon(
             Icons.add,
             size: screenWidth * 0.1,
-            color: Colors.white,
+            // REMOVIDO: color: Colors.white,
+            // A cor do ícone também é definida pelo tema ('onPrimary').
           ),
           onPressed: () {
             showModalBottomSheet(
@@ -148,7 +156,10 @@ class _MainScreenState extends State<MainScreen> {
               child: IconButton(
                 icon: const Icon(Icons.home),
                 onPressed: () => _onItemTapped(0),
-                color: _selectedIndex == 0 ? blueColor : Colors.grey,
+                // ALTERADO: Usamos a cor primária do tema.
+                color: _selectedIndex == 0
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.grey,
                 iconSize: screenWidth * 0.09,
               ),
             ),
@@ -158,7 +169,10 @@ class _MainScreenState extends State<MainScreen> {
               child: IconButton(
                 icon: const Icon(Icons.settings),
                 onPressed: () => _onItemTapped(1),
-                color: _selectedIndex == 1 ? blueColor : Colors.grey,
+                // ALTERADO: Usamos a cor primária do tema.
+                color: _selectedIndex == 1
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.grey,
                 iconSize: screenWidth * 0.09,
               ),
             ),

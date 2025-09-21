@@ -222,7 +222,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   Widget _buildStockPage({
     required double screenWidth,
   }) {
-    const blueColor = Color(0xFF23AFDC);
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
@@ -261,7 +260,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   _validatePage(); // Revalida a página
                 });
               },
-              activeColor: blueColor,
+              activeColor: Theme.of(context).colorScheme.primary,
               controlAffinity: ListTileControlAffinity.leading,
               contentPadding: EdgeInsets.zero,
             ),
@@ -384,7 +383,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
       'Pó',
       'Outros'
     ];
-    const blueColor = Color(0xFF23AFDC);
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
@@ -413,8 +411,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   style: isSelected
                       // Se estiver selecionado, aplica nosso estilo azul customizado
                       ? ElevatedButton.styleFrom(
-                          backgroundColor: blueColor,
-                          foregroundColor: Colors.white,
+                          backgroundColor: Theme.of(context).colorScheme.primary,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
@@ -514,7 +511,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     required double screenWidth,
     required double screenHeight,
   }) {
-    const blueColor = Color(0xFF23AFDC);
 
     // Função auxiliar para formatar a data de forma amigável
     String _formatFirstDoseDate() {
@@ -532,30 +528,27 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     }
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Título atualizado
-            Text('Qual a data e horário da primeira dose?',
-                style: TextStyle(
-                    fontSize: screenWidth * 0.055,
-                    fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-
-            // NOVO: Botão para selecionar a data
-            Text('Data da primeira dose',
-                style: TextStyle(color: Colors.grey[700])),
-            const SizedBox(height: 8),
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+    child: SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Qual a data e horário da primeira dose?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055,
+                  fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          Text('Data da primeira dose',
+              style: TextStyle(color: Colors.grey[700])),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
+            ),
               onPressed: () async {
                 // Mostra o pop-up do calendário e espera o usuário escolher uma data
                 final pickedDate = await showDatePicker(
@@ -575,22 +568,24 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                 }
               },
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: Text(
-                      _formatFirstDoseDate(),
-                      style: const TextStyle(fontSize: 16, color: Colors.black),
-                    ),
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 8.0),
+                  child: Text(
+                    _formatFirstDoseDate(),
+                    // --- CORREÇÃO AQUI ---
+                    // Removemos a cor fixa para que o texto se adapte ao tema
+                    style: const TextStyle(fontSize: 16),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.only(right: 8.0),
-                    child: Icon(Icons.calendar_today_outlined),
-                  ),
-                ],
-              ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(right: 8.0),
+                  child: Icon(Icons.calendar_today_outlined),
+                ),
+              ],
             ),
+          ),
             const SizedBox(height: 16),
 
             // Checkbox que já existia
@@ -603,7 +598,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   _validatePage();
                 });
               },
-              activeColor: blueColor,
+              activeColor: Theme.of(context).colorScheme.primary,
               controlAffinity: ListTileControlAffinity.leading,
               contentPadding: EdgeInsets.zero,
             ),
@@ -762,7 +757,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     required double screenWidth,
   }) {
     final units = ['Dias', 'Semanas', 'Meses', 'Anos'];
-    const blueColor = Color(0xFF23AFDC);
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
@@ -821,7 +815,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   _validatePage(); // Revalida a página ao mudar o checkbox
                 });
               },
-              activeColor: blueColor,
+              activeColor: Theme.of(context).colorScheme.primary,
               controlAffinity: ListTileControlAffinity.leading,
             ),
           ],
@@ -834,9 +828,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-
-    const orangeColor = Color(0xFFDC5023);
-    const blueColor = Color(0xFF23AFDC);
 
     // A lista de páginas permanece a mesma
     final List<Widget> formPages = [
@@ -905,8 +896,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
             FormProgressBar(
                 totalPages: formPages.length,
                 currentPage: _currentPage,
-                activeColor: orangeColor,
-                completedColor: blueColor),
+                activeColor: Theme.of(context).colorScheme.secondary,
+    completedColor: Theme.of(context).colorScheme.primary),
 
             // NOVO: Expanded faz o PageView ocupar o espaço restante
             Expanded(
@@ -924,13 +915,12 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                       horizontal: screenWidth * 0.04,
                       vertical: screenWidth * 0.02),
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                        minimumSize: Size.fromHeight(screenHeight * 0.06),
-                        backgroundColor: blueColor,
-                        foregroundColor: Colors.white), // Corrigido para branco
-                    onPressed: _onSave,
-                    child: const Text('Salvar Medicamento'),
-                  ))
+                style: ElevatedButton.styleFrom(
+                    minimumSize: Size.fromHeight(screenHeight * 0.06)),
+                    // O restante do estilo (cores) virá do tema global.
+                onPressed: _onSave,
+                child: const Text('Salvar Medicamento'),
+              ))
             else // Mostra os botões Anterior/Próximo
               Padding(
                 padding: EdgeInsets.fromLTRB(
@@ -979,74 +969,76 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   }
 
   // Adicione este método dentro da classe _AddMedicationScreenState
-  Widget _buildImagePicker() {
-    const blueColor = Color(0xFF23AFDC);
+  // Substitua o método inteiro por este
+Widget _buildImagePicker() {
 
-    return Center(
-      child: Column(
-        children: [
-          if (_imagePath == null)
-            // Se não houver imagem, mostra um ícone e um botão
-            Container(
-              height: 120,
-              width: 120,
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.image_outlined,
-                  size: 50, color: Colors.grey),
-            )
-          else
-            // Se houver uma imagem, mostra a miniatura
-            ClipRRect(
+  return Center(
+    child: Column(
+      children: [
+        if (_imagePath == null)
+          // Se não houver imagem, mostra um placeholder adaptado ao tema
+          Container(
+            height: 120,
+            width: 120,
+            decoration: BoxDecoration(
+              // NOVO: Usa a cor do card do tema (branco no claro, cinza escuro no escuro)
+              color: Theme.of(context).cardTheme.color,
               borderRadius: BorderRadius.circular(10),
-              child: Image.file(
-                File(_imagePath!),
-                width: 120,
-                height: 120,
-                fit: BoxFit.cover,
-              ),
+              border: Border.all(color: Colors.grey[400]!),
             ),
-          const SizedBox(height: 10),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: blueColor,
-              foregroundColor: Colors.white,
+            child: Icon(
+              Icons.image_outlined,
+              size: 50,
+              // NOVO: Usa a cor de ícone padrão do tema
+              color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
             ),
-            onPressed: () {
-              // Mostra um diálogo para escolher entre câmera ou galeria
-              showModalBottomSheet(
-                context: context,
-                builder: (ctx) => Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.camera_alt),
-                      title: const Text('Tirar Foto'),
-                      onTap: () {
-                        Navigator.of(ctx).pop();
-                        _pickAndSaveImage(ImageSource.camera);
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.photo_library),
-                      title: const Text('Escolher da Galeria'),
-                      onTap: () {
-                        Navigator.of(ctx).pop();
-                        _pickAndSaveImage(ImageSource.gallery);
-                      },
-                    ),
-                  ],
-                ),
-              );
-            },
-            child: Text(_imagePath == null ? 'Adicionar Foto' : 'Alterar Foto'),
+          )
+        else
+          // Se houver uma imagem, mostra a miniatura
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.file(
+              File(_imagePath!),
+              width: 120,
+              height: 120,
+              fit: BoxFit.cover,
+            ),
           ),
-        ],
-      ),
-    );
-  }
+        const SizedBox(height: 10),
+        ElevatedButton(
+          onPressed: () {
+            // ... (o código do onPressed continua o mesmo)
+            showModalBottomSheet(
+              context: context,
+              builder: (ctx) => Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.camera_alt),
+                    title: const Text('Tirar Foto'),
+                    onTap: () {
+                      Navigator.of(ctx).pop();
+                      _pickAndSaveImage(ImageSource.camera);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.photo_library),
+                    title: const Text('Escolher da Galeria'),
+                    onTap: () {
+                      Navigator.of(ctx).pop();
+                      _pickAndSaveImage(ImageSource.gallery);
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+          child: Text(_imagePath == null ? 'Adicionar Foto' : 'Alterar Foto'),
+        ),
+      ],
+    ),
+  );
+}
 }
 
 class FormProgressBar extends StatelessWidget {

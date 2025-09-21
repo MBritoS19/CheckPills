@@ -53,7 +53,7 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
             ListTile(
               leading: const Icon(Icons.person_outline),
               title: Text(currentUserName ?? 'Definir nome de usuário'),
-              trailing: const Icon(Icons.edit_outlined, color: Colors.grey),
+              trailing: const Icon(Icons.edit_outlined),
               onTap: () {
                 _showUserNameDialog(context, provider);
               },
@@ -81,8 +81,7 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
               // NOVO: Mostra o valor atual e é clicável
               trailing: Text(
                 '${provider.settings.refillReminder} doses',
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, color: Colors.grey),
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               onTap: () {
                 _showRefillReminderDialog(context, provider);

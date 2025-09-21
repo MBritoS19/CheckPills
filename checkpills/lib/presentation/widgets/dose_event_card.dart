@@ -48,7 +48,7 @@ class DoseEventCard extends StatelessWidget {
             IconButton(
               icon: Icon(
                 isTaken ? Icons.check_circle : Icons.radio_button_unchecked,
-                color: isTaken ? Colors.green : Colors.grey,
+                color: isTaken ? Theme.of(context).colorScheme.primary : null,
               ),
               onPressed: () => onToggleStatus(combinedData.doseEvent),
             ),

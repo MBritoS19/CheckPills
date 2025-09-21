@@ -32,8 +32,8 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.warning_amber_rounded,
-            color: Color(0xFFDC5023), size: 48),
+        icon: Icon(Icons.warning_amber_rounded,
+            color: Theme.of(context).colorScheme.secondary, size: 48),
         title: const Text('Estoque Esgotado', textAlign: TextAlign.center),
         content: RichText(
           textAlign: TextAlign.center,
@@ -58,10 +58,6 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               // Botão de Ação Primária (Adicionar Estoque)
               ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF23AFDC), // Azul
-                  foregroundColor: Colors.white,
-                ),
                 child: const Text('Adicionar Estoque'),
                 onPressed: () {
                   Navigator.of(ctx).pop();
@@ -72,8 +68,9 @@ class _HomeScreenState extends State<HomeScreen> {
               // Botão de Ação Secundária (Não controlar)
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFDC5023), // Laranja
-                  foregroundColor: Colors.white,
+                  // Para cores diferentes do padrão, estilizamos aqui.
+        backgroundColor: Theme.of(context).colorScheme.secondary,
+        foregroundColor: Theme.of(context).colorScheme.onSecondary,
                 ),
                 child: const Text('Não controlar estoque'), // Texto completo
                 onPressed: () {
@@ -99,8 +96,8 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.inventory_2_outlined,
-            color: Color(0xFF23AFDC), size: 48),
+        icon: Icon(Icons.inventory_2_outlined,
+            color: Theme.of(context).colorScheme.primary, size: 48),
         title: const Text('Adicionar Estoque', textAlign: TextAlign.center),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -127,10 +124,6 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF23AFDC),
-                  foregroundColor: Colors.white,
-                ),
                 child: const Text('Salvar'),
                 onPressed: () {
                   final newStock = int.tryParse(stockController.text);
@@ -147,8 +140,8 @@ class _HomeScreenState extends State<HomeScreen> {
               // --- BOTÃO "CANCELAR" ALTERADO ---
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFDC5023), // Cor laranja
-                  foregroundColor: Colors.white,
+                   backgroundColor: Theme.of(context).colorScheme.secondary, // Cor do tema
+        foregroundColor: Theme.of(context).colorScheme.onSecondary
                 ),
                 child: const Text('Cancelar'),
                 onPressed: () {
@@ -225,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
             isSelected: currentDate.day == _selectedDate.day &&
                 currentDate.month == _selectedDate.month &&
                 currentDate.year == _selectedDate.year,
-            highlightColor: const Color(0xFF23AFDC),
+            highlightColor: Theme.of(context).colorScheme.primary,
             screenWidth: screenWidth,
           ),
         ),
@@ -248,10 +241,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    const orangeColor = Color(0xFFDC5023);
-    const blueColor = Color(0xFF23AFDC);
-    final screenWidth = MediaQuery.of(context).size.width;
+Widget build(BuildContext context) {
+  // As cores agora virão do ColorScheme do tema.
+  final colorScheme = Theme.of(context).colorScheme;
+  final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       appBar: AppBar(
@@ -289,9 +282,9 @@ class _HomeScreenState extends State<HomeScreen> {
         // --- FIM DA SEÇÃO 'actions' ---
       ),
       body: Column(
-        children: [
-          const Divider(color: orangeColor, height: 1, thickness: 1),
-          Container(
+    children: [
+      Divider(color: colorScheme.secondary, height: 1, thickness: 1),
+      Container(
             color: Theme.of(context).cardTheme.color,
             padding: EdgeInsets.symmetric(vertical: screenWidth * 0.02),
             child: Column(
@@ -317,12 +310,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 Padding(
                   padding: EdgeInsets.only(top: screenWidth * 0.02),
                   child: Text(
-                    DateFormat('d/MMMM/y', 'pt_BR').format(_selectedDate),
-                    style: TextStyle(
-                        fontSize: screenWidth * 0.04,
-                        fontWeight: FontWeight.bold,
-                        color: blueColor),
-                  ),
+                DateFormat('d/MMMM/y', 'pt_BR').format(_selectedDate),
+                style: TextStyle(
+                    fontSize: screenWidth * 0.04,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary), // Cor do tema
+              ),
                 ),
               ],
             ),
@@ -370,9 +363,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 builder: (BuildContext context) {
                                   return AlertDialog(
                                     // Ícone de exclusão para clareza
-                                    icon: const Icon(
+                                    icon: Icon(
                                         Icons.delete_forever_rounded,
-                                        color: Colors.red,
+                                        color: Theme.of(context).colorScheme.error,
                                         size: 48),
 
                                     title: const Text('Confirmar Exclusão',
@@ -408,8 +401,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                           // Botão de exclusão com destaque (cor de perigo)
                                           ElevatedButton(
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.red,
-                                              foregroundColor: Colors.white,
+                                              backgroundColor: Theme.of(context).colorScheme.error, // Cor de erro do tema
+    foregroundColor: Theme.of(context).colorScheme.onError,
                                             ),
                                             child: const Text('Sim, Excluir'),
                                             onPressed: () =>
@@ -488,13 +481,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                           trailing: IconButton(
-                            icon: Icon(
-                              isTaken
-                                  ? Icons.check_circle
-                                  : Icons.radio_button_unchecked,
-                              color: isTaken ? blueColor : Colors.grey,
-                              size: 30,
-                            ),
+                        icon: Icon(
+                          isTaken
+                              ? Icons.check_circle
+                              : Icons.radio_button_unchecked,
+                          color: isTaken ? colorScheme.primary : Colors.grey, // Cor do tema
+                          size: 30,
+                        ),
                             onPressed: () {
                               if (isTaken) {
                                 provider.toggleDoseStatus(result);
@@ -519,10 +512,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-          ),
-          const Divider(color: orangeColor, height: 1, thickness: 1),
-        ],
       ),
+      Divider(color: colorScheme.secondary, height: 1, thickness: 1),
+    ],
+  ),
     );
   }
 }

@@ -74,21 +74,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
               titleCentered: true,
               formatButtonVisible: false,
             ),
-            calendarStyle: const CalendarStyle(
-              todayDecoration: BoxDecoration(
-                color: Colors.grey,
-                shape: BoxShape.circle,
-              ),
-              selectedDecoration: BoxDecoration(
-                color: Color(0xFF23AFDC),
-                shape: BoxShape.circle,
-              ),
-              // Estilo para o marcador de evento
-              markerDecoration: BoxDecoration(
-                color: Color(0xFFDC5023), // Cor laranja do seu app
-                shape: BoxShape.circle,
-              ),
-            ),
+            calendarStyle: CalendarStyle(
+          todayDecoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+            shape: BoxShape.circle,
+          ),
+          selectedDecoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary,
+            shape: BoxShape.circle,
+          ),
+          // Estilo para o marcador de evento
+          markerDecoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.secondary,
+            shape: BoxShape.circle,
+          ),
+        ),
           ),
           const SizedBox(height: 8.0),
           const Text('Doses do dia selecionado:',
@@ -118,14 +118,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton.icon(
-              icon: const Icon(Icons.check),
-              label: const Text('Ver este dia na Home'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-                backgroundColor: const Color(0xFF23AFDC),
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
+          icon: const Icon(Icons.check),
+          label: const Text('Ver este dia na Home'),
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size.fromHeight(50),
+          ),
+          onPressed: () {
                 // Fecha a tela e retorna o dia selecionado
                 Navigator.pop(context, _selectedDay);
               },
