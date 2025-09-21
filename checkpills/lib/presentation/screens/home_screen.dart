@@ -1,13 +1,13 @@
-import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
+import 'package:CheckPills/data/datasources/database.dart';
 import 'package:CheckPills/presentation/providers/medication_provider.dart';
 import 'package:CheckPills/presentation/providers/user_provider.dart';
+import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
 import 'package:CheckPills/presentation/screens/calendar_screen.dart';
-import 'package:CheckPills/presentation/widgets/dose_event_card.dart'; // <- 1. IMPORTAÇÃO ADICIONADA
-import 'package:CheckPills/data/datasources/database.dart';
-import 'package:provider/provider.dart';
+import 'package:CheckPills/presentation/widgets/dose_details_modal.dart';
+import 'package:CheckPills/presentation/widgets/dose_event_card.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'dart:io';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,6 +25,89 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateSelectedDate(DateTime.now());
     });
+  }
+
+  Future<void> _handleDelete(
+      BuildContext context, MedicationProvider provider, Prescription prescription) async {
+    final confirm = await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              icon: Icon(Icons.delete_forever_rounded,
+                  color: Theme.of(context).colorScheme.error, size: 48),
+              title: const Text('Confirmar Exclusão', textAlign: TextAlign.center),
+              content: RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                  children: <TextSpan>[
+                    const TextSpan(text: 'Tem a certeza de que deseja excluir a prescrição de '),
+                    TextSpan(
+                        text: prescription.name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, color: Colors.black)),
+                    const TextSpan(text: '? Esta ação não pode ser desfeita.'),
+                  ],
+                ),
+              ),
+              actions: <Widget>[
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.error,
+                        foregroundColor: Theme.of(context).colorScheme.onError,
+                      ),
+                      child: const Text('Sim, Excluir'),
+                      onPressed: () => Navigator.of(context).pop(true),
+                    ),
+                    OutlinedButton(
+                      child: const Text('Cancelar'),
+                      onPressed: () => Navigator.of(context).pop(false),
+                    ),
+                  ],
+                )
+              ],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20.0),
+              ),
+            );
+          },
+        ) ??
+        false;
+
+    if (confirm && mounted) {
+      provider.deletePrescription(prescription.id);
+    }
+  }
+
+  void _showDoseDetails(DoseEventWithPrescription doseData) {
+    final provider = Provider.of<MedicationProvider>(context, listen: false);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+      ),
+      builder: (context) => DoseDetailsModal(
+        doseData: doseData,
+        onSkip: () {
+          provider.skipDoseAndReschedule(doseData);
+          Navigator.of(context).pop();
+        },
+        onEdit: () {
+          Navigator.of(context).pop();
+          _navigateToEditScreen(doseData.prescription);
+        },
+        onDelete: () {
+          Navigator.of(context).pop();
+          _handleDelete(context, provider, doseData.prescription);
+        },
+      ),
+    );
   }
 
   void _showOutOfStockDialog(BuildContext context, Prescription prescription) {
@@ -156,24 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
         .fetchDoseEventsForDay(newDate);
   }
 
-  void _showImageDialog(
-      BuildContext context, String imagePath, int prescriptionId) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        child: GestureDetector(
-          onTap: () => Navigator.of(context).pop(),
-          child: Hero(
-            tag: 'med_image_$prescriptionId',
-            child: Image.file(
-              File(imagePath),
-              fit: BoxFit.contain,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  // A FUNÇÃO _showImageDialog FOI REMOVIDA DAQUI
 
   void _goToPreviousWeek() {
     _updateSelectedDate(_selectedDate.subtract(const Duration(days: 7)));
@@ -235,24 +301,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-  title: Consumer<UserProvider>( // <- Mudou para UserProvider
-    builder: (context, userProvider, child) {
-      // Pega o nome do perfil ativo
-      final userName = userProvider.activeUser?.name; 
-      return Row(
-        children: [
-          SizedBox(
-            height: 40,
-            width: 40,
-            child: Image.asset('assets/images/logo.jpg'),
-          ),
-          const SizedBox(width: 8),
-          // Mostra o nome ou um texto padrão se não houver perfil
-          Text(userName ?? 'Sem Perfil'), 
-        ],
-      );
-    },
-  ),
+        title: Consumer<UserProvider>(
+          builder: (context, userProvider, child) {
+            final userName = userProvider.activeUser?.name;
+            return Row(
+              children: [
+                SizedBox(
+                  height: 40,
+                  width: 40,
+                  child: Image.asset('assets/images/logo.jpg'),
+                ),
+                const SizedBox(width: 8),
+                Text(userName ?? 'Sem Perfil'),
+              ],
+            );
+          },
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.calendar_month),
@@ -319,15 +383,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
 
                 return ListView.builder(
+                  padding: const EdgeInsets.only(bottom: 80), // Padding para o FAB
                   itemCount: doseEventsResults.length,
                   itemBuilder: (BuildContext context, int index) {
                     final result = doseEventsResults[index];
                     final prescription = result.prescription;
-                    final doseEvent = result.doseEvent;
-                    final isTaken = doseEvent.status == DoseStatus.tomada;
+                    final isTaken = result.doseEvent.status == DoseStatus.tomada;
 
                     return Dismissible(
-                      key: ValueKey(prescription.id),
+                      key: ValueKey(result.doseEvent.id),
                       background: Container(
                         color: Colors.blueAccent,
                         alignment: Alignment.centerLeft,
@@ -342,90 +406,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       confirmDismiss: (direction) async {
                         if (direction == DismissDirection.endToStart) {
-                          return await showDialog<bool>(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return AlertDialog(
-                                    icon: Icon(Icons.delete_forever_rounded,
-                                        color:
-                                            Theme.of(context).colorScheme.error,
-                                        size: 48),
-                                    title: const Text('Confirmar Exclusão',
-                                        textAlign: TextAlign.center),
-                                    content: RichText(
-                                      textAlign: TextAlign.center,
-                                      text: TextSpan(
-                                        style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 16),
-                                        children: <TextSpan>[
-                                          const TextSpan(
-                                              text:
-                                                  'Tem a certeza de que deseja excluir a prescrição de '),
-                                          TextSpan(
-                                              text: prescription.name,
-                                              style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.black)),
-                                          const TextSpan(
-                                              text:
-                                                  '? Esta ação não pode ser desfeita.'),
-                                        ],
-                                      ),
-                                    ),
-                                    actions: <Widget>[
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.stretch,
-                                        children: [
-                                          ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Theme.of(context)
-                                                  .colorScheme
-                                                  .error,
-                                              foregroundColor: Theme.of(context)
-                                                  .colorScheme
-                                                  .onError,
-                                            ),
-                                            child: const Text('Sim, Excluir'),
-                                            onPressed: () =>
-                                                Navigator.of(context).pop(true),
-                                          ),
-                                          OutlinedButton(
-                                            child: const Text('Cancelar'),
-                                            onPressed: () =>
-                                                Navigator.of(context)
-                                                    .pop(false),
-                                          ),
-                                        ],
-                                      )
-                                    ],
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20.0),
-                                    ),
-                                  );
-                                },
-                              ) ??
-                              false;
+                          await _handleDelete(context, provider, prescription);
+                          return false;
                         } else {
                           _navigateToEditScreen(prescription);
                           return false;
                         }
                       },
-                      onDismissed: (direction) {
-                        if (direction == DismissDirection.endToStart) {
-                          provider.deletePrescription(prescription.id);
-                        }
-                      },
-                      // 2. O ANTIGO 'CARD' FOI TOTALMENTE SUBSTITUÍDO PELO 'DOSEEVENTCARD'
                       child: DoseEventCard(
                         doseData: result,
-                        onImageTap: () {
-                          if (prescription.imagePath != null) {
-                            _showImageDialog(context, prescription.imagePath!,
-                                prescription.id);
-                          }
-                        },
+                        onTap: () => _showDoseDetails(result),
                         onToggleStatus: () {
                           if (isTaken) {
                             provider.toggleDoseStatus(result);
@@ -479,9 +469,9 @@ class _DayItem extends StatelessWidget {
                 fontSize: screenWidth * 0.03,
                 fontWeight: FontWeight.w500,
                 color: defaultTextColor)),
-        SizedBox(height: screenWidth * 0.01),
+        const SizedBox(height: 4),
         Container(
-          padding: EdgeInsets.all(screenWidth * 0.02),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: isSelected ? highlightColor : Colors.transparent,
             shape: BoxShape.circle,
@@ -491,7 +481,7 @@ class _DayItem extends StatelessWidget {
             style: TextStyle(
               color: isSelected ? Colors.white : defaultTextColor,
               fontWeight: FontWeight.bold,
-              fontSize: screenWidth * 0.035,
+              fontSize: 16,
             ),
           ),
         ),

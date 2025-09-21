@@ -6,7 +6,6 @@ import 'package:path/path.dart' as p;
 
 part 'database.g.dart';
 
-// Enums e Tabelas continuam como planejado
 enum DoseStatus { pendente, tomada, pulada }
 
 @DataClassName('User')
@@ -18,18 +17,15 @@ class Users extends Table {
 
 @DataClassName('UserSetting')
 class UserSettings extends Table {
-  // A id do usuário agora é a chave primária e a ligação com a tabela Users
   IntColumn get userId =>
       integer().references(Users, #id, onDelete: KeyAction.cascade)();
   
-  // As configurações antigas permanecem, exceto userName que está na tabela Users
   TextColumn get standardPillType => text().nullable()();
   BoolColumn get darkMode => boolean().withDefault(const Constant(false))();
   IntColumn get refillReminder => integer().withDefault(const Constant(5))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
-  // Define a chave primária
   @override
   Set<Column> get primaryKey => {userId};
 }
@@ -67,15 +63,14 @@ class DoseEvents extends Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-// Combine as tabelas em um banco de dados
 @DriftDatabase(tables: [
-  Users, // Adicionada
-  UserSettings, // Substituiu Settings
+  Users,
+  UserSettings,
   Prescriptions,
   DoseEvents,
 ], daos: [
-  UsersDao, // Adicionado
-  UserSettingsDao, // Substituiu SettingsDao
+  UsersDao,
+  UserSettingsDao,
   PrescriptionsDao,
   DoseEventsDao,
 ])
@@ -83,22 +78,19 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
-  // ADICIONE ESTAS 4 LINHAS:
   UsersDao get usersDao => UsersDao(this);
   UserSettingsDao get userSettingsDao => UserSettingsDao(this);
   PrescriptionsDao get prescriptionsDao => PrescriptionsDao(this);
   DoseEventsDao get doseEventsDao => DoseEventsDao(this);
 }
 
-// SUBSTITUA todos os seus DAOs por este bloco de código
-
-// DAO para a nova tabela Users
 @DriftAccessor(tables: [Users])
 class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
   UsersDao(AppDatabase db) : super(db);
-Future<List<User>> getAllUsers() => select(users).get();
+
+  Future<List<User>> getAllUsers() => select(users).get();
   Stream<List<User>> watchAllUsers() => select(users).watch();
   Future<int> addUser(UsersCompanion entry) => into(users).insert(entry);
   Future<int> deleteUser(int id) =>
@@ -107,7 +99,6 @@ Future<List<User>> getAllUsers() => select(users).get();
       update(users).replace(entry);
 }
 
-// DAO para a nova tabela UserSettings
 @DriftAccessor(tables: [UserSettings])
 class UserSettingsDao extends DatabaseAccessor<AppDatabase>
     with _$UserSettingsDaoMixin {
@@ -128,13 +119,11 @@ class UserSettingsDao extends DatabaseAccessor<AppDatabase>
   }
 }
 
-// DAO de Prescriptions MODIFICADO
 @DriftAccessor(tables: [Prescriptions])
 class PrescriptionsDao extends DatabaseAccessor<AppDatabase>
     with _$PrescriptionsDaoMixin {
   PrescriptionsDao(AppDatabase db) : super(db);
 
-  // Agora requer um userId
   Stream<List<Prescription>> watchAllPrescriptionsForUser(int userId) =>
       (select(prescriptions)..where((t) => t.userId.equals(userId))).watch();
 
@@ -153,13 +142,11 @@ class PrescriptionsDao extends DatabaseAccessor<AppDatabase>
   }
 }
 
-// DAO de DoseEvents MODIFICADO
 @DriftAccessor(tables: [DoseEvents, Prescriptions])
 class DoseEventsDao extends DatabaseAccessor<AppDatabase>
     with _$DoseEventsDaoMixin {
   DoseEventsDao(AppDatabase db) : super(db);
 
-  // Modificado para filtrar por userId
   Stream<List<DoseEventWithPrescription>> watchDoseEventsForDay(
       int userId, DateTime date) {
     final startOfDay = DateTime(date.year, date.month, date.day);
@@ -169,7 +156,7 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase>
       innerJoin(
           prescriptions, prescriptions.id.equalsExp(doseEvents.prescriptionId))
     ])
-      ..where(prescriptions.userId.equals(userId)) // <- Filtro adicionado
+      ..where(prescriptions.userId.equals(userId)) 
       ..where(doseEvents.scheduledTime.isBetweenValues(startOfDay, endOfDay))
       ..orderBy([OrderingTerm.asc(doseEvents.scheduledTime)]);
 
@@ -183,13 +170,12 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase>
     });
   }
 
-  // Modificado para filtrar por userId
   Stream<List<DoseEventWithPrescription>> watchAllDoseEvents(int userId) {
     final query = select(doseEvents).join([
       innerJoin(
           prescriptions, prescriptions.id.equalsExp(doseEvents.prescriptionId))
     ])
-      ..where(prescriptions.userId.equals(userId)) // <- Filtro adicionado
+      ..where(prescriptions.userId.equals(userId)) 
       ..orderBy([OrderingTerm.asc(doseEvents.scheduledTime)]);
 
     return query.watch().map((rows) {
@@ -222,6 +208,18 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase>
           ..where((t) => t.prescriptionId.equals(prescriptionId))
           ..where((t) => t.scheduledTime.isBiggerOrEqualValue(startOfToday)))
         .go();
+  }
+
+  // --- NOVA FUNÇÃO NO LUGAR CORRETO ---
+  Future<DoseEvent?> getLastDoseEventForPrescription(int prescriptionId) {
+    return (select(doseEvents)
+          ..where((t) => t.prescriptionId.equals(prescriptionId))
+          ..orderBy([
+            (t) =>
+                OrderingTerm(expression: t.scheduledTime, mode: OrderingMode.desc)
+          ])
+          ..limit(1))
+        .getSingleOrNull();
   }
 }
 

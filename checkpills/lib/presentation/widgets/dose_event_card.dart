@@ -6,28 +6,54 @@ import 'package:intl/intl.dart';
 class DoseEventCard extends StatelessWidget {
   final DoseEventWithPrescription doseData;
   final VoidCallback onToggleStatus;
-  final VoidCallback onImageTap;
+  final VoidCallback onTap;
 
   const DoseEventCard({
     super.key,
     required this.doseData,
     required this.onToggleStatus,
-    required this.onImageTap,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final doseEvent = doseData.doseEvent;
     final prescription = doseData.prescription;
-    final isTaken = doseEvent.status == DoseStatus.tomada;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Card(
-      child: ListTile(
-        // LEADING: Imagem do medicamento com animação Hero
-        leading: GestureDetector(
-          onTap: onImageTap,
-          child: Hero(
+    // Helper para construir o ícone de status (sem o '_')
+    Widget buildStatusIcon() {
+      switch (doseEvent.status) {
+        case DoseStatus.tomada:
+          return Icon( // Adicionado 'const'
+            Icons.check_circle,
+            color: colorScheme.primary,
+            size: 30,
+          );
+        case DoseStatus.pulada:
+          return const Icon( // Adicionado 'const'
+            Icons.skip_next_outlined,
+            color: Colors.grey, // Cor neutra para 'pulada'
+            size: 30,
+          );
+        case DoseStatus.pendente:
+          return const Icon( // Adicionado 'const'
+            Icons.radio_button_unchecked,
+            color: Colors.grey,
+            size: 30,
+          );
+      // Cláusula 'default' removida
+      }
+    }
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12.0),
+      child: Card(
+        color: Colors.transparent, 
+        elevation: 0,
+        child: ListTile(
+          leading: Hero(
             tag: 'med_image_${prescription.id}',
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8.0),
@@ -44,31 +70,21 @@ class DoseEventCard extends StatelessWidget {
               ),
             ),
           ),
-        ),
-        
-        // TITLE: Nome do medicamento
-        title: Text(prescription.name),
-
-        // SUBTITLE: Descrição da dose e horário
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(prescription.doseDescription),
-            Text(
-              'Horário: ${DateFormat('HH:mm').format(doseEvent.scheduledTime)}',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-          ],
-        ),
-
-        // TRAILING: Botão para marcar a dose como tomada
-        trailing: IconButton(
-          icon: Icon(
-            isTaken ? Icons.check_circle : Icons.radio_button_unchecked,
-            color: isTaken ? colorScheme.primary : Colors.grey,
-            size: 30,
+          title: Text(prescription.name),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(prescription.doseDescription),
+              Text(
+                'Horário: ${DateFormat('HH:mm').format(doseEvent.scheduledTime)}',
+                style: const TextStyle(color: Colors.grey), // Adicionado 'const'
+              ),
+            ],
           ),
-          onPressed: onToggleStatus,
+          trailing: IconButton(
+            icon: buildStatusIcon(), // Chamando a função renomeada
+            onPressed: doseEvent.status == DoseStatus.pulada ? null : onToggleStatus,
+          ),
         ),
       ),
     );
