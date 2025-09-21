@@ -133,7 +133,7 @@ class _MainScreenState extends State<MainScreen> {
               ),
               useSafeArea: true,
               builder: (BuildContext context) {
-                return const AddMedicationScreen();
+                return const AddMedicationScreen(key: ValueKey('add_new_medication'));
               },
             );
           },

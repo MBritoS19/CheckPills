@@ -289,7 +289,10 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
       ),
       builder: (BuildContext context) {
-        return AddMedicationScreen(prescription: prescription);
+        return AddMedicationScreen(
+    key: ValueKey(prescription.id), // <-- ADICIONADO: Chave única para edição
+    prescription: prescription,
+  );
       },
     );
   }

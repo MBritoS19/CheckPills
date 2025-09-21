@@ -101,6 +101,16 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     _validatePage();
   }
 
+  @override
+  void didUpdateWidget(covariant AddMedicationScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Se o medicamento passado para a tela mudou,
+    // preenchemos os campos novamente.
+    if (widget.prescription != oldWidget.prescription) {
+      _prefillFields();
+    }
+  }
+
   void _prefillFields() {
     final p = widget.prescription!;
     _imagePath = p.imagePath;
@@ -279,6 +289,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     }
   }
 
+  // Em: lib/presentation/screens/add_medication_screen.dart
+
   void _onSave() {
     final provider = Provider.of<MedicationProvider>(context, listen: false);
     String finalType;
@@ -287,7 +299,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     } else {
       finalType = _selectedType ?? 'Não definido';
     }
-    // Dentro do método _onSave()
     final firstDoseDateTime = DateTime(
         _selectedFirstDoseDate.year,
         _selectedFirstDoseDate.month,
@@ -301,6 +312,9 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         '${_doseQuantityController.text} $_selectedDoseUnit'.trim();
 
     final prescriptionCompanion = PrescriptionsCompanion(
+      // --- LINHA DA CORREÇÃO ---
+      userId: Value(widget.prescription!.userId),
+      // -------------------------
       name: Value(_nameController.text),
       imagePath: Value(_imagePath),
       doseDescription: Value(doseDescription),
