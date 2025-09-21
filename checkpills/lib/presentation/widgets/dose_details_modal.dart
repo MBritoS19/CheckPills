@@ -5,13 +5,12 @@ import 'package:intl/intl.dart';
 
 class DoseDetailsModal extends StatelessWidget {
   final DoseEventWithPrescription doseData;
-  // 1. ADICIONADO: Funções de callback para as ações
   final VoidCallback onSkip;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const DoseDetailsModal({
-    super.key, 
+    super.key,
     required this.doseData,
     required this.onSkip,
     required this.onEdit,
@@ -23,26 +22,78 @@ class DoseDetailsModal extends StatelessWidget {
     final prescription = doseData.prescription;
     final doseEvent = doseData.doseEvent;
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
-    Widget _buildInfoRow(IconData icon, String label, String value) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
+    // --- HELPER PARA O HEADER DE STATUS ---
+    Widget buildStatusHeader() {
+      IconData icon;
+      String text;
+      Color color;
+
+      switch (doseEvent.status) {
+        case DoseStatus.tomada:
+          icon = Icons.check_circle;
+          text = "Dose Tomada";
+          color = colorScheme.primary;
+          break;
+        case DoseStatus.pulada:
+          icon = Icons.skip_next_outlined;
+          text = "Dose Pulada";
+          color = Colors.orange;
+          break;
+        case DoseStatus.pendente:
+          icon = Icons.radio_button_unchecked;
+          text = "Dose Pendente";
+          color = Colors.grey;
+          break;
+      }
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        color: color.withOpacity(0.1),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: colorScheme.primary, size: 20),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 2),
-                  Text(value, style: TextStyle(color: Colors.grey[600])),
-                ],
-              ),
-            ),
+            Icon(icon, color: color),
+            const SizedBox(width: 8),
+            Text(text, style: textTheme.titleMedium?.copyWith(color: color, fontWeight: FontWeight.bold)),
           ],
+        ),
+      );
+    }
+    
+    // --- HELPER PARA AS LINHAS DE INFORMAÇÃO ---
+    Widget buildInfoRow(String label, String value) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: textTheme.bodyMedium?.copyWith(color: Colors.grey[600])),
+            Text(value, style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
+          ],
+        ),
+      );
+    }
+    
+    // --- HELPER PARA OS CARDS DE SEÇÃO ---
+    Widget buildInfoCard(String title, List<Widget> children) {
+      return Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          side: BorderSide(color: Colors.grey[200]!),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              const Divider(height: 24),
+              ...children,
+            ],
+          ),
         ),
       );
     }
@@ -67,13 +118,14 @@ class DoseDetailsModal extends StatelessWidget {
             ),
           ),
           
+          buildStatusHeader(),
+
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (prescription.imagePath != null)
+                  if (prescription.imagePath != null) ...[
                     Center(
                       child: Hero(
                         tag: 'med_image_${prescription.id}',
@@ -81,63 +133,72 @@ class DoseDetailsModal extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                           child: Image.file(
                             File(prescription.imagePath!),
-                            width: 120,
-                            height: 120,
-                            fit: BoxFit.cover,
+                            width: 120, height: 120, fit: BoxFit.cover,
                           ),
                         ),
                       ),
                     ),
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 16),
+                  ],
                   
-                  _buildInfoRow(Icons.medication, "Dose Agendada",
-                      '${prescription.doseDescription} às ${DateFormat('HH:mm').format(doseEvent.scheduledTime)}'),
+                  buildInfoCard("Detalhes da Dose", [
+                    buildInfoRow("Horário Agendado", DateFormat('HH:mm').format(doseEvent.scheduledTime)),
+                    buildInfoRow("Quantidade", prescription.doseDescription),
+                    if (prescription.stock != -1)
+                      buildInfoRow("Estoque Restante", '${prescription.stock} unidades'),
+                  ]),
+
+                  const SizedBox(height: 16),
                   
-                  _buildInfoRow(Icons.category_outlined, "Tipo", prescription.type),
+                  buildInfoCard("Informações do Tratamento", [
+                    buildInfoRow("Tipo", prescription.type),
+                    if (prescription.doseInterval > 0)
+                      buildInfoRow("Intervalo", 'A cada ${Duration(minutes: prescription.doseInterval).inHours}h ${Duration(minutes: prescription.doseInterval).inMinutes.remainder(60)}min'),
+                    if (!prescription.isContinuous && prescription.durationTreatment != null)
+                      buildInfoRow("Duração", '${prescription.durationTreatment} ${prescription.unitTreatment}'),
+                  ]),
 
-                  if(prescription.stock != -1)
-                    _buildInfoRow(Icons.inventory_2_outlined, "Estoque Restante", 
-                      '${prescription.stock} unidades'),
-
-                  if(prescription.doseInterval > 0)
-                    _buildInfoRow(Icons.hourglass_empty_outlined, "Intervalo", 
-                      'A cada ${Duration(minutes: prescription.doseInterval).inHours}h ${Duration(minutes: prescription.doseInterval).inMinutes.remainder(60)}min'),
-
-                  if(!prescription.isContinuous && prescription.durationTreatment != null)
-                    _buildInfoRow(Icons.calendar_today_outlined, "Duração do Tratamento", 
-                      '${prescription.durationTreatment} ${prescription.unitTreatment}'),
-                  
-                  if(prescription.notes?.isNotEmpty ?? false)
-                    _buildInfoRow(Icons.notes_outlined, "Observações", prescription.notes!),
+                  if (prescription.notes?.isNotEmpty ?? false) ...[
+                    const SizedBox(height: 16),
+                    buildInfoCard("Observações", [
+                      Text(prescription.notes!, style: textTheme.bodyMedium)
+                    ]),
+                  ]
                 ],
               ),
             ),
           ),
           
+          // --- BARRA DE AÇÕES APRIMORADA ---
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
               color: Theme.of(context).scaffoldBackgroundColor,
               border: Border(top: BorderSide(color: Colors.grey[300]!)),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                // 2. BOTÕES CONECTADOS ÀS FUNÇÕES
-                TextButton.icon(
-                  icon: const Icon(Icons.redo),
-                  label: const Text("Pular Dose"),
-                  onPressed: onSkip,
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.edit),
+                    label: const Text("Editar"),
+                    onPressed: onEdit,
+                    style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
+                  ),
                 ),
-                TextButton.icon(
-                  icon: const Icon(Icons.edit),
-                  label: const Text("Editar"),
-                  onPressed: onEdit,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.redo),
+                    label: const Text("Pular Dose"),
+                    onPressed: doseEvent.status == DoseStatus.pendente ? onSkip : null, // Desativa se não estiver pendente
+                    style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
+                  ),
                 ),
-                TextButton.icon(
+                IconButton(
                   icon: Icon(Icons.delete, color: colorScheme.error),
-                  label: Text("Excluir", style: TextStyle(color: colorScheme.error)),
                   onPressed: onDelete,
+                  tooltip: "Excluir Medicamento",
                 ),
               ],
             ),
