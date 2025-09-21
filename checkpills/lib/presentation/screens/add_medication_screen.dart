@@ -409,20 +409,27 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                     });
                   },
                   style: isSelected
-                      // Se estiver selecionado, aplica nosso estilo azul customizado
-                      ? ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        )
-                      // Se NÃO estiver selecionado, usa o estilo padrão do tema,
-                      // mas mantém as bordas arredondadas.
-                      : ElevatedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
+                  // SELECIONADO: Fundo cinza padrão com borda azul.
+                  ? ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      foregroundColor: Theme.of(context).colorScheme.primary,
+                      // A propriedade 'side' é usada para criar a borda.
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                        width: 2,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    )
+                  // NÃO SELECIONADO: Fundo azul preenchido.
+                  : ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
                   child: Text(type),
                 );
               }).toList(),

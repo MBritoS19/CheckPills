@@ -1,58 +1,74 @@
-// lib/presentation/widgets/dose_event_card.dart
-
+import 'dart:io';
 import 'package:CheckPills/data/datasources/database.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class DoseEventCard extends StatelessWidget {
-  final DoseEventWithPrescription combinedData; // Nome da classe corrigido
-  final VoidCallback onEdit;
-  final Function(DoseEvent) onToggleStatus;
+  final DoseEventWithPrescription doseData;
+  final VoidCallback onToggleStatus;
+  final VoidCallback onImageTap;
 
   const DoseEventCard({
-    Key? key,
-    required this.combinedData,
-    required this.onEdit,
+    super.key,
+    required this.doseData,
     required this.onToggleStatus,
-  }) : super(key: key);
+    required this.onImageTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final isTaken = combinedData.doseEvent.status == DoseStatus.tomada;
-    final time =
-        DateFormat('HH:mm').format(combinedData.doseEvent.scheduledTime);
-    final screenWidth = MediaQuery.of(context).size.width;
+    final doseEvent = doseData.doseEvent;
+    final prescription = doseData.prescription;
+    final isTaken = doseEvent.status == DoseStatus.tomada;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Card(
-      margin: EdgeInsets.symmetric(
-        horizontal: screenWidth * 0.04,
-        vertical: screenWidth * 0.02,
-      ),
       child: ListTile(
-        leading: Text(
-          time,
-          style: TextStyle(
-            fontSize: screenWidth * 0.04,
-            fontWeight: FontWeight.bold,
+        // LEADING: Imagem do medicamento com animação Hero
+        leading: GestureDetector(
+          onTap: onImageTap,
+          child: Hero(
+            tag: 'med_image_${prescription.id}',
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8.0),
+              child: Container(
+                width: 50,
+                height: 50,
+                color: Colors.grey[200],
+                child: prescription.imagePath != null
+                    ? Image.file(
+                        File(prescription.imagePath!),
+                        fit: BoxFit.cover,
+                      )
+                    : const Icon(Icons.medication_liquid, color: Colors.grey),
+              ),
+            ),
           ),
         ),
-        title: Text(combinedData.prescription.name),
-        subtitle: Text(combinedData.prescription.doseDescription),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+        
+        // TITLE: Nome do medicamento
+        title: Text(prescription.name),
+
+        // SUBTITLE: Descrição da dose e horário
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: onEdit,
-            ),
-            IconButton(
-              icon: Icon(
-                isTaken ? Icons.check_circle : Icons.radio_button_unchecked,
-                color: isTaken ? Theme.of(context).colorScheme.primary : null,
-              ),
-              onPressed: () => onToggleStatus(combinedData.doseEvent),
+            Text(prescription.doseDescription),
+            Text(
+              'Horário: ${DateFormat('HH:mm').format(doseEvent.scheduledTime)}',
+              style: TextStyle(color: Colors.grey[600]),
             ),
           ],
+        ),
+
+        // TRAILING: Botão para marcar a dose como tomada
+        trailing: IconButton(
+          icon: Icon(
+            isTaken ? Icons.check_circle : Icons.radio_button_unchecked,
+            color: isTaken ? colorScheme.primary : Colors.grey,
+            size: 30,
+          ),
+          onPressed: onToggleStatus,
         ),
       ),
     );

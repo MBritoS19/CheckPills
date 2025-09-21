@@ -2,6 +2,7 @@ import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
 import 'package:CheckPills/presentation/providers/medication_provider.dart';
 import 'package:CheckPills/presentation/providers/settings_provider.dart';
 import 'package:CheckPills/presentation/screens/calendar_screen.dart';
+import 'package:CheckPills/presentation/widgets/dose_event_card.dart'; // <- 1. IMPORTAÇÃO ADICIONADA
 import 'package:CheckPills/data/datasources/database.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
@@ -49,14 +50,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-
-        // --- AÇÕES AGORA EM FORMATO DE COLUNA ---
         actions: <Widget>[
           Column(
-            // Faz os botões ocuparem toda a largura disponível
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Botão de Ação Primária (Adicionar Estoque)
               ElevatedButton(
                 child: const Text('Adicionar Estoque'),
                 onPressed: () {
@@ -64,15 +61,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   _showAddStockDialog(context, prescription);
                 },
               ),
-              const SizedBox(height: 8), // Espaço vertical entre os botões
-              // Botão de Ação Secundária (Não controlar)
+              const SizedBox(height: 8),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  // Para cores diferentes do padrão, estilizamos aqui.
-        backgroundColor: Theme.of(context).colorScheme.secondary,
-        foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                  backgroundColor: Theme.of(context).colorScheme.secondary,
+                  foregroundColor: Theme.of(context).colorScheme.onSecondary,
                 ),
-                child: const Text('Não controlar estoque'), // Texto completo
+                child: const Text('Não controlar estoque'),
                 onPressed: () {
                   provider.stopTrackingStock(prescription.id);
                   Navigator.of(ctx).pop();
@@ -88,7 +83,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-// Método para o pop-up secundário "Adicionar Estoque"
   void _showAddStockDialog(BuildContext context, Prescription prescription) {
     final stockController = TextEditingController();
     final provider = Provider.of<MedicationProvider>(context, listen: false);
@@ -133,16 +127,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   }
                 },
               ),
-
-              // NOVO: Espaçamento vertical
               const SizedBox(height: 8),
-
-              // --- BOTÃO "CANCELAR" ALTERADO ---
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                   backgroundColor: Theme.of(context).colorScheme.secondary, // Cor do tema
-        foregroundColor: Theme.of(context).colorScheme.onSecondary
-                ),
+                    backgroundColor: Theme.of(context).colorScheme.secondary,
+                    foregroundColor:
+                        Theme.of(context).colorScheme.onSecondary),
                 child: const Text('Cancelar'),
                 onPressed: () {
                   Navigator.of(ctx).pop();
@@ -172,14 +162,12 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (context) => Dialog(
         child: GestureDetector(
-          // Permite fechar o dialog ao tocar na imagem
           onTap: () => Navigator.of(context).pop(),
           child: Hero(
-            // A tag precisa ser única para cada imagem. Usamos o ID da prescrição.
             tag: 'med_image_$prescriptionId',
             child: Image.file(
               File(imagePath),
-              fit: BoxFit.contain, // Garante que a imagem inteira apareça
+              fit: BoxFit.contain,
             ),
           ),
         ),
@@ -241,10 +229,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-Widget build(BuildContext context) {
-  // As cores agora virão do ColorScheme do tema.
-  final colorScheme = Theme.of(context).colorScheme;
-  final screenWidth = MediaQuery.of(context).size.width;
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       appBar: AppBar(
@@ -264,7 +251,6 @@ Widget build(BuildContext context) {
             );
           },
         ),
-        // --- A SEÇÃO 'actions' QUE ESTAVA FALTANDO ---
         actions: [
           IconButton(
             icon: const Icon(Icons.calendar_month),
@@ -279,12 +265,11 @@ Widget build(BuildContext context) {
             },
           ),
         ],
-        // --- FIM DA SEÇÃO 'actions' ---
       ),
       body: Column(
-    children: [
-      Divider(color: colorScheme.secondary, height: 1, thickness: 1),
-      Container(
+        children: [
+          Divider(color: colorScheme.secondary, height: 1, thickness: 1),
+          Container(
             color: Theme.of(context).cardTheme.color,
             padding: EdgeInsets.symmetric(vertical: screenWidth * 0.02),
             child: Column(
@@ -310,12 +295,12 @@ Widget build(BuildContext context) {
                 Padding(
                   padding: EdgeInsets.only(top: screenWidth * 0.02),
                   child: Text(
-                DateFormat('d/MMMM/y', 'pt_BR').format(_selectedDate),
-                style: TextStyle(
-                    fontSize: screenWidth * 0.04,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.primary), // Cor do tema
-              ),
+                    DateFormat('d/MMMM/y', 'pt_BR').format(_selectedDate),
+                    style: TextStyle(
+                        fontSize: screenWidth * 0.04,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary),
+                  ),
                 ),
               ],
             ),
@@ -335,9 +320,8 @@ Widget build(BuildContext context) {
                   itemCount: doseEventsResults.length,
                   itemBuilder: (BuildContext context, int index) {
                     final result = doseEventsResults[index];
-                    // CORREÇÃO FINAL: Usamos os nomes corretos da nossa classe auxiliar.
-                    final doseEvent = result.doseEvent;
                     final prescription = result.prescription;
+                    final doseEvent = result.doseEvent;
                     final isTaken = doseEvent.status == DoseStatus.tomada;
 
                     return Dismissible(
@@ -354,23 +338,18 @@ Widget build(BuildContext context) {
                         padding: const EdgeInsets.only(right: 20),
                         child: const Icon(Icons.delete, color: Colors.white),
                       ),
-                      // Substitua pelo novo bloco de código
                       confirmDismiss: (direction) async {
                         if (direction == DismissDirection.endToStart) {
                           return await showDialog<bool>(
-                                // Adicionamos <bool> para mais segurança de tipo
                                 context: context,
                                 builder: (BuildContext context) {
                                   return AlertDialog(
-                                    // Ícone de exclusão para clareza
-                                    icon: Icon(
-                                        Icons.delete_forever_rounded,
-                                        color: Theme.of(context).colorScheme.error,
+                                    icon: Icon(Icons.delete_forever_rounded,
+                                        color:
+                                            Theme.of(context).colorScheme.error,
                                         size: 48),
-
                                     title: const Text('Confirmar Exclusão',
                                         textAlign: TextAlign.center),
-
                                     content: RichText(
                                       textAlign: TextAlign.center,
                                       text: TextSpan(
@@ -392,23 +371,24 @@ Widget build(BuildContext context) {
                                         ],
                                       ),
                                     ),
-
                                     actions: <Widget>[
                                       Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.stretch,
                                         children: [
-                                          // Botão de exclusão com destaque (cor de perigo)
                                           ElevatedButton(
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: Theme.of(context).colorScheme.error, // Cor de erro do tema
-    foregroundColor: Theme.of(context).colorScheme.onError,
+                                              backgroundColor: Theme.of(context)
+                                                  .colorScheme
+                                                  .error,
+                                              foregroundColor: Theme.of(context)
+                                                  .colorScheme
+                                                  .onError,
                                             ),
                                             child: const Text('Sim, Excluir'),
                                             onPressed: () =>
                                                 Navigator.of(context).pop(true),
                                           ),
-                                          // Botão de cancelar com menos destaque
                                           OutlinedButton(
                                             child: const Text('Cancelar'),
                                             onPressed: () =>
@@ -424,7 +404,7 @@ Widget build(BuildContext context) {
                                   );
                                 },
                               ) ??
-                              false; // Garante que se o dialog for fechado sem clicar, retorne false
+                              false;
                         } else {
                           _navigateToEditScreen(prescription);
                           return false;
@@ -435,87 +415,37 @@ Widget build(BuildContext context) {
                           provider.deletePrescription(prescription.id);
                         }
                       },
-                      // Dentro do itemBuilder do ListView.builder
-                      child: Card(
-                        child: ListTile(
-                          // --- NOSSO NOVO LEADING ---
-                          leading: GestureDetector(
-                            onTap: () {
-                              // Só abre o dialog se existir uma imagem
-                              if (prescription.imagePath != null) {
-                                _showImageDialog(context,
-                                    prescription.imagePath!, prescription.id);
-                              }
-                            },
-                            child: Hero(
-                              // A mesma tag única
-                              tag: 'med_image_${prescription.id}',
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8.0),
-                                child: Container(
-                                  width: 50,
-                                  height: 50,
-                                  color: Colors.grey[200],
-                                  // Mostra a imagem se ela existir, senão mostra um ícone
-                                  child: prescription.imagePath != null
-                                      ? Image.file(
-                                          File(prescription.imagePath!),
-                                          fit: BoxFit.cover,
-                                        )
-                                      : const Icon(Icons.medication_liquid,
-                                          color: Colors.grey),
-                                ),
-                              ),
-                            ),
-                          ),
-                          // --- O RESTO DO LISTTILE ---
-                          title: Text(prescription.name),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(prescription.doseDescription),
-                              Text(
-                                'Horário: ${DateFormat('HH:mm').format(doseEvent.scheduledTime)}',
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
-                            ],
-                          ),
-                          trailing: IconButton(
-                        icon: Icon(
-                          isTaken
-                              ? Icons.check_circle
-                              : Icons.radio_button_unchecked,
-                          color: isTaken ? colorScheme.primary : Colors.grey, // Cor do tema
-                          size: 30,
-                        ),
-                            onPressed: () {
-                              if (isTaken) {
-                                provider.toggleDoseStatus(result);
-                                return;
-                              }
-
-                              // Verifica se o estoque não é controlado (-1) ou se há estoque (> 0).
-                              if (prescription.stock == -1 ||
-                                  prescription.stock > 0) {
-                                // Se houver estoque, permite tomar a dose.
-                                provider.toggleDoseStatus(result);
-                              } else {
-                                // Se o estoque for 0, mostra o diálogo de "sem estoque".
-                                _showOutOfStockDialog(context, prescription);
-                              }
-                            },
-                          ),
-                        ),
+                      // 2. O ANTIGO 'CARD' FOI TOTALMENTE SUBSTITUÍDO PELO 'DOSEEVENTCARD'
+                      child: DoseEventCard(
+                        doseData: result,
+                        onImageTap: () {
+                          if (prescription.imagePath != null) {
+                            _showImageDialog(context, prescription.imagePath!,
+                                prescription.id);
+                          }
+                        },
+                        onToggleStatus: () {
+                          if (isTaken) {
+                            provider.toggleDoseStatus(result);
+                            return;
+                          }
+                          if (prescription.stock == -1 ||
+                              prescription.stock > 0) {
+                            provider.toggleDoseStatus(result);
+                          } else {
+                            _showOutOfStockDialog(context, prescription);
+                          }
+                        },
                       ),
                     );
                   },
                 );
               },
             ),
+          ),
+          Divider(color: colorScheme.secondary, height: 1, thickness: 1),
+        ],
       ),
-      Divider(color: colorScheme.secondary, height: 1, thickness: 1),
-    ],
-  ),
     );
   }
 }
@@ -537,7 +467,6 @@ class _DayItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Pega a cor de texto padrão do tema atual (preto ou branco)
     final Color? defaultTextColor =
         Theme.of(context).textTheme.bodyLarge?.color;
 
@@ -547,7 +476,6 @@ class _DayItem extends StatelessWidget {
             style: TextStyle(
                 fontSize: screenWidth * 0.03,
                 fontWeight: FontWeight.w500,
-                // APLICA A COR DO TEMA
                 color: defaultTextColor)),
         SizedBox(height: screenWidth * 0.01),
         Container(
@@ -559,7 +487,6 @@ class _DayItem extends StatelessWidget {
           child: Text(
             dayNumber,
             style: TextStyle(
-              // APLICA A COR DO TEMA QUANDO NÃO ESTÁ SELECIONADO
               color: isSelected ? Colors.white : defaultTextColor,
               fontWeight: FontWeight.bold,
               fontSize: screenWidth * 0.035,
