@@ -46,6 +46,12 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   final _notesController = TextEditingController();
   final _treatmentLengthController = TextEditingController();
   final _doseQuantityController = TextEditingController();
+  final _nameFocusNode = FocusNode();
+  final _doseQuantityFocusNode = FocusNode();
+  final _stockFocusNode = FocusNode();
+  final _treatmentLengthFocusNode = FocusNode();
+  final _customTypeFocusNode = FocusNode();
+  final _notesFocusNode = FocusNode();
 
   final Map<String, String> _medicationTypeToUnitMap = {
     'Comprimido': 'comprimido(s)',
@@ -151,6 +157,12 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     _treatmentLengthController.dispose();
     _notesController.dispose();
     _doseQuantityController.dispose();
+    _nameFocusNode.dispose();
+    _doseQuantityFocusNode.dispose();
+    _stockFocusNode.dispose();
+    _treatmentLengthFocusNode.dispose();
+    _customTypeFocusNode.dispose();
+    _notesFocusNode.dispose();
     super.dispose();
   }
 
@@ -191,6 +203,99 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         _isPageValid = isValid;
       });
     }
+  }
+
+  // MÉTODO _handleFocusRequest ATUALIZADO
+  void _handleFocusRequest(int pageIndex) {
+    Future.delayed(const Duration(milliseconds: 400), () {
+      // Recria a lista de páginas para saber o total atual
+      final formPages = _buildFormPages();
+
+      // VERIFICAÇÃO ADICIONADA: Se o alvo for a última página, foca nas Observações
+      if (pageIndex == formPages.length - 1) {
+        _notesFocusNode.requestFocus();
+        return; // Encerra a função aqui
+      }
+
+      // A lógica para as outras páginas continua a mesma
+      switch (pageIndex) {
+        case 1: // Indo para a página de Tipo
+          if (_selectedType == 'Outros') _customTypeFocusNode.requestFocus();
+          break;
+        case 2: // Indo para a página de Dose
+          _doseQuantityFocusNode.requestFocus();
+          break;
+        case 3: // Indo para a página de Estoque
+          _stockFocusNode.requestFocus();
+          break;
+        case 6: // Se não for dose única, a página 6 é a Duração
+          if (!_isSingleDose) _treatmentLengthFocusNode.requestFocus();
+          break;
+      }
+    });
+  }
+
+  // NOVO MÉTODO COMPLETO
+  List<Widget> _buildFormPages() {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // A lista de páginas é exatamente a mesma que estava no seu método build
+    return [
+      // Página 0: Nome e Imagem
+      Padding(
+          padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+          child: SingleChildScrollView(
+              child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Qual o nome do medicamento?',
+                  style: TextStyle(
+                      fontSize: screenWidth * 0.055,
+                      fontWeight: FontWeight.bold)),
+              SizedBox(height: screenWidth * 0.04),
+              TextFormField(
+                controller: _nameController,
+                focusNode: _nameFocusNode,
+                keyboardType: TextInputType.text,
+                maxLength: 50,
+                inputFormatters: [LengthLimitingTextInputFormatter(50)],
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  counterText: "",
+                ),
+              ),
+              SizedBox(height: screenWidth * 0.06),
+              _buildImagePicker(),
+            ],
+          ))),
+      // Página 1: Tipo
+      _buildTypeSelectionPage(screenWidth: screenWidth),
+      // Página 2: Dose
+      _buildDosePage(screenWidth: screenWidth),
+      // Página 3: Estoque
+      _buildStockPage(screenWidth: screenWidth),
+      // Página 4: Data/Hora
+      _buildTimePickerPage(screenWidth: screenWidth),
+      // Páginas Condicionais
+      if (!_isSingleDose) ...[
+        // Página 5: Intervalo
+        _buildIntervalPickerPage(screenWidth: screenWidth),
+        // Página 6: Duração
+        _buildDurationPage(screenWidth: screenWidth),
+      ],
+      // Última Página: Observações
+      _buildFormPage(
+          title: 'Alguma observação?',
+          subtitle: 'Este campo é opcional',
+          controller: _notesController,
+          focusNode: _notesFocusNode,
+          keyboardType: TextInputType.multiline,
+          screenWidth: screenWidth,
+          isLastPage: true,
+          maxLength: 500,
+          inputFormatters: [LengthLimitingTextInputFormatter(500)]),
+    ];
   }
 
   // VERSÃO FINAL COM VALIDAÇÃO
@@ -271,6 +376,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                           .toList(),
                       selected: {tempUnit},
                       onSelectionChanged: (Set<String> newSelection) {
+                        HapticFeedback.lightImpact();
                         modalSetState(() {
                           tempUnit = newSelection.first;
                         });
@@ -359,6 +465,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                   child: TextFormField(
                     controller: _stockController,
+                    focusNode: _stockFocusNode,
                     enabled: !_dontTrackStock,
                     keyboardType: TextInputType.number,
                     maxLength: 6,
@@ -379,6 +486,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   title: const Text('Não controlar estoque'),
                   value: _dontTrackStock,
                   onChanged: (value) {
+                    HapticFeedback.lightImpact();
                     setState(() {
                       _dontTrackStock = value;
                       if (_dontTrackStock) {
@@ -469,8 +577,9 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     required TextInputType keyboardType,
     required double screenWidth,
     bool isLastPage = false,
-    int? maxLength, // PARÂMETRO NOVO
-    List<TextInputFormatter>? inputFormatters, // PARÂMETRO NOVO
+    int? maxLength,
+    List<TextInputFormatter>? inputFormatters,
+    FocusNode? focusNode,
   }) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
@@ -497,6 +606,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               maxLength: maxLength,
               inputFormatters: inputFormatters,
               decoration: const InputDecoration(border: OutlineInputBorder()),
+              focusNode: focusNode,
             ),
           ],
         ),
@@ -539,6 +649,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                       style: const TextStyle(fontWeight: FontWeight.w500)),
                   selected: _selectedType == type,
                   onSelected: (bool selected) {
+                    HapticFeedback.lightImpact();
                     setState(() {
                       if (selected) {
                         _selectedType = type;
@@ -553,6 +664,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               const SizedBox(height: 24),
               TextFormField(
                 controller: _customTypeController,
+                focusNode: _customTypeFocusNode,
                 maxLength: 30,
                 inputFormatters: [LengthLimitingTextInputFormatter(30)],
                 decoration: const InputDecoration(
@@ -570,7 +682,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
   Widget _buildDosePage({
     required double screenWidth,
-    required double screenHeight,
   }) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
@@ -592,6 +703,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   flex: 2, // Ocupa 2/3 do espaço
                   child: TextFormField(
                     controller: _doseQuantityController,
+                    focusNode: _doseQuantityFocusNode,
                     keyboardType: TextInputType.number,
                     maxLength: 4,
                     inputFormatters: [
@@ -642,7 +754,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   // NOVO MÉTODO COM LAYOUT APRIMORADO
   Widget _buildTimePickerPage({
     required double screenWidth,
-    required double screenHeight,
   }) {
     // Função auxiliar para formatar a data de forma amigável
     String _formatFirstDoseDate() {
@@ -788,7 +899,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   // NOVO MÉTODO COM DESIGN UNIFICADO
   Widget _buildIntervalPickerPage({
     required double screenWidth,
-    required double screenHeight,
   }) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
@@ -873,6 +983,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                       Expanded(
                         child: TextFormField(
                           controller: _treatmentLengthController,
+                          focusNode: _treatmentLengthFocusNode,
                           enabled: !_isContinuous,
                           keyboardType: TextInputType.number,
                           maxLength: 3,
@@ -916,6 +1027,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   title: const Text('Uso constante'),
                   value: _isContinuous,
                   onChanged: (value) {
+                    HapticFeedback.lightImpact();
                     setState(() {
                       _isContinuous = value;
                       if (_isContinuous) {
@@ -935,58 +1047,10 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
     // A lista de páginas permanece a mesma
-    final List<Widget> formPages = [
-      Padding(
-          padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-          child: SingleChildScrollView(
-              child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Qual o nome do medicamento?',
-                  style: TextStyle(
-                      fontSize: screenWidth * 0.055,
-                      fontWeight: FontWeight.bold)),
-              SizedBox(height: screenWidth * 0.04),
-              TextFormField(
-                controller: _nameController,
-                keyboardType: TextInputType.text,
-                maxLength: 50,
-                inputFormatters: [LengthLimitingTextInputFormatter(50)],
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  counterText: "",
-                ),
-              ),
-              SizedBox(height: screenWidth * 0.06),
-              _buildImagePicker(),
-            ],
-          ))),
-      _buildTypeSelectionPage(screenWidth: screenWidth),
-      _buildDosePage(screenWidth: screenWidth, screenHeight: screenHeight),
-      _buildStockPage(screenWidth: screenWidth),
-      _buildTimePickerPage(
-          screenWidth: screenWidth, screenHeight: screenHeight),
-      if (!_isSingleDose) ...[
-        _buildIntervalPickerPage(
-            screenWidth: screenWidth, screenHeight: screenHeight),
-        _buildDurationPage(screenWidth: screenWidth),
-      ],
-      _buildFormPage(
-        title: 'Alguma observação?',
-        subtitle: 'Este campo é opcional',
-        controller: _notesController,
-        keyboardType: TextInputType.multiline,
-        screenWidth: screenWidth,
-        isLastPage: true,
-        maxLength: 500,
-        inputFormatters: [LengthLimitingTextInputFormatter(500)],
-      ),
-    ];
+    final List<Widget> formPages = _buildFormPages();
 
     // --- ESTRUTURA PRINCIPAL ALTERADA ---
     return GestureDetector(
@@ -1041,6 +1105,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                     // Botão Anterior
                     ElevatedButton(
                       onPressed: () {
+                        HapticFeedback.lightImpact();
                         FocusScope.of(context).unfocus();
                         _pageController.previousPage(
                             duration: const Duration(milliseconds: 300),
@@ -1093,6 +1158,9 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                               if (_currentPage == 1) {
                                 _preselectDoseUnit();
                               }
+
+                              _handleFocusRequest(_currentPage + 1);
+
                               _pageController.nextPage(
                                   duration: const Duration(milliseconds: 300),
                                   curve: Curves.easeIn);
@@ -1109,8 +1177,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     );
   }
 
-  // Adicione este método dentro da classe _AddMedicationScreenState
-  // Substitua o método inteiro por este
   Widget _buildImagePicker() {
     return Center(
       child: Column(
