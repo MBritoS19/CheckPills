@@ -167,7 +167,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         }
         break;
       case 2: // Validação com o novo controller
-        isValid = _doseQuantityController.text.isNotEmpty;
+        final quantity = int.tryParse(_doseQuantityController.text);
+        isValid = quantity != null && quantity > 0;
         break;
       case 3:
         isValid = _dontTrackStock || _stockController.text.isNotEmpty;
@@ -235,21 +236,27 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                       style: const TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 18),
                       // 1. Apenas dígitos são permitidos
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      maxLength: 3,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(3),
+                      ],
                       decoration: const InputDecoration(
                         labelText: "A cada",
                         border: OutlineInputBorder(),
+                        counterText: "",
                       ),
                       // 2. Validação do valor
                       validator: (value) {
+                        // O validator continua o mesmo e funciona em conjunto
                         if (value == null || value.isEmpty) {
                           return 'Obrigatório';
                         }
                         final number = int.tryParse(value);
                         if (number == null || number <= 0) {
-                          return 'Deve ser maior 0';
+                          return 'Deve ser > 0';
                         }
-                        return null; // Sem erros
+                        return null;
                       },
                       onSaved: (value) {
                         // Salva o valor quando o formulário for válido
@@ -354,10 +361,15 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                     controller: _stockController,
                     enabled: !_dontTrackStock,
                     keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    maxLength: 6,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(6),
+                    ],
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                       labelText: 'Quantidade em estoque',
+                      counterText: "",
                     ),
                   ),
                 ),
@@ -457,6 +469,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     required TextInputType keyboardType,
     required double screenWidth,
     bool isLastPage = false,
+    int? maxLength, // PARÂMETRO NOVO
+    List<TextInputFormatter>? inputFormatters, // PARÂMETRO NOVO
   }) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
@@ -480,6 +494,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               controller: controller,
               keyboardType: keyboardType,
               maxLines: keyboardType == TextInputType.multiline ? 3 : 1,
+              maxLength: maxLength,
+              inputFormatters: inputFormatters,
               decoration: const InputDecoration(border: OutlineInputBorder()),
             ),
           ],
@@ -537,9 +553,12 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               const SizedBox(height: 24),
               TextFormField(
                 controller: _customTypeController,
+                maxLength: 30,
+                inputFormatters: [LengthLimitingTextInputFormatter(30)],
                 decoration: const InputDecoration(
                   labelText: 'Digite o tipo do medicamento',
                   border: OutlineInputBorder(),
+                  counterText: "",
                 ),
               ),
             ]
@@ -574,8 +593,15 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   child: TextFormField(
                     controller: _doseQuantityController,
                     keyboardType: TextInputType.number,
-                    decoration:
-                        const InputDecoration(border: OutlineInputBorder()),
+                    maxLength: 4,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(4),
+                    ],
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      counterText: "", // Esconde o contador padrão
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -817,94 +843,95 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   }
 
   // NOVO MÉTODO COM DESIGN UNIFICADO E VALIDAÇÃO
-Widget _buildDurationPage({
-  required double screenWidth,
-}) {
-  final units = ['Dias', 'Semanas', 'Meses', 'Anos'];
+  Widget _buildDurationPage({
+    required double screenWidth,
+  }) {
+    final units = ['Dias', 'Semanas', 'Meses', 'Anos'];
 
-  return Padding(
-    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text('Qual a duração do tratamento?',
-            style: TextStyle(
-                fontSize: screenWidth * 0.055,
-                fontWeight: FontWeight.bold)),
-        const SizedBox(height: 24),
-
-        Card(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            side: BorderSide(color: Theme.of(context).dividerColor),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _treatmentLengthController,
-                        enabled: !_isContinuous,
-                        keyboardType: TextInputType.number,
-                        // Validação proativa para aceitar apenas números
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly
-                        ],
-                        decoration: const InputDecoration(
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Qual a duração do tratamento?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 24),
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              side: BorderSide(color: Theme.of(context).dividerColor),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _treatmentLengthController,
+                          enabled: !_isContinuous,
+                          keyboardType: TextInputType.number,
+                          maxLength: 3,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(3),
+                          ],
+                          decoration: const InputDecoration(
                             labelText: 'Duração',
-                            border: OutlineInputBorder()),
+                            border: OutlineInputBorder(),
+                            counterText: "",
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedTreatmentUnit,
-                        onChanged: _isContinuous
-                            ? null
-                            : (value) {
-                                setState(() {
-                                  _selectedTreatmentUnit = value!;
-                                });
-                              },
-                        items: units.map((unit) {
-                          return DropdownMenuItem(
-                              value: unit, child: Text(unit));
-                        }).toList(),
-                        decoration: const InputDecoration(
-                            labelText: 'Unidade',
-                            border: OutlineInputBorder()),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedTreatmentUnit,
+                          onChanged: _isContinuous
+                              ? null
+                              : (value) {
+                                  setState(() {
+                                    _selectedTreatmentUnit = value!;
+                                  });
+                                },
+                          items: units.map((unit) {
+                            return DropdownMenuItem(
+                                value: unit, child: Text(unit));
+                          }).toList(),
+                          decoration: const InputDecoration(
+                              labelText: 'Unidade',
+                              border: OutlineInputBorder()),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
 
-              // Substituindo o Checkbox pelo Switch para consistência
-              SwitchListTile(
-                title: const Text('Uso constante'),
-                value: _isContinuous,
-                onChanged: (value) {
-                  setState(() {
-                    _isContinuous = value;
-                    if (_isContinuous) {
-                      _treatmentLengthController.clear();
-                    }
-                    _validatePage();
-                  });
-                },
-              ),
-            ],
+                // Substituindo o Checkbox pelo Switch para consistência
+                SwitchListTile(
+                  title: const Text('Uso constante'),
+                  value: _isContinuous,
+                  onChanged: (value) {
+                    setState(() {
+                      _isContinuous = value;
+                      if (_isContinuous) {
+                        _treatmentLengthController.clear();
+                      }
+                      _validatePage();
+                    });
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -928,7 +955,12 @@ Widget _buildDurationPage({
               TextFormField(
                 controller: _nameController,
                 keyboardType: TextInputType.text,
-                decoration: const InputDecoration(border: OutlineInputBorder()),
+                maxLength: 50,
+                inputFormatters: [LengthLimitingTextInputFormatter(50)],
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  counterText: "",
+                ),
               ),
               SizedBox(height: screenWidth * 0.06),
               _buildImagePicker(),
@@ -945,12 +977,15 @@ Widget _buildDurationPage({
         _buildDurationPage(screenWidth: screenWidth),
       ],
       _buildFormPage(
-          title: 'Alguma observação?',
-          subtitle: 'Este campo é opcional',
-          controller: _notesController,
-          keyboardType: TextInputType.multiline,
-          screenWidth: screenWidth,
-          isLastPage: true),
+        title: 'Alguma observação?',
+        subtitle: 'Este campo é opcional',
+        controller: _notesController,
+        keyboardType: TextInputType.multiline,
+        screenWidth: screenWidth,
+        isLastPage: true,
+        maxLength: 500,
+        inputFormatters: [LengthLimitingTextInputFormatter(500)],
+      ),
     ];
 
     // --- ESTRUTURA PRINCIPAL ALTERADA ---
@@ -992,17 +1027,41 @@ Widget _buildDurationPage({
 
             // Botões de navegação no final
             if (_currentPage == formPages.length - 1)
+              // NOVO CONTEÚDO PARA O 'IF'
               Padding(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth * 0.04,
-                      vertical: screenWidth * 0.02),
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                        minimumSize: Size.fromHeight(screenHeight * 0.06)),
-                    // O restante do estilo (cores) virá do tema global.
-                    onPressed: _onSave,
-                    child: const Text('Salvar Medicamento'),
-                  ))
+                padding: EdgeInsets.fromLTRB(
+                  screenWidth * 0.04,
+                  screenWidth * 0.04,
+                  screenWidth * 0.04,
+                  screenWidth * 0.04 + 12,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Botão Anterior
+                    ElevatedButton(
+                      onPressed: () {
+                        FocusScope.of(context).unfocus();
+                        _pageController.previousPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeIn);
+                      },
+                      child: const Text('Anterior'),
+                    ),
+                    // Botão Salvar (com mais destaque)
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            Theme.of(context).colorScheme.secondary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onSecondary,
+                      ),
+                      onPressed: _onSave,
+                      child: const Text('Salvar Medicamento'),
+                    ),
+                  ],
+                ),
+              )
             else // Mostra os botões Anterior/Próximo
               Padding(
                 padding: EdgeInsets.fromLTRB(
