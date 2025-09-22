@@ -323,52 +323,64 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
   // Adicione este método inteiro na classe
 
+  // NOVO MÉTODO COM DESIGN UNIFICADO
   Widget _buildStockPage({
     required double screenWidth,
   }) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Quantas doses você tem em estoque?',
-                style: TextStyle(
-                    fontSize: screenWidth * 0.055,
-                    fontWeight: FontWeight.bold)),
-            SizedBox(height: screenWidth * 0.06),
-            TextFormField(
-              controller: _stockController,
-              enabled:
-                  !_dontTrackStock, // Desabilitado se o checkbox estiver marcado
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                fillColor:
-                    _dontTrackStock ? Colors.grey[200] : Colors.transparent,
-                filled: true,
-              ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Quantas doses você tem em estoque?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 24),
+
+          // PASSO 1.1: Container Principal com Card
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              side: BorderSide(color: Theme.of(context).dividerColor),
+              borderRadius: BorderRadius.circular(12),
             ),
-            CheckboxListTile(
-              title: const Text('Não controlar estoque'),
-              value: _dontTrackStock,
-              onChanged: (value) {
-                setState(() {
-                  _dontTrackStock = value!;
-                  if (_dontTrackStock) {
-                    _stockController.clear(); // Limpa o campo ao marcar
-                    FocusScope.of(context).unfocus();
-                  }
-                  _validatePage(); // Revalida a página
-                });
-              },
-              activeColor: Theme.of(context).colorScheme.primary,
-              controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                // PASSO 1.3: Organização Interna
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: TextFormField(
+                    controller: _stockController,
+                    enabled: !_dontTrackStock,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Quantidade em estoque',
+                    ),
+                  ),
+                ),
+
+                // PASSO 1.2: Modernização do Controle com SwitchListTile
+                SwitchListTile(
+                  title: const Text('Não controlar estoque'),
+                  value: _dontTrackStock,
+                  onChanged: (value) {
+                    setState(() {
+                      _dontTrackStock = value;
+                      if (_dontTrackStock) {
+                        _stockController.clear();
+                        FocusScope.of(context).unfocus();
+                      }
+                      _validatePage();
+                    });
+                  },
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -601,8 +613,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     );
   }
 
-  // Substitua o método inteiro por este
-  // Substitua o método inteiro por este
+  // NOVO MÉTODO COM LAYOUT APRIMORADO
   Widget _buildTimePickerPage({
     required double screenWidth,
     required double screenHeight,
@@ -615,7 +626,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           _selectedFirstDoseDate.month, _selectedFirstDoseDate.day);
 
       if (selectedDay == today) {
-        return 'Hoje, ${DateFormat('d \'de\' MMMM', 'pt_BR').format(_selectedFirstDoseDate)}';
+        return 'Hoje';
       } else {
         return DateFormat('E, d \'de\' MMMM', 'pt_BR')
             .format(_selectedFirstDoseDate);
@@ -633,57 +644,102 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                 style: TextStyle(
                     fontSize: screenWidth * 0.055,
                     fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            Text('Data da primeira dose',
-                style: TextStyle(color: Colors.grey[700])),
-            const SizedBox(height: 8),
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onPressed: () async {
-                // Mostra o pop-up do calendário e espera o usuário escolher uma data
-                final pickedDate = await showDatePicker(
-                  context: context,
-                  locale: const Locale('pt', 'BR'), // Garante o idioma
-                  initialDate: _selectedFirstDoseDate,
-                  firstDate: DateTime
-                      .now(), // Não permite escolher uma data no passado
-                  lastDate: DateTime(2101),
-                );
+            const SizedBox(height: 24),
 
-                // Se o usuário escolheu uma data, atualiza o estado
-                if (pickedDate != null) {
-                  setState(() {
-                    _selectedFirstDoseDate = pickedDate;
-                  });
-                }
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // PASSO 1: Agrupamento Visual com Card
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                side: BorderSide(color: Theme.of(context).dividerColor),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: Text(
-                      _formatFirstDoseDate(),
-                      // --- CORREÇÃO AQUI ---
-                      // Removemos a cor fixa para que o texto se adapte ao tema
-                      style: const TextStyle(fontSize: 16),
+                  // PASSO 2 e 3: Layout em Linha e Área de Toque
+                  InkWell(
+                    onTap: () async {
+                      final pickedDate = await showDatePicker(
+                        context: context,
+                        locale: const Locale('pt', 'BR'),
+                        initialDate: _selectedFirstDoseDate,
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2101),
+                      );
+                      if (pickedDate != null) {
+                        setState(() {
+                          _selectedFirstDoseDate = pickedDate;
+                        });
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today_outlined),
+                          const SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("Data",
+                                  style: Theme.of(context).textTheme.bodySmall),
+                              Text(_formatFirstDoseDate(),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.only(right: 8.0),
-                    child: Icon(Icons.calendar_today_outlined),
+                  const Divider(height: 1),
+                  InkWell(
+                    onTap: () async {
+                      final pickedTime = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay(
+                            hour: _selectedHour, minute: _selectedMinute),
+                        helpText: 'SELECIONE O HORÁRIO',
+                      );
+                      if (pickedTime != null) {
+                        setState(() {
+                          _selectedHour = pickedTime.hour;
+                          _selectedMinute = pickedTime.minute;
+                        });
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.access_time_outlined),
+                          const SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("Horário",
+                                  style: Theme.of(context).textTheme.bodySmall),
+                              Text(
+                                '${_selectedHour.toString().padLeft(2, '0')}:${_selectedMinute.toString().padLeft(2, '0')}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
 
-            // Checkbox que já existia
+            // PASSO 4: Posicionamento do Checkbox
             CheckboxListTile(
               title: const Text('Uma dose apenas'),
               value: _isSingleDose,
@@ -697,60 +753,13 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               controlAffinity: ListTileControlAffinity.leading,
               contentPadding: EdgeInsets.zero,
             ),
-
-            const SizedBox(height: 24),
-            Text('Horário da primeira dose',
-                style: TextStyle(color: Colors.grey[700])),
-            const SizedBox(height: 8),
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onPressed: () async {
-                // Abre o pop-up de relógio nativo
-                final pickedTime = await showTimePicker(
-                  context: context,
-                  initialTime:
-                      TimeOfDay(hour: _selectedHour, minute: _selectedMinute),
-                  helpText: 'SELECIONE O HORÁRIO',
-                );
-
-                // Se o usuário escolher um horário, atualiza o estado
-                if (pickedTime != null) {
-                  setState(() {
-                    _selectedHour = pickedTime.hour;
-                    _selectedMinute = pickedTime.minute;
-                  });
-                }
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: Text(
-                      // Formata o horário para exibir com 2 dígitos (ex: 08:05)
-                      '${_selectedHour.toString().padLeft(2, '0')}:${_selectedMinute.toString().padLeft(2, '0')}',
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.only(right: 8.0),
-                    child: Icon(Icons.access_time_outlined),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),
     );
   }
 
+  // NOVO MÉTODO COM DESIGN UNIFICADO
   Widget _buildIntervalPickerPage({
     required double screenWidth,
     required double screenHeight,
@@ -764,32 +773,42 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           Text('Qual o intervalo entre as doses?',
               style: TextStyle(
                   fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
-          SizedBox(height: screenWidth * 0.06),
-          OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+          const SizedBox(height: 24),
+
+          // Aplicando o mesmo design de Card da tela de Data/Hora
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              side: BorderSide(color: Theme.of(context).dividerColor),
+              borderRadius: BorderRadius.circular(12),
             ),
-            onPressed: _showIntervalPickerModal, // Chama nosso novo método
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: Text(
-                    // Exibe o estado atual de forma amigável
-                    'A cada $_intervalValue $_selectedIntervalUnit',
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              // A linha inteira agora chama o modal que já tínhamos pronto
+              onTap: _showIntervalPickerModal,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.timer_outlined),
+                    const SizedBox(width: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Intervalo",
+                            style: Theme.of(context).textTheme.bodySmall),
+                        Text(
+                          'A cada $_intervalValue $_selectedIntervalUnit',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                const Padding(
-                  padding: EdgeInsets.only(right: 8.0),
-                  child: Icon(Icons.edit_calendar_outlined),
-                ),
-              ],
+              ),
             ),
           ),
         ],
@@ -797,76 +816,95 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     );
   }
 
-  Widget _buildDurationPage({
-    required double screenWidth,
-  }) {
-    final units = ['Dias', 'Semanas', 'Meses', 'Anos'];
+  // NOVO MÉTODO COM DESIGN UNIFICADO E VALIDAÇÃO
+Widget _buildDurationPage({
+  required double screenWidth,
+}) {
+  final units = ['Dias', 'Semanas', 'Meses', 'Anos'];
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Qual a duração do tratamento?',
-                style: TextStyle(
-                    fontSize: screenWidth * 0.055,
-                    fontWeight: FontWeight.bold)),
-            SizedBox(height: screenWidth * 0.06),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _treatmentLengthController,
-                    enabled: !_isContinuous,
-                    keyboardType: TextInputType.number,
-                    decoration:
-                        const InputDecoration(border: OutlineInputBorder()),
-                  ),
+  return Padding(
+    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text('Qual a duração do tratamento?',
+            style: TextStyle(
+                fontSize: screenWidth * 0.055,
+                fontWeight: FontWeight.bold)),
+        const SizedBox(height: 24),
+
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            side: BorderSide(color: Theme.of(context).dividerColor),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _treatmentLengthController,
+                        enabled: !_isContinuous,
+                        keyboardType: TextInputType.number,
+                        // Validação proativa para aceitar apenas números
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                        decoration: const InputDecoration(
+                            labelText: 'Duração',
+                            border: OutlineInputBorder()),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedTreatmentUnit,
+                        onChanged: _isContinuous
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _selectedTreatmentUnit = value!;
+                                });
+                              },
+                        items: units.map((unit) {
+                          return DropdownMenuItem(
+                              value: unit, child: Text(unit));
+                        }).toList(),
+                        decoration: const InputDecoration(
+                            labelText: 'Unidade',
+                            border: OutlineInputBorder()),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    // CORREÇÃO: `value` trocado por `initialValue`
-                    initialValue: _selectedTreatmentUnit,
-                    onChanged: _isContinuous
-                        ? null
-                        : (value) {
-                            setState(() {
-                              _selectedTreatmentUnit = value!;
-                            });
-                          },
-                    items: units.map((unit) {
-                      return DropdownMenuItem(value: unit, child: Text(unit));
-                    }).toList(),
-                    decoration:
-                        const InputDecoration(border: OutlineInputBorder()),
-                  ),
-                ),
-              ],
-            ),
-            CheckboxListTile(
-              title: const Text('Uso constante'),
-              value: _isContinuous,
-              onChanged: (value) {
-                setState(() {
-                  _isContinuous = value!;
-                  if (_isContinuous) {
-                    _treatmentLengthController.clear();
-                    _selectedTreatmentUnit = 'Dias';
-                  }
-                  _validatePage(); // Revalida a página ao mudar o checkbox
-                });
-              },
-              activeColor: Theme.of(context).colorScheme.primary,
-              controlAffinity: ListTileControlAffinity.leading,
-            ),
-          ],
+              ),
+
+              // Substituindo o Checkbox pelo Switch para consistência
+              SwitchListTile(
+                title: const Text('Uso constante'),
+                value: _isContinuous,
+                onChanged: (value) {
+                  setState(() {
+                    _isContinuous = value;
+                    if (_isContinuous) {
+                      _treatmentLengthController.clear();
+                    }
+                    _validatePage();
+                  });
+                },
+              ),
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      ],
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
