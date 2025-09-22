@@ -109,6 +109,43 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     }
   }
 
+  // ADICIONE ESTES DOIS MÉTODOS
+
+  void _showImageSourceSheet() {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.camera_alt),
+            title: const Text('Tirar Foto'),
+            onTap: () {
+              Navigator.of(ctx).pop();
+              _pickAndSaveImage(ImageSource.camera);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library),
+            title: const Text('Escolher da Galeria'),
+            onTap: () {
+              Navigator.of(ctx).pop();
+              _pickAndSaveImage(ImageSource.gallery);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _removeImage() {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _imagePath = null;
+    });
+  }
+
   void _prefillFields() {
     final p = widget.prescription!;
     _imagePath = p.imagePath;
@@ -1178,67 +1215,77 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   }
 
   Widget _buildImagePicker() {
-    return Center(
-      child: Column(
-        children: [
-          if (_imagePath == null)
-            // Se não houver imagem, mostra um placeholder adaptado ao tema
-            Container(
-              height: 120,
-              width: 120,
-              decoration: BoxDecoration(
-                // NOVO: Usa a cor do card do tema (branco no claro, cinza escuro no escuro)
-                color: Theme.of(context).cardTheme.color,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.grey[400]!),
-              ),
-              child: Icon(
-                Icons.image_outlined,
-                size: 50,
-                color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
-              ),
-            )
-          else
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.file(
-                File(_imagePath!),
-                width: 120,
-                height: 120,
-                fit: BoxFit.cover,
-              ),
+    return AspectRatio(
+      aspectRatio: 1.0, // Garante que o widget seja sempre um quadrado
+      child: GestureDetector(
+        // Se não houver imagem, o toque abre o seletor
+        onTap: _imagePath == null ? _showImageSourceSheet : null,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Theme.of(context).dividerColor),
+              borderRadius: BorderRadius.circular(12),
             ),
-          const SizedBox(height: 10),
-          ElevatedButton(
-            onPressed: () {
-              showModalBottomSheet(
-                context: context,
-                builder: (ctx) => Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.camera_alt),
-                      title: const Text('Tirar Foto'),
-                      onTap: () {
-                        Navigator.of(ctx).pop();
-                        _pickAndSaveImage(ImageSource.camera);
-                      },
+            child: _imagePath == null
+                // Cenário A: Sem Imagem (Placeholder)
+                ? Center(
+                    child: Icon(
+                      Icons.add_a_photo_outlined,
+                      size: 50,
+                      color:
+                          Theme.of(context).iconTheme.color?.withOpacity(0.6),
                     ),
-                    ListTile(
-                      leading: const Icon(Icons.photo_library),
-                      title: const Text('Escolher da Galeria'),
-                      onTap: () {
-                        Navigator.of(ctx).pop();
-                        _pickAndSaveImage(ImageSource.gallery);
-                      },
-                    ),
-                  ],
-                ),
-              );
-            },
-            child: Text(_imagePath == null ? 'Adicionar Foto' : 'Alterar Foto'),
+                  )
+                // Cenário B: Com Imagem (Stack com overlays)
+                : Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.file(
+                        File(_imagePath!),
+                        fit: BoxFit.cover,
+                      ),
+                      // Gradiente para garantir a visibilidade dos ícones
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.black.withOpacity(0.6),
+                              Colors.transparent
+                            ],
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.center,
+                          ),
+                        ),
+                      ),
+                      // Botões de Ação Sobrepostos
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              IconButton(
+                                icon:
+                                    const Icon(Icons.edit, color: Colors.white),
+                                onPressed: _showImageSourceSheet,
+                                tooltip: 'Alterar Imagem',
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete,
+                                    color: Colors.white),
+                                onPressed: _removeImage,
+                                tooltip: 'Remover Imagem',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
           ),
-        ],
+        ),
       ),
     );
   }
