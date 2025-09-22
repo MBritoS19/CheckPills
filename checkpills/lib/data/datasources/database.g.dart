@@ -612,12 +612,22 @@ class $PrescriptionsTable extends Prescriptions
   late final GeneratedColumn<int> stock = GeneratedColumn<int>(
       'stock', aliasedName, false,
       type: DriftSqlType.int, requiredDuringInsert: true);
-  static const VerificationMeta _doseIntervalMeta =
-      const VerificationMeta('doseInterval');
+  static const VerificationMeta _intervalValueMeta =
+      const VerificationMeta('intervalValue');
   @override
-  late final GeneratedColumn<int> doseInterval = GeneratedColumn<int>(
-      'dose_interval', aliasedName, false,
-      type: DriftSqlType.int, requiredDuringInsert: true);
+  late final GeneratedColumn<int> intervalValue = GeneratedColumn<int>(
+      'interval_value', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(8));
+  static const VerificationMeta _intervalUnitMeta =
+      const VerificationMeta('intervalUnit');
+  @override
+  late final GeneratedColumn<String> intervalUnit = GeneratedColumn<String>(
+      'interval_unit', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('Horas'));
   static const VerificationMeta _isContinuousMeta =
       const VerificationMeta('isContinuous');
   @override
@@ -680,7 +690,8 @@ class $PrescriptionsTable extends Prescriptions
         doseDescription,
         type,
         stock,
-        doseInterval,
+        intervalValue,
+        intervalUnit,
         isContinuous,
         durationTreatment,
         unitTreatment,
@@ -735,13 +746,17 @@ class $PrescriptionsTable extends Prescriptions
     } else if (isInserting) {
       context.missing(_stockMeta);
     }
-    if (data.containsKey('dose_interval')) {
+    if (data.containsKey('interval_value')) {
       context.handle(
-          _doseIntervalMeta,
-          doseInterval.isAcceptableOrUnknown(
-              data['dose_interval']!, _doseIntervalMeta));
-    } else if (isInserting) {
-      context.missing(_doseIntervalMeta);
+          _intervalValueMeta,
+          intervalValue.isAcceptableOrUnknown(
+              data['interval_value']!, _intervalValueMeta));
+    }
+    if (data.containsKey('interval_unit')) {
+      context.handle(
+          _intervalUnitMeta,
+          intervalUnit.isAcceptableOrUnknown(
+              data['interval_unit']!, _intervalUnitMeta));
     }
     if (data.containsKey('is_continuous')) {
       context.handle(
@@ -808,8 +823,10 @@ class $PrescriptionsTable extends Prescriptions
           .read(DriftSqlType.string, data['${effectivePrefix}type'])!,
       stock: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}stock'])!,
-      doseInterval: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}dose_interval'])!,
+      intervalValue: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}interval_value'])!,
+      intervalUnit: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}interval_unit'])!,
       isContinuous: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_continuous'])!,
       durationTreatment: attachedDatabase.typeMapping
@@ -842,7 +859,8 @@ class Prescription extends DataClass implements Insertable<Prescription> {
   final String doseDescription;
   final String type;
   final int stock;
-  final int doseInterval;
+  final int intervalValue;
+  final String intervalUnit;
   final bool isContinuous;
   final int? durationTreatment;
   final String? unitTreatment;
@@ -858,7 +876,8 @@ class Prescription extends DataClass implements Insertable<Prescription> {
       required this.doseDescription,
       required this.type,
       required this.stock,
-      required this.doseInterval,
+      required this.intervalValue,
+      required this.intervalUnit,
       required this.isContinuous,
       this.durationTreatment,
       this.unitTreatment,
@@ -876,7 +895,8 @@ class Prescription extends DataClass implements Insertable<Prescription> {
     map['dose_description'] = Variable<String>(doseDescription);
     map['type'] = Variable<String>(type);
     map['stock'] = Variable<int>(stock);
-    map['dose_interval'] = Variable<int>(doseInterval);
+    map['interval_value'] = Variable<int>(intervalValue);
+    map['interval_unit'] = Variable<String>(intervalUnit);
     map['is_continuous'] = Variable<bool>(isContinuous);
     if (!nullToAbsent || durationTreatment != null) {
       map['duration_treatment'] = Variable<int>(durationTreatment);
@@ -904,7 +924,8 @@ class Prescription extends DataClass implements Insertable<Prescription> {
       doseDescription: Value(doseDescription),
       type: Value(type),
       stock: Value(stock),
-      doseInterval: Value(doseInterval),
+      intervalValue: Value(intervalValue),
+      intervalUnit: Value(intervalUnit),
       isContinuous: Value(isContinuous),
       durationTreatment: durationTreatment == null && nullToAbsent
           ? const Value.absent()
@@ -933,7 +954,8 @@ class Prescription extends DataClass implements Insertable<Prescription> {
       doseDescription: serializer.fromJson<String>(json['doseDescription']),
       type: serializer.fromJson<String>(json['type']),
       stock: serializer.fromJson<int>(json['stock']),
-      doseInterval: serializer.fromJson<int>(json['doseInterval']),
+      intervalValue: serializer.fromJson<int>(json['intervalValue']),
+      intervalUnit: serializer.fromJson<String>(json['intervalUnit']),
       isContinuous: serializer.fromJson<bool>(json['isContinuous']),
       durationTreatment: serializer.fromJson<int?>(json['durationTreatment']),
       unitTreatment: serializer.fromJson<String?>(json['unitTreatment']),
@@ -954,7 +976,8 @@ class Prescription extends DataClass implements Insertable<Prescription> {
       'doseDescription': serializer.toJson<String>(doseDescription),
       'type': serializer.toJson<String>(type),
       'stock': serializer.toJson<int>(stock),
-      'doseInterval': serializer.toJson<int>(doseInterval),
+      'intervalValue': serializer.toJson<int>(intervalValue),
+      'intervalUnit': serializer.toJson<String>(intervalUnit),
       'isContinuous': serializer.toJson<bool>(isContinuous),
       'durationTreatment': serializer.toJson<int?>(durationTreatment),
       'unitTreatment': serializer.toJson<String?>(unitTreatment),
@@ -973,7 +996,8 @@ class Prescription extends DataClass implements Insertable<Prescription> {
           String? doseDescription,
           String? type,
           int? stock,
-          int? doseInterval,
+          int? intervalValue,
+          String? intervalUnit,
           bool? isContinuous,
           Value<int?> durationTreatment = const Value.absent(),
           Value<String?> unitTreatment = const Value.absent(),
@@ -989,7 +1013,8 @@ class Prescription extends DataClass implements Insertable<Prescription> {
         doseDescription: doseDescription ?? this.doseDescription,
         type: type ?? this.type,
         stock: stock ?? this.stock,
-        doseInterval: doseInterval ?? this.doseInterval,
+        intervalValue: intervalValue ?? this.intervalValue,
+        intervalUnit: intervalUnit ?? this.intervalUnit,
         isContinuous: isContinuous ?? this.isContinuous,
         durationTreatment: durationTreatment.present
             ? durationTreatment.value
@@ -1012,9 +1037,12 @@ class Prescription extends DataClass implements Insertable<Prescription> {
           : this.doseDescription,
       type: data.type.present ? data.type.value : this.type,
       stock: data.stock.present ? data.stock.value : this.stock,
-      doseInterval: data.doseInterval.present
-          ? data.doseInterval.value
-          : this.doseInterval,
+      intervalValue: data.intervalValue.present
+          ? data.intervalValue.value
+          : this.intervalValue,
+      intervalUnit: data.intervalUnit.present
+          ? data.intervalUnit.value
+          : this.intervalUnit,
       isContinuous: data.isContinuous.present
           ? data.isContinuous.value
           : this.isContinuous,
@@ -1043,7 +1071,8 @@ class Prescription extends DataClass implements Insertable<Prescription> {
           ..write('doseDescription: $doseDescription, ')
           ..write('type: $type, ')
           ..write('stock: $stock, ')
-          ..write('doseInterval: $doseInterval, ')
+          ..write('intervalValue: $intervalValue, ')
+          ..write('intervalUnit: $intervalUnit, ')
           ..write('isContinuous: $isContinuous, ')
           ..write('durationTreatment: $durationTreatment, ')
           ..write('unitTreatment: $unitTreatment, ')
@@ -1064,7 +1093,8 @@ class Prescription extends DataClass implements Insertable<Prescription> {
       doseDescription,
       type,
       stock,
-      doseInterval,
+      intervalValue,
+      intervalUnit,
       isContinuous,
       durationTreatment,
       unitTreatment,
@@ -1083,7 +1113,8 @@ class Prescription extends DataClass implements Insertable<Prescription> {
           other.doseDescription == this.doseDescription &&
           other.type == this.type &&
           other.stock == this.stock &&
-          other.doseInterval == this.doseInterval &&
+          other.intervalValue == this.intervalValue &&
+          other.intervalUnit == this.intervalUnit &&
           other.isContinuous == this.isContinuous &&
           other.durationTreatment == this.durationTreatment &&
           other.unitTreatment == this.unitTreatment &&
@@ -1101,7 +1132,8 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
   final Value<String> doseDescription;
   final Value<String> type;
   final Value<int> stock;
-  final Value<int> doseInterval;
+  final Value<int> intervalValue;
+  final Value<String> intervalUnit;
   final Value<bool> isContinuous;
   final Value<int?> durationTreatment;
   final Value<String?> unitTreatment;
@@ -1117,7 +1149,8 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
     this.doseDescription = const Value.absent(),
     this.type = const Value.absent(),
     this.stock = const Value.absent(),
-    this.doseInterval = const Value.absent(),
+    this.intervalValue = const Value.absent(),
+    this.intervalUnit = const Value.absent(),
     this.isContinuous = const Value.absent(),
     this.durationTreatment = const Value.absent(),
     this.unitTreatment = const Value.absent(),
@@ -1134,7 +1167,8 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
     required String doseDescription,
     required String type,
     required int stock,
-    required int doseInterval,
+    this.intervalValue = const Value.absent(),
+    this.intervalUnit = const Value.absent(),
     required bool isContinuous,
     this.durationTreatment = const Value.absent(),
     this.unitTreatment = const Value.absent(),
@@ -1148,7 +1182,6 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
         doseDescription = Value(doseDescription),
         type = Value(type),
         stock = Value(stock),
-        doseInterval = Value(doseInterval),
         isContinuous = Value(isContinuous),
         firstDoseTime = Value(firstDoseTime);
   static Insertable<Prescription> custom({
@@ -1158,7 +1191,8 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
     Expression<String>? doseDescription,
     Expression<String>? type,
     Expression<int>? stock,
-    Expression<int>? doseInterval,
+    Expression<int>? intervalValue,
+    Expression<String>? intervalUnit,
     Expression<bool>? isContinuous,
     Expression<int>? durationTreatment,
     Expression<String>? unitTreatment,
@@ -1175,7 +1209,8 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
       if (doseDescription != null) 'dose_description': doseDescription,
       if (type != null) 'type': type,
       if (stock != null) 'stock': stock,
-      if (doseInterval != null) 'dose_interval': doseInterval,
+      if (intervalValue != null) 'interval_value': intervalValue,
+      if (intervalUnit != null) 'interval_unit': intervalUnit,
       if (isContinuous != null) 'is_continuous': isContinuous,
       if (durationTreatment != null) 'duration_treatment': durationTreatment,
       if (unitTreatment != null) 'unit_treatment': unitTreatment,
@@ -1194,7 +1229,8 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
       Value<String>? doseDescription,
       Value<String>? type,
       Value<int>? stock,
-      Value<int>? doseInterval,
+      Value<int>? intervalValue,
+      Value<String>? intervalUnit,
       Value<bool>? isContinuous,
       Value<int?>? durationTreatment,
       Value<String?>? unitTreatment,
@@ -1210,7 +1246,8 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
       doseDescription: doseDescription ?? this.doseDescription,
       type: type ?? this.type,
       stock: stock ?? this.stock,
-      doseInterval: doseInterval ?? this.doseInterval,
+      intervalValue: intervalValue ?? this.intervalValue,
+      intervalUnit: intervalUnit ?? this.intervalUnit,
       isContinuous: isContinuous ?? this.isContinuous,
       durationTreatment: durationTreatment ?? this.durationTreatment,
       unitTreatment: unitTreatment ?? this.unitTreatment,
@@ -1243,8 +1280,11 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
     if (stock.present) {
       map['stock'] = Variable<int>(stock.value);
     }
-    if (doseInterval.present) {
-      map['dose_interval'] = Variable<int>(doseInterval.value);
+    if (intervalValue.present) {
+      map['interval_value'] = Variable<int>(intervalValue.value);
+    }
+    if (intervalUnit.present) {
+      map['interval_unit'] = Variable<String>(intervalUnit.value);
     }
     if (isContinuous.present) {
       map['is_continuous'] = Variable<bool>(isContinuous.value);
@@ -1282,7 +1322,8 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
           ..write('doseDescription: $doseDescription, ')
           ..write('type: $type, ')
           ..write('stock: $stock, ')
-          ..write('doseInterval: $doseInterval, ')
+          ..write('intervalValue: $intervalValue, ')
+          ..write('intervalUnit: $intervalUnit, ')
           ..write('isContinuous: $isContinuous, ')
           ..write('durationTreatment: $durationTreatment, ')
           ..write('unitTreatment: $unitTreatment, ')
@@ -2318,7 +2359,8 @@ typedef $$PrescriptionsTableCreateCompanionBuilder = PrescriptionsCompanion
   required String doseDescription,
   required String type,
   required int stock,
-  required int doseInterval,
+  Value<int> intervalValue,
+  Value<String> intervalUnit,
   required bool isContinuous,
   Value<int?> durationTreatment,
   Value<String?> unitTreatment,
@@ -2336,7 +2378,8 @@ typedef $$PrescriptionsTableUpdateCompanionBuilder = PrescriptionsCompanion
   Value<String> doseDescription,
   Value<String> type,
   Value<int> stock,
-  Value<int> doseInterval,
+  Value<int> intervalValue,
+  Value<String> intervalUnit,
   Value<bool> isContinuous,
   Value<int?> durationTreatment,
   Value<String?> unitTreatment,
@@ -2407,8 +2450,11 @@ class $$PrescriptionsTableFilterComposer
   ColumnFilters<int> get stock => $composableBuilder(
       column: $table.stock, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get doseInterval => $composableBuilder(
-      column: $table.doseInterval, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get intervalValue => $composableBuilder(
+      column: $table.intervalValue, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get intervalUnit => $composableBuilder(
+      column: $table.intervalUnit, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get isContinuous => $composableBuilder(
       column: $table.isContinuous, builder: (column) => ColumnFilters(column));
@@ -2502,8 +2548,12 @@ class $$PrescriptionsTableOrderingComposer
   ColumnOrderings<int> get stock => $composableBuilder(
       column: $table.stock, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get doseInterval => $composableBuilder(
-      column: $table.doseInterval,
+  ColumnOrderings<int> get intervalValue => $composableBuilder(
+      column: $table.intervalValue,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get intervalUnit => $composableBuilder(
+      column: $table.intervalUnit,
       builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get isContinuous => $composableBuilder(
@@ -2579,8 +2629,11 @@ class $$PrescriptionsTableAnnotationComposer
   GeneratedColumn<int> get stock =>
       $composableBuilder(column: $table.stock, builder: (column) => column);
 
-  GeneratedColumn<int> get doseInterval => $composableBuilder(
-      column: $table.doseInterval, builder: (column) => column);
+  GeneratedColumn<int> get intervalValue => $composableBuilder(
+      column: $table.intervalValue, builder: (column) => column);
+
+  GeneratedColumn<String> get intervalUnit => $composableBuilder(
+      column: $table.intervalUnit, builder: (column) => column);
 
   GeneratedColumn<bool> get isContinuous => $composableBuilder(
       column: $table.isContinuous, builder: (column) => column);
@@ -2677,7 +2730,8 @@ class $$PrescriptionsTableTableManager extends RootTableManager<
             Value<String> doseDescription = const Value.absent(),
             Value<String> type = const Value.absent(),
             Value<int> stock = const Value.absent(),
-            Value<int> doseInterval = const Value.absent(),
+            Value<int> intervalValue = const Value.absent(),
+            Value<String> intervalUnit = const Value.absent(),
             Value<bool> isContinuous = const Value.absent(),
             Value<int?> durationTreatment = const Value.absent(),
             Value<String?> unitTreatment = const Value.absent(),
@@ -2694,7 +2748,8 @@ class $$PrescriptionsTableTableManager extends RootTableManager<
             doseDescription: doseDescription,
             type: type,
             stock: stock,
-            doseInterval: doseInterval,
+            intervalValue: intervalValue,
+            intervalUnit: intervalUnit,
             isContinuous: isContinuous,
             durationTreatment: durationTreatment,
             unitTreatment: unitTreatment,
@@ -2711,7 +2766,8 @@ class $$PrescriptionsTableTableManager extends RootTableManager<
             required String doseDescription,
             required String type,
             required int stock,
-            required int doseInterval,
+            Value<int> intervalValue = const Value.absent(),
+            Value<String> intervalUnit = const Value.absent(),
             required bool isContinuous,
             Value<int?> durationTreatment = const Value.absent(),
             Value<String?> unitTreatment = const Value.absent(),
@@ -2728,7 +2784,8 @@ class $$PrescriptionsTableTableManager extends RootTableManager<
             doseDescription: doseDescription,
             type: type,
             stock: stock,
-            doseInterval: doseInterval,
+            intervalValue: intervalValue,
+            intervalUnit: intervalUnit,
             isContinuous: isContinuous,
             durationTreatment: durationTreatment,
             unitTreatment: unitTreatment,

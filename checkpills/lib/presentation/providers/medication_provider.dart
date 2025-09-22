@@ -21,7 +21,8 @@ class MedicationProvider with ChangeNotifier {
   // Getters públicos
   List<Prescription> get prescriptionList => _prescriptionList;
   List<DoseEventWithPrescription> get doseEventsForDay => _doseEventsForDay;
-  Map<DateTime, List<DoseEventWithPrescription>> get eventsByDay => _eventsByDay;
+  Map<DateTime, List<DoseEventWithPrescription>> get eventsByDay =>
+      _eventsByDay;
 
   MedicationProvider({required this.database, required this.userProvider}) {
     userProvider.addListener(_loadDataForActiveUser);
@@ -142,7 +143,7 @@ class MedicationProvider with ChangeNotifier {
       null,
     );
 
-    if (prescription.doseInterval == 0) return;
+    if (prescription.intervalValue == 0) return;
 
     final lastDose = await database.doseEventsDao
         .getLastDoseEventForPrescription(prescription.id);
@@ -150,12 +151,10 @@ class MedicationProvider with ChangeNotifier {
     if (lastDose == null) return;
 
     final newFinalDoseTime =
-        lastDose.scheduledTime.add(Duration(minutes: prescription.doseInterval));
+        _calculateNextDoseTime(lastDose.scheduledTime, prescription);
 
     final endDate = _calculateTreatmentEndDate(prescription);
 
-    // --- AQUI ESTÁ A CORREÇÃO ---
-    // Alterado de .isBefore() para !.isAfter() para incluir o momento exato do fim
     if (!newFinalDoseTime.isAfter(endDate)) {
       final newDoseEvent = DoseEventsCompanion.insert(
         prescriptionId: prescription.id,
@@ -178,7 +177,7 @@ class MedicationProvider with ChangeNotifier {
     );
 
     // Se for dose única, não há o que remover
-    if (prescription.doseInterval == 0) return;
+    if (prescription.intervalValue == 0) return;
 
     // 2. Encontra a última dose agendada
     final lastDose = await database.doseEventsDao
@@ -199,7 +198,7 @@ class MedicationProvider with ChangeNotifier {
   }
 
   Future<void> _generateAndInsertDoseEvents(Prescription prescription) async {
-    if (prescription.doseInterval == 0) {
+    if (prescription.intervalValue == 0) {
       final newDoseEvent = DoseEventsCompanion.insert(
         prescriptionId: prescription.id,
         scheduledTime: prescription.firstDoseTime,
@@ -223,8 +222,33 @@ class MedicationProvider with ChangeNotifier {
       );
       await database.doseEventsDao.addDoseEvent(newDoseEvent);
 
-      nextDoseTime =
-          nextDoseTime.add(Duration(minutes: prescription.doseInterval));
+      nextDoseTime = _calculateNextDoseTime(nextDoseTime, prescription);
+    }
+  }
+
+  // NOVO MÉTODO AUXILIAR
+  DateTime _calculateNextDoseTime(
+      DateTime currentTime, Prescription prescription) {
+    switch (prescription.intervalUnit) {
+      case 'Horas':
+        return currentTime.add(Duration(hours: prescription.intervalValue));
+      case 'Dias':
+        return currentTime.add(Duration(days: prescription.intervalValue));
+      case 'Semanas':
+        return currentTime.add(Duration(days: prescription.intervalValue * 7));
+      case 'Meses':
+        // Adicionar meses requer um cuidado especial para não causar problemas
+        // com meses de durações diferentes (ex: 31 de janeiro + 1 mês = 28 de fevereiro).
+        return DateTime(
+          currentTime.year,
+          currentTime.month + prescription.intervalValue,
+          currentTime.day,
+          currentTime.hour,
+          currentTime.minute,
+        );
+      default:
+        // Caso padrão, apenas para segurança.
+        return currentTime.add(Duration(days: prescription.intervalValue));
     }
   }
 
@@ -244,13 +268,13 @@ class MedicationProvider with ChangeNotifier {
       case 'Meses':
         var d = prescription.firstDoseTime;
         // Adiciona um dia extra para garantir que o último dia seja incluído
-        var endDate = DateTime(d.year, d.month + prescription.durationTreatment!,
-            d.day, d.hour, d.minute);
+        var endDate = DateTime(d.year,
+            d.month + prescription.durationTreatment!, d.day, d.hour, d.minute);
         return endDate.add(const Duration(days: 1));
       case 'Anos':
         var d = prescription.firstDoseTime;
-        var endDate = DateTime(d.year + prescription.durationTreatment!, d.month,
-            d.day, d.hour, d.minute);
+        var endDate = DateTime(d.year + prescription.durationTreatment!,
+            d.month, d.day, d.hour, d.minute);
         return endDate.add(const Duration(days: 1));
       default:
         return prescription.firstDoseTime.add(const Duration(days: 365 * 10));

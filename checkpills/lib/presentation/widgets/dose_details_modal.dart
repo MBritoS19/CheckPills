@@ -152,8 +152,10 @@ class DoseDetailsModal extends StatelessWidget {
                   
                   buildInfoCard("Informações do Tratamento", [
                     buildInfoRow("Tipo", prescription.type),
-                    if (prescription.doseInterval > 0)
-                      buildInfoRow("Intervalo", 'A cada ${Duration(minutes: prescription.doseInterval).inHours}h ${Duration(minutes: prescription.doseInterval).inMinutes.remainder(60)}min'),
+                    // NOVO CÓDIGO
+if (prescription.intervalValue > 0)
+  buildInfoRow(
+      "Intervalo", 'A cada ${prescription.intervalValue} ${prescription.intervalUnit}'),
                     if (!prescription.isContinuous && prescription.durationTreatment != null)
                       buildInfoRow("Duração", '${prescription.durationTreatment} ${prescription.unitTreatment}'),
                   ]),

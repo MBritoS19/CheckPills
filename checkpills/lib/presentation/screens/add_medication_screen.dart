@@ -2,7 +2,7 @@ import 'package:CheckPills/presentation/providers/medication_provider.dart';
 import 'package:CheckPills/data/datasources/database.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' hide Column;
@@ -30,8 +30,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
   int _selectedHour = DateTime.now().hour;
   int _selectedMinute = DateTime.now().minute;
-  int _selectedIntervalHour = 8;
-  int _selectedIntervalMinute = 0;
+  int _intervalValue = 8;
+  String _selectedIntervalUnit = 'Horas';
   String? _selectedType;
   String? _imagePath;
   bool _isContinuous = false;
@@ -39,9 +39,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   String _selectedDoseUnit = 'unidade(s)';
   bool _dontTrackStock = false;
   bool _isSingleDose = false;
-
-  late FixedExtentScrollController _hourIntervalController;
-  late FixedExtentScrollController _minuteIntervalController;
 
   final _customTypeController = TextEditingController();
   final _nameController = TextEditingController();
@@ -76,11 +73,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   @override
   void initState() {
     super.initState();
-
-    _hourIntervalController =
-        FixedExtentScrollController(initialItem: _selectedIntervalHour);
-    _minuteIntervalController =
-        FixedExtentScrollController(initialItem: _selectedIntervalMinute);
 
     if (widget.prescription != null) {
       _prefillFields();
@@ -123,7 +115,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
       }
     }
     _selectedType = p.type;
-    if (p.doseInterval == 0) {
+    if (p.intervalValue == 0) {
       _isSingleDose = true;
     }
     if (p.stock == -1) {
@@ -134,9 +126,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     }
     _selectedHour = p.firstDoseTime.hour;
     _selectedMinute = p.firstDoseTime.minute;
-    final interval = Duration(minutes: p.doseInterval);
-    _selectedIntervalHour = interval.inHours;
-    _selectedIntervalMinute = interval.inMinutes.remainder(60);
+    _intervalValue = p.intervalValue;
+    _selectedIntervalUnit = p.intervalUnit;
     _isContinuous = p.isContinuous;
     if (!p.isContinuous) {
       _treatmentLengthController.text = p.durationTreatment?.toString() ?? '';
@@ -153,8 +144,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     _treatmentLengthController.removeListener(_validatePage);
     _doseQuantityController.removeListener(_validatePage);
 
-    _hourIntervalController.dispose();
-    _minuteIntervalController.dispose();
     _pageController.dispose();
     _customTypeController.dispose();
     _nameController.dispose();
@@ -201,6 +190,111 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         _isPageValid = isValid;
       });
     }
+  }
+
+  // VERSÃO FINAL COM VALIDAÇÃO
+  void _showIntervalPickerModal() {
+    final formKey = GlobalKey<FormState>(); // Chave para controlar o formulário
+    int tempValue = _intervalValue;
+    String tempUnit = _selectedIntervalUnit;
+    final List<String> units = ['Horas', 'Dias', 'Semanas', 'Meses'];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter modalSetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                left: 16,
+                right: 16,
+                top: 24,
+              ),
+              // Adicionamos um Form para gerenciar a validação
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      "Definir Intervalo",
+                      style: Theme.of(context).textTheme.titleLarge,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    TextFormField(
+                      initialValue: tempValue.toString(),
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 18),
+                      // 1. Apenas dígitos são permitidos
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: const InputDecoration(
+                        labelText: "A cada",
+                        border: OutlineInputBorder(),
+                      ),
+                      // 2. Validação do valor
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Obrigatório';
+                        }
+                        final number = int.tryParse(value);
+                        if (number == null || number <= 0) {
+                          return 'Deve ser maior 0';
+                        }
+                        return null; // Sem erros
+                      },
+                      onSaved: (value) {
+                        // Salva o valor quando o formulário for válido
+                        tempValue = int.parse(value!);
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    SegmentedButton<String>(
+                      segments: units
+                          .map((unit) => ButtonSegment<String>(
+                              value: unit, label: Text(unit)))
+                          .toList(),
+                      selected: {tempUnit},
+                      onSelectionChanged: (Set<String> newSelection) {
+                        modalSetState(() {
+                          tempUnit = newSelection.first;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(50)),
+                      onPressed: () {
+                        // 3. Verifica se o formulário é válido antes de fechar
+                        if (formKey.currentState!.validate()) {
+                          formKey.currentState!.save(); // Aciona o onSaved
+
+                          setState(() {
+                            _intervalValue = tempValue;
+                            _selectedIntervalUnit = tempUnit;
+                          });
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      child: const Text("Confirmar"),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   // Adicione este método dentro da classe _AddMedicationScreenState
@@ -304,8 +398,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         _selectedFirstDoseDate.day,
         _selectedHour,
         _selectedMinute);
-    final doseIntervalDuration = Duration(
-        hours: _selectedIntervalHour, minutes: _selectedIntervalMinute);
 
     final doseDescription =
         '${_doseQuantityController.text} $_selectedDoseUnit'.trim();
@@ -318,7 +410,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
       stock: Value(
           _dontTrackStock ? -1 : (int.tryParse(_stockController.text) ?? 0)),
       firstDoseTime: Value(firstDoseDateTime),
-      doseInterval: Value(_isSingleDose ? 0 : doseIntervalDuration.inMinutes),
+      intervalValue: Value(_isSingleDose ? 0 : _intervalValue),
+      intervalUnit: Value(_isSingleDose ? 'Dias' : _selectedIntervalUnit),
       isContinuous: Value(_isSingleDose ? false : _isContinuous),
       durationTreatment: Value(_isSingleDose
           ? 1
@@ -664,87 +757,42 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   }) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Qual o intervalo entre as doses?',
-                style: TextStyle(
-                    fontSize: screenWidth * 0.055,
-                    fontWeight: FontWeight.bold)),
-            SizedBox(height: screenWidth * 0.06),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Qual o intervalo entre as doses?',
+              style: TextStyle(
+                  fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
+          SizedBox(height: screenWidth * 0.06),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: _showIntervalPickerModal, // Chama nosso novo método
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // --- NOVO SELETOR DE HORAS ---
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    value: _selectedIntervalHour,
-                    decoration: const InputDecoration(
-                      labelText: 'Horas',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: List.generate(25, (index) {
-                      return DropdownMenuItem(
-                        value: index,
-                        child: Text('${index.toString().padLeft(2, '0')} h'),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) {
-                      setState(() {
-                        if (newValue != null) {
-                          _selectedIntervalHour = newValue;
-                          // Regra de negócio: se escolher 24h, os minutos zeram.
-                          if (newValue == 24) {
-                            _selectedIntervalMinute = 0;
-                          }
-                          // Regra: se for 0h, o mínimo de minutos é 30.
-                          if (newValue == 0 && _selectedIntervalMinute < 30) {
-                            _selectedIntervalMinute = 30;
-                          }
-                        }
-                      });
-                    },
+                Padding(
+                  padding: const EdgeInsets.only(left: 8.0),
+                  child: Text(
+                    // Exibe o estado atual de forma amigável
+                    'A cada $_intervalValue $_selectedIntervalUnit',
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
-                const SizedBox(width: 16),
-                // --- NOVO SELETOR DE MINUTOS ---
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    value: _selectedIntervalMinute,
-                    decoration: const InputDecoration(
-                      labelText: 'Minutos',
-                      border: OutlineInputBorder(),
-                    ),
-                    // Se a hora for 24, desativa os minutos.
-                    // Se for 0, limita as opções a partir de 30.
-                    items: List.generate(60, (index) {
-                      bool isItemDisabled =
-                          (_selectedIntervalHour == 24 && index > 0) ||
-                              (_selectedIntervalHour == 0 && index < 30);
-                      return DropdownMenuItem(
-                        value: index,
-                        // Itens desativados ficam com cor diferente
-                        enabled: !isItemDisabled,
-                        child: Text(
-                          '${index.toString().padLeft(2, '0')} min',
-                          style: TextStyle(
-                              color: isItemDisabled ? Colors.grey : null),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) {
-                      setState(() {
-                        _selectedIntervalMinute = newValue ?? 0;
-                      });
-                    },
-                  ),
+                const Padding(
+                  padding: EdgeInsets.only(right: 8.0),
+                  child: Icon(Icons.edit_calendar_outlined),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -19,7 +19,7 @@ class Users extends Table {
 class UserSettings extends Table {
   IntColumn get userId =>
       integer().references(Users, #id, onDelete: KeyAction.cascade)();
-  
+
   TextColumn get standardPillType => text().nullable()();
   BoolColumn get darkMode => boolean().withDefault(const Constant(false))();
   IntColumn get refillReminder => integer().withDefault(const Constant(5))();
@@ -39,7 +39,8 @@ class Prescriptions extends Table {
   TextColumn get doseDescription => text()();
   TextColumn get type => text()();
   IntColumn get stock => integer()();
-  IntColumn get doseInterval => integer()(); // in minutes
+  IntColumn get intervalValue => integer().withDefault(const Constant(8))();
+  TextColumn get intervalUnit => text().withDefault(const Constant('Horas'))();
   BoolColumn get isContinuous => boolean()();
   IntColumn get durationTreatment => integer().nullable()();
   TextColumn get unitTreatment => text().nullable()();
@@ -78,7 +79,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   UsersDao get usersDao => UsersDao(this);
   UserSettingsDao get userSettingsDao => UserSettingsDao(this);
@@ -95,8 +96,7 @@ class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
   Future<int> addUser(UsersCompanion entry) => into(users).insert(entry);
   Future<int> deleteUser(int id) =>
       (delete(users)..where((t) => t.id.equals(id))).go();
-  Future<bool> updateUser(UsersCompanion entry) =>
-      update(users).replace(entry);
+  Future<bool> updateUser(UsersCompanion entry) => update(users).replace(entry);
 }
 
 @DriftAccessor(tables: [UserSettings])
@@ -108,7 +108,7 @@ class UserSettingsDao extends DatabaseAccessor<AppDatabase>
     return (select(userSettings)..where((t) => t.userId.equals(userId)))
         .watchSingleOrNull();
   }
-  
+
   Future<UserSetting?> getSettingsForUser(int userId) {
     return (select(userSettings)..where((t) => t.userId.equals(userId)))
         .getSingleOrNull();
@@ -156,7 +156,7 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase>
       innerJoin(
           prescriptions, prescriptions.id.equalsExp(doseEvents.prescriptionId))
     ])
-      ..where(prescriptions.userId.equals(userId)) 
+      ..where(prescriptions.userId.equals(userId))
       ..where(doseEvents.scheduledTime.isBetweenValues(startOfDay, endOfDay))
       ..orderBy([OrderingTerm.asc(doseEvents.scheduledTime)]);
 
@@ -175,7 +175,7 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase>
       innerJoin(
           prescriptions, prescriptions.id.equalsExp(doseEvents.prescriptionId))
     ])
-      ..where(prescriptions.userId.equals(userId)) 
+      ..where(prescriptions.userId.equals(userId))
       ..orderBy([OrderingTerm.asc(doseEvents.scheduledTime)]);
 
     return query.watch().map((rows) {
@@ -215,8 +215,8 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase>
     return (select(doseEvents)
           ..where((t) => t.prescriptionId.equals(prescriptionId))
           ..orderBy([
-            (t) =>
-                OrderingTerm(expression: t.scheduledTime, mode: OrderingMode.desc)
+            (t) => OrderingTerm(
+                expression: t.scheduledTime, mode: OrderingMode.desc)
           ])
           ..limit(1))
         .getSingleOrNull();
