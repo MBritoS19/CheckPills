@@ -232,7 +232,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   Widget _buildStockPage({
     required double screenWidth,
   }) {
-
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
       child: SingleChildScrollView(
@@ -312,9 +311,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         '${_doseQuantityController.text} $_selectedDoseUnit'.trim();
 
     final prescriptionCompanion = PrescriptionsCompanion(
-      // --- LINHA DA CORREÇÃO ---
-      userId: Value(widget.prescription!.userId),
-      // -------------------------
       name: Value(_nameController.text),
       imagePath: Value(_imagePath),
       doseDescription: Value(doseDescription),
@@ -337,12 +333,14 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     );
 
     if (widget.prescription != null) {
-      provider.updatePrescription(
-          widget.prescription!.id, prescriptionCompanion);
+      // MODO EDIÇÃO: Adicionamos o userId ao companion antes de enviar
+      final finalCompanion = prescriptionCompanion.copyWith(
+        userId: Value(widget.prescription!.userId),
+      );
+      provider.updatePrescription(widget.prescription!.id, finalCompanion);
     } else {
-      provider.addPrescription(prescriptionCompanion.copyWith(
-        createdAt: Value(DateTime.now()),
-      ));
+      // MODO ADIÇÃO: O provider irá adicionar o userId e o createdAt
+      provider.addPrescription(prescriptionCompanion);
     }
     Navigator.pop(context);
   }
@@ -410,41 +408,23 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                     fontSize: screenWidth * 0.055,
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 24),
+            // NOVO CÓDIGO COM CHOICECHIP
             Wrap(
-              spacing: 8.0,
-              runSpacing: 8.0,
+              spacing: 12.0,
+              runSpacing: 12.0,
               children: types.map((type) {
-                final isSelected = _selectedType == type;
-                return ElevatedButton(
-                  onPressed: () {
+                return ChoiceChip(
+                  label: Text(type,
+                      style: const TextStyle(fontWeight: FontWeight.w500)),
+                  selected: _selectedType == type,
+                  onSelected: (bool selected) {
                     setState(() {
-                      _selectedType = type;
-                      _validatePage();
+                      if (selected) {
+                        _selectedType = type;
+                        _validatePage();
+                      }
                     });
                   },
-                  style: isSelected
-                  // SELECIONADO: Fundo cinza padrão com borda azul.
-                  ? ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      foregroundColor: Theme.of(context).colorScheme.primary,
-                      // A propriedade 'side' é usada para criar a borda.
-                      side: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
-                        width: 2,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    )
-                  // NÃO SELECIONADO: Fundo azul preenchido.
-                  : ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                  child: Text(type),
                 );
               }).toList(),
             ),
@@ -468,9 +448,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     required double screenWidth,
     required double screenHeight,
   }) {
-    // Encontra o índice inicial para o carrossel de unidades
-    final initialUnitIndex = _allDoseUnits.indexOf(_selectedDoseUnit);
-
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
       child: SingleChildScrollView(
@@ -499,23 +476,28 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                 const SizedBox(width: 16),
                 // Carrossel para a unidade
                 Expanded(
-                  flex: 3, // Ocupa 3/3 do espaço
-                  child: SizedBox(
-                    height: screenHeight * 0.1, // Altura do carrossel
-                    child: CupertinoPicker(
-                      itemExtent: 40,
-                      onSelectedItemChanged: (index) {
-                        setState(() {
-                          _selectedDoseUnit = _allDoseUnits[index];
-                        });
-                      },
-                      scrollController: FixedExtentScrollController(
-                          initialItem:
-                              initialUnitIndex != -1 ? initialUnitIndex : 0),
-                      children: _allDoseUnits.map((unit) {
-                        return Center(child: Text(unit));
-                      }).toList(),
+                  flex: 3, // Ocupa 3/5 do espaço
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _selectedDoseUnit,
+                    decoration: const InputDecoration(
+                      labelText: 'Unidade',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16.0), // Ajuste opcional de padding
                     ),
+                    items: _allDoseUnits.map((String unit) {
+                      return DropdownMenuItem<String>(
+                        value: unit,
+                        child: Text(unit),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        if (newValue != null) {
+                          _selectedDoseUnit = newValue;
+                        }
+                      });
+                    },
                   ),
                 ),
               ],
@@ -532,7 +514,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     required double screenWidth,
     required double screenHeight,
   }) {
-
     // Função auxiliar para formatar a data de forma amigável
     String _formatFirstDoseDate() {
       final now = DateTime.now();
@@ -549,27 +530,27 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     }
 
     return Padding(
-    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-    child: SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('Qual a data e horário da primeira dose?',
-              style: TextStyle(
-                  fontSize: screenWidth * 0.055,
-                  fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          Text('Data da primeira dose',
-              style: TextStyle(color: Colors.grey[700])),
-          const SizedBox(height: 8),
-          OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Qual a data e horário da primeira dose?',
+                style: TextStyle(
+                    fontSize: screenWidth * 0.055,
+                    fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            Text('Data da primeira dose',
+                style: TextStyle(color: Colors.grey[700])),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
-            ),
               onPressed: () async {
                 // Mostra o pop-up do calendário e espera o usuário escolher uma data
                 final pickedDate = await showDatePicker(
@@ -589,24 +570,24 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                 }
               },
               child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: Text(
-                    _formatFirstDoseDate(),
-                    // --- CORREÇÃO AQUI ---
-                    // Removemos a cor fixa para que o texto se adapte ao tema
-                    style: const TextStyle(fontSize: 16),
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: Text(
+                      _formatFirstDoseDate(),
+                      // --- CORREÇÃO AQUI ---
+                      // Removemos a cor fixa para que o texto se adapte ao tema
+                      style: const TextStyle(fontSize: 16),
+                    ),
                   ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.only(right: 8.0),
-                  child: Icon(Icons.calendar_today_outlined),
-                ),
-              ],
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8.0),
+                    child: Icon(Icons.calendar_today_outlined),
+                  ),
+                ],
+              ),
             ),
-          ),
             const SizedBox(height: 16),
 
             // Checkbox que já existia
@@ -624,50 +605,53 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               contentPadding: EdgeInsets.zero,
             ),
 
-            // Seletores de hora e minuto que já existiam
-            SizedBox(
-              height: screenHeight * 0.15, // Altura ajustada para caber tudo
+            const SizedBox(height: 24),
+            Text('Horário da primeira dose',
+                style: TextStyle(color: Colors.grey[700])),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () async {
+                // Abre o pop-up de relógio nativo
+                final pickedTime = await showTimePicker(
+                  context: context,
+                  initialTime:
+                      TimeOfDay(hour: _selectedHour, minute: _selectedMinute),
+                  helpText: 'SELECIONE O HORÁRIO',
+                );
+
+                // Se o usuário escolher um horário, atualiza o estado
+                if (pickedTime != null) {
+                  setState(() {
+                    _selectedHour = pickedTime.hour;
+                    _selectedMinute = pickedTime.minute;
+                  });
+                }
+              },
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: CupertinoPicker(
-                      itemExtent: 40,
-                      onSelectedItemChanged: (index) {
-                        setState(() {
-                          _selectedHour = index;
-                        });
-                      },
-                      scrollController: FixedExtentScrollController(
-                          initialItem: _selectedHour),
-                      looping: true,
-                      children: List.generate(24, (index) {
-                        return Center(
-                            child:
-                                Text('${index.toString().padLeft(2, '0')} h'));
-                      }),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: Text(
+                      // Formata o horário para exibir com 2 dígitos (ex: 08:05)
+                      '${_selectedHour.toString().padLeft(2, '0')}:${_selectedMinute.toString().padLeft(2, '0')}',
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                   ),
-                  Expanded(
-                    child: CupertinoPicker(
-                      itemExtent: 40,
-                      onSelectedItemChanged: (index) {
-                        setState(() {
-                          _selectedMinute = index;
-                        });
-                      },
-                      scrollController: FixedExtentScrollController(
-                          initialItem: _selectedMinute),
-                      looping: true,
-                      children: List.generate(60, (index) {
-                        return Center(
-                            child: Text(
-                                '${index.toString().padLeft(2, '0')} min'));
-                      }),
-                    ),
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8.0),
+                    child: Icon(Icons.access_time_outlined),
                   ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -678,11 +662,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     required double screenWidth,
     required double screenHeight,
   }) {
-    const animationDuration = Duration(milliseconds: 300);
-    const animationCurve = Curves.easeOut;
-
-    final isMinutePickerDisabled = _selectedIntervalHour == 24;
-
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
       child: SingleChildScrollView(
@@ -695,78 +674,74 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                     fontSize: screenWidth * 0.055,
                     fontWeight: FontWeight.bold)),
             SizedBox(height: screenWidth * 0.06),
-            SizedBox(
-              height: screenHeight * 0.2,
-              child: Row(
-                children: [
-                  // Seletor de Horas
-                  Expanded(
-                    child: CupertinoPicker(
-                      itemExtent: 40,
-                      scrollController: _hourIntervalController,
-                      onSelectedItemChanged: (newHour) {
-                        setState(() {
-                          _selectedIntervalHour = newHour;
-                          if (newHour == 24) {
-                            if (_selectedIntervalMinute != 0) {
-                              _selectedIntervalMinute = 0;
-                              _minuteIntervalController.animateToItem(0,
-                                  duration: animationDuration,
-                                  curve: animationCurve);
-                            }
-                          } else if (newHour == 0 &&
-                              _selectedIntervalMinute < 30) {
-                            _selectedIntervalMinute = 30;
-                            _minuteIntervalController.animateToItem(30,
-                                duration: animationDuration,
-                                curve: animationCurve);
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // --- NOVO SELETOR DE HORAS ---
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    value: _selectedIntervalHour,
+                    decoration: const InputDecoration(
+                      labelText: 'Horas',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: List.generate(25, (index) {
+                      return DropdownMenuItem(
+                        value: index,
+                        child: Text('${index.toString().padLeft(2, '0')} h'),
+                      );
+                    }).toList(),
+                    onChanged: (newValue) {
+                      setState(() {
+                        if (newValue != null) {
+                          _selectedIntervalHour = newValue;
+                          // Regra de negócio: se escolher 24h, os minutos zeram.
+                          if (newValue == 24) {
+                            _selectedIntervalMinute = 0;
                           }
-                        });
-                      },
-                      looping: true,
-                      children: List.generate(25, (index) {
-                        return Center(
-                            child:
-                                Text('${index.toString().padLeft(2, '0')} h'));
-                      }),
-                    ),
+                          // Regra: se for 0h, o mínimo de minutos é 30.
+                          if (newValue == 0 && _selectedIntervalMinute < 30) {
+                            _selectedIntervalMinute = 30;
+                          }
+                        }
+                      });
+                    },
                   ),
-                  Expanded(
-                    child: Opacity(
-                      opacity: isMinutePickerDisabled ? 0.5 : 1.0,
-                      child: AbsorbPointer(
-                        absorbing: isMinutePickerDisabled,
-                        child: CupertinoPicker(
-                          itemExtent: 40,
-                          scrollController: _minuteIntervalController,
-                          onSelectedItemChanged: (newMinute) {
-                            setState(() {
-                              int targetMinute = newMinute;
-                              if (_selectedIntervalHour == 0 &&
-                                  newMinute < 30) {
-                                targetMinute = 30;
-                              }
-                              _selectedIntervalMinute = targetMinute;
-                              if (targetMinute != newMinute) {
-                                _minuteIntervalController.animateToItem(
-                                    targetMinute,
-                                    duration: animationDuration,
-                                    curve: animationCurve);
-                              }
-                            });
-                          },
-                          looping: true,
-                          children: List.generate(60, (index) {
-                            return Center(
-                                child: Text(
-                                    '${index.toString().padLeft(2, '0')} min'));
-                          }),
+                ),
+                const SizedBox(width: 16),
+                // --- NOVO SELETOR DE MINUTOS ---
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    value: _selectedIntervalMinute,
+                    decoration: const InputDecoration(
+                      labelText: 'Minutos',
+                      border: OutlineInputBorder(),
+                    ),
+                    // Se a hora for 24, desativa os minutos.
+                    // Se for 0, limita as opções a partir de 30.
+                    items: List.generate(60, (index) {
+                      bool isItemDisabled =
+                          (_selectedIntervalHour == 24 && index > 0) ||
+                              (_selectedIntervalHour == 0 && index < 30);
+                      return DropdownMenuItem(
+                        value: index,
+                        // Itens desativados ficam com cor diferente
+                        enabled: !isItemDisabled,
+                        child: Text(
+                          '${index.toString().padLeft(2, '0')} min',
+                          style: TextStyle(
+                              color: isItemDisabled ? Colors.grey : null),
                         ),
-                      ),
-                    ),
+                      );
+                    }).toList(),
+                    onChanged: (newValue) {
+                      setState(() {
+                        _selectedIntervalMinute = newValue ?? 0;
+                      });
+                    },
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),
@@ -918,7 +893,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                 totalPages: formPages.length,
                 currentPage: _currentPage,
                 activeColor: Theme.of(context).colorScheme.secondary,
-    completedColor: Theme.of(context).colorScheme.primary),
+                completedColor: Theme.of(context).colorScheme.primary),
 
             // NOVO: Expanded faz o PageView ocupar o espaço restante
             Expanded(
@@ -936,12 +911,12 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                       horizontal: screenWidth * 0.04,
                       vertical: screenWidth * 0.02),
                   child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    minimumSize: Size.fromHeight(screenHeight * 0.06)),
+                    style: ElevatedButton.styleFrom(
+                        minimumSize: Size.fromHeight(screenHeight * 0.06)),
                     // O restante do estilo (cores) virá do tema global.
-                onPressed: _onSave,
-                child: const Text('Salvar Medicamento'),
-              ))
+                    onPressed: _onSave,
+                    child: const Text('Salvar Medicamento'),
+                  ))
             else // Mostra os botões Anterior/Próximo
               Padding(
                 padding: EdgeInsets.fromLTRB(
@@ -991,75 +966,71 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
   // Adicione este método dentro da classe _AddMedicationScreenState
   // Substitua o método inteiro por este
-Widget _buildImagePicker() {
-
-  return Center(
-    child: Column(
-      children: [
-        if (_imagePath == null)
-          // Se não houver imagem, mostra um placeholder adaptado ao tema
-          Container(
-            height: 120,
-            width: 120,
-            decoration: BoxDecoration(
-              // NOVO: Usa a cor do card do tema (branco no claro, cinza escuro no escuro)
-              color: Theme.of(context).cardTheme.color,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.grey[400]!),
-            ),
-            child: Icon(
-              Icons.image_outlined,
-              size: 50,
-              // NOVO: Usa a cor de ícone padrão do tema
-              color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
-            ),
-          )
-        else
-          // Se houver uma imagem, mostra a miniatura
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Image.file(
-              File(_imagePath!),
-              width: 120,
+  Widget _buildImagePicker() {
+    return Center(
+      child: Column(
+        children: [
+          if (_imagePath == null)
+            // Se não houver imagem, mostra um placeholder adaptado ao tema
+            Container(
               height: 120,
-              fit: BoxFit.cover,
-            ),
-          ),
-        const SizedBox(height: 10),
-        ElevatedButton(
-          onPressed: () {
-            // ... (o código do onPressed continua o mesmo)
-            showModalBottomSheet(
-              context: context,
-              builder: (ctx) => Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.camera_alt),
-                    title: const Text('Tirar Foto'),
-                    onTap: () {
-                      Navigator.of(ctx).pop();
-                      _pickAndSaveImage(ImageSource.camera);
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.photo_library),
-                    title: const Text('Escolher da Galeria'),
-                    onTap: () {
-                      Navigator.of(ctx).pop();
-                      _pickAndSaveImage(ImageSource.gallery);
-                    },
-                  ),
-                ],
+              width: 120,
+              decoration: BoxDecoration(
+                // NOVO: Usa a cor do card do tema (branco no claro, cinza escuro no escuro)
+                color: Theme.of(context).cardTheme.color,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey[400]!),
               ),
-            );
-          },
-          child: Text(_imagePath == null ? 'Adicionar Foto' : 'Alterar Foto'),
-        ),
-      ],
-    ),
-  );
-}
+              child: Icon(
+                Icons.image_outlined,
+                size: 50,
+                color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
+              ),
+            )
+          else
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.file(
+                File(_imagePath!),
+                width: 120,
+                height: 120,
+                fit: BoxFit.cover,
+              ),
+            ),
+          const SizedBox(height: 10),
+          ElevatedButton(
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                builder: (ctx) => Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.camera_alt),
+                      title: const Text('Tirar Foto'),
+                      onTap: () {
+                        Navigator.of(ctx).pop();
+                        _pickAndSaveImage(ImageSource.camera);
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.photo_library),
+                      title: const Text('Escolher da Galeria'),
+                      onTap: () {
+                        Navigator.of(ctx).pop();
+                        _pickAndSaveImage(ImageSource.gallery);
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+            child: Text(_imagePath == null ? 'Adicionar Foto' : 'Alterar Foto'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class FormProgressBar extends StatelessWidget {
