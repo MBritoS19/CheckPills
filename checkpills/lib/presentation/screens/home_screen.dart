@@ -102,13 +102,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     backgroundColor: Colors.orange,
                   ),
                 );
-                Navigator.of(dialogContext).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Dose marcada como "não tomada".'),
-                    backgroundColor: Colors.orange,
-                  ),
-                );
               },
             ),
             // Botão 1: Reagendar
@@ -574,8 +567,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: DoseEventCard(
                         doseData: result,
                         onTap: () => _showDoseDetails(result),
-                        onUndoSkip: () => provider
-                            .undoSkipDose(result),
+                        onUndoSkip: () => provider.undoSkipDose(result),
                         onToggleStatus: () async {
                           if (isTaken) {
                             // Ao desmarcar, não precisamos checar o estoque
