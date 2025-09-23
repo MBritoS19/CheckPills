@@ -85,6 +85,26 @@ class MedicationProvider with ChangeNotifier {
     });
   }
 
+  Future<void> rescheduleSingleDose(int doseId, DateTime newTime) async {
+    // Usamos a nova função do DAO para atualizar a hora e resetar o status
+    await database.doseEventsDao.updateDoseEvent(
+      doseId,
+      DoseEventsCompanion(
+        scheduledTime: Value(newTime),
+        status: const Value(DoseStatus.pendente), // Volta para pendente
+      ),
+    );
+  }
+
+// ADICIONE ESTE NOVO MÉTODO
+  Future<void> markDoseAsSkipped(int doseId) async {
+    await database.doseEventsDao.updateDoseEventStatus(
+      doseId,
+      DoseStatus.pulada,
+      null, // Sem hora de tomada
+    );
+  }
+
   Future<void> addPrescription(PrescriptionsCompanion prescription) async {
     final activeUser = userProvider.activeUser;
     if (activeUser == null) return;

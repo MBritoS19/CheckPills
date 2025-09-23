@@ -146,6 +146,7 @@ class PrescriptionsDao extends DatabaseAccessor<AppDatabase>
 class DoseEventsDao extends DatabaseAccessor<AppDatabase>
     with _$DoseEventsDaoMixin {
   DoseEventsDao(AppDatabase db) : super(db);
+  
 
   Stream<List<DoseEventWithPrescription>> watchDoseEventsForDay(
       int userId, DateTime date) {
@@ -187,6 +188,10 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase>
       }).toList();
     });
   }
+
+  Future<void> updateDoseEvent(int id, DoseEventsCompanion entry) {
+  return (update(doseEvents)..where((t) => t.id.equals(id))).write(entry);
+}
 
   Future<void> addDoseEvent(DoseEventsCompanion companion) =>
       into(doseEvents).insert(companion);

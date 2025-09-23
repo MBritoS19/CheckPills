@@ -5,6 +5,7 @@ import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
 import 'package:CheckPills/presentation/screens/calendar_screen.dart';
 import 'package:CheckPills/presentation/widgets/dose_details_modal.dart';
 import 'package:CheckPills/presentation/widgets/dose_event_card.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -27,21 +28,121 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> _handleDelete(
-      BuildContext context, MedicationProvider provider, Prescription prescription) async {
+  // SUBSTITUA O MÉTODO _handleSingleDoseSkip INTEIRO POR ESTE
+  void _handleSingleDoseSkip(DoseEventWithPrescription doseData) {
+    final provider = Provider.of<MedicationProvider>(context, listen: false);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text("Pular Dose Única?"),
+          content: const Text(
+              "Esta é uma dose única. O que você gostaria de fazer?"),
+          actionsAlignment: MainAxisAlignment.spaceEvenly,
+          actions: <Widget>[
+            // Botão 3: Cancelar
+            TextButton(
+              child: const Text("Cancelar"),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+            ),
+            // Botão 2: Não Vou Tomar
+            TextButton(
+              child: const Text("Não Vou Tomar"),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                provider.markDoseAsSkipped(doseData.doseEvent.id);
+                Navigator.of(dialogContext).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Dose marcada como "não tomada".'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                Navigator.of(dialogContext).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Dose marcada como "não tomada".'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+              },
+            ),
+            // Botão 1: Reagendar
+            ElevatedButton(
+              child: const Text("Reagendar..."),
+              onPressed: () async {
+                HapticFeedback.lightImpact();
+                Navigator.of(dialogContext).pop(); // Fecha o diálogo de opções
+
+                final pickedDate = await showDatePicker(
+                  context: context,
+                  locale: const Locale('pt', 'BR'),
+                  initialDate: doseData.doseEvent.scheduledTime,
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime(2101),
+                );
+
+                // 👇 CORREÇÃO: Usamos 'mounted' do State
+                if (pickedDate == null || !mounted) return;
+
+                final pickedTime = await showTimePicker(
+                  context: context,
+                  initialTime:
+                      TimeOfDay.fromDateTime(doseData.doseEvent.scheduledTime),
+                  helpText: 'SELECIONE O NOVO HORÁRIO',
+                );
+
+                // 👇 CORREÇÃO: Usamos 'mounted' do State
+                if (pickedTime == null || !mounted) return;
+
+                final newDateTime = DateTime(
+                  pickedDate.year,
+                  pickedDate.month,
+                  pickedDate.day,
+                  pickedTime.hour,
+                  pickedTime.minute,
+                );
+
+                await provider.rescheduleSingleDose(
+                    doseData.doseEvent.id, newDateTime);
+
+                // 👇 CORREÇÃO: Usamos 'mounted' do State
+                if (!mounted) return;
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                        'Dose reagendada para ${DateFormat('dd/MM \'às\' HH:mm').format(newDateTime)}.'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _handleDelete(BuildContext context, MedicationProvider provider,
+      Prescription prescription) async {
     final confirm = await showDialog<bool>(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
               icon: Icon(Icons.delete_forever_rounded,
                   color: Theme.of(context).colorScheme.error, size: 48),
-              title: const Text('Confirmar Exclusão', textAlign: TextAlign.center),
+              title:
+                  const Text('Confirmar Exclusão', textAlign: TextAlign.center),
               content: RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
                   style: TextStyle(color: Colors.grey[600], fontSize: 16),
                   children: <TextSpan>[
-                    const TextSpan(text: 'Tem a certeza de que deseja excluir a prescrição de '),
+                    const TextSpan(
+                        text:
+                            'Tem a certeza de que deseja excluir a prescrição de '),
                     TextSpan(
                         text: prescription.name,
                         style: const TextStyle(
@@ -95,8 +196,17 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) => DoseDetailsModal(
         doseData: doseData,
         onSkip: () {
-          provider.skipDoseAndReschedule(doseData);
-          Navigator.of(context).pop();
+          Navigator.of(context).pop(); // Fecha o modal de detalhes primeiro
+          final prescription = doseData.prescription;
+
+          // Nova lógica que verifica o tipo de dose
+          if (prescription.intervalValue == 0) {
+            // É uma dose única, chama nosso novo método
+            _handleSingleDoseSkip(doseData);
+          } else {
+            // É uma dose recorrente, mantém o comportamento antigo
+            provider.skipDoseAndReschedule(doseData);
+          }
         },
         onEdit: () {
           Navigator.of(context).pop();
@@ -214,8 +324,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.secondary,
-                    foregroundColor:
-                        Theme.of(context).colorScheme.onSecondary),
+                    foregroundColor: Theme.of(context).colorScheme.onSecondary),
                 child: const Text('Cancelar'),
                 onPressed: () {
                   Navigator.of(ctx).pop();
@@ -290,9 +399,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       builder: (BuildContext context) {
         return AddMedicationScreen(
-    key: ValueKey(prescription.id), // <-- ADICIONADO: Chave única para edição
-    prescription: prescription,
-  );
+          key: ValueKey(
+              prescription.id), // <-- ADICIONADO: Chave única para edição
+          prescription: prescription,
+        );
       },
     );
   }
@@ -386,12 +496,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
 
                 return ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 80), // Padding para o FAB
+                  padding:
+                      const EdgeInsets.only(bottom: 80), // Padding para o FAB
                   itemCount: doseEventsResults.length,
                   itemBuilder: (BuildContext context, int index) {
                     final result = doseEventsResults[index];
                     final prescription = result.prescription;
-                    final isTaken = result.doseEvent.status == DoseStatus.tomada;
+                    final isTaken =
+                        result.doseEvent.status == DoseStatus.tomada;
 
                     return Dismissible(
                       key: ValueKey(result.doseEvent.id),
@@ -417,22 +529,23 @@ class _HomeScreenState extends State<HomeScreen> {
                         }
                       },
                       child: DoseEventCard(
-  doseData: result,
-  onTap: () => _showDoseDetails(result),
-  onUndoSkip: () => provider.undoSkipDose(result), // PARÂMETRO ADICIONADO
-  onToggleStatus: () {
-    if (isTaken) {
-      provider.toggleDoseStatus(result);
-      return;
-    }
-    if (prescription.stock == -1 ||
-        prescription.stock > 0) {
-      provider.toggleDoseStatus(result);
-    } else {
-      _showOutOfStockDialog(context, prescription);
-    }
-  },
-),
+                        doseData: result,
+                        onTap: () => _showDoseDetails(result),
+                        onUndoSkip: () => provider
+                            .undoSkipDose(result), // PARÂMETRO ADICIONADO
+                        onToggleStatus: () {
+                          if (isTaken) {
+                            provider.toggleDoseStatus(result);
+                            return;
+                          }
+                          if (prescription.stock == -1 ||
+                              prescription.stock > 0) {
+                            provider.toggleDoseStatus(result);
+                          } else {
+                            _showOutOfStockDialog(context, prescription);
+                          }
+                        },
+                      ),
                     );
                   },
                 );
