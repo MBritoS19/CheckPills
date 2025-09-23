@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:CheckPills/data/datasources/database.dart';
 import 'package:CheckPills/presentation/providers/user_provider.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,8 @@ import 'package:drift/drift.dart';
 class UserSettingsProvider with ChangeNotifier {
   final AppDatabase database;
   final UserProvider userProvider;
+
+  StreamSubscription? _settingsSubscription;
 
   UserSetting? _settings;
   UserSetting? get settings => _settings;
@@ -17,11 +20,14 @@ class UserSettingsProvider with ChangeNotifier {
     _loadSettingsForActiveUser();
   }
 
-  void _loadSettingsForActiveUser() async {
+  void _loadSettingsForActiveUser() {
+    // 👇 LINHA 1: Cancela o ouvinte anterior antes de criar um novo
+    _settingsSubscription?.cancel();
+
     final activeUser = userProvider.activeUser;
     if (activeUser != null) {
-      // Ouve as mudanças nas configurações do usuário ativo
-      database.userSettingsDao
+      // 👇 LINHA 2: Guarda a referência do novo ouvinte
+      _settingsSubscription = database.userSettingsDao
           .watchSettingsForUser(activeUser.id)
           .listen((settings) {
         _settings = settings;
@@ -48,13 +54,14 @@ class UserSettingsProvider with ChangeNotifier {
     notifyListeners();
 
     // Persiste a mudança no banco, garantindo que o userId esteja correto
-    await database.userSettingsDao
-        .updateSettingsForUser(newSettings.copyWith(userId: Value(activeUser.id)));
+    await database.userSettingsDao.updateSettingsForUser(
+        newSettings.copyWith(userId: Value(activeUser.id)));
   }
 
   @override
   void dispose() {
     userProvider.removeListener(_loadSettingsForActiveUser);
+    _settingsSubscription?.cancel();
     super.dispose();
   }
 }
