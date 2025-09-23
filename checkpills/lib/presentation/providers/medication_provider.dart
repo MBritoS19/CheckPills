@@ -130,9 +130,10 @@ class MedicationProvider with ChangeNotifier {
     await database.prescriptionsDao.deletePrescription(id);
   }
 
-  Future<void> toggleDoseStatus(DoseEventWithPrescription doseData) async {
+  Future<bool> toggleDoseStatus(DoseEventWithPrescription doseData) async {
     final doseEvent = doseData.doseEvent;
     final prescription = doseData.prescription;
+
     final newStatus = doseEvent.status == DoseStatus.tomada
         ? DoseStatus.pendente
         : DoseStatus.tomada;
@@ -141,16 +142,51 @@ class MedicationProvider with ChangeNotifier {
     await database.doseEventsDao
         .updateDoseEventStatus(doseEvent.id, newStatus, takenTime);
 
+    // Se o usuário está "desmarcando" uma dose, o estoque volta, sem necessidade de alerta.
+    if (newStatus == DoseStatus.pendente) {
+      if (prescription.stock != -1) {
+        final doseQuantity =
+            int.tryParse(prescription.doseDescription.split(' ').first) ?? 1;
+        final newStock = prescription.stock + doseQuantity;
+        await database.prescriptionsDao.updateStock(prescription.id, newStock);
+      }
+      return false; // Não aciona o alerta
+    }
+
+    // --- Lógica de Alerta (apenas quando uma dose é TOMADA) ---
+
+    int newStock = prescription.stock;
     if (prescription.stock != -1) {
       final doseQuantity =
           int.tryParse(prescription.doseDescription.split(' ').first) ?? 1;
-
-      final newStock = newStatus == DoseStatus.tomada
-          ? prescription.stock - doseQuantity
-          : prescription.stock + doseQuantity;
-
+      newStock = prescription.stock - doseQuantity;
       await database.prescriptionsDao.updateStock(prescription.id, newStock);
     }
+
+    // VERIFICAÇÃO 1: Se for dose única ou se o estoque não for controlado, não avise.
+    if (prescription.intervalValue == 0 || newStock == -1) return false;
+
+    // VERIFICAÇÃO 2: Se não for contínuo e houver estoque para terminar, não avise.
+    if (!prescription.isContinuous) {
+      final remainingDoses =
+          await database.doseEventsDao.countFutureDoseEvents(prescription.id);
+      if (newStock >= remainingDoses) {
+        return false;
+      }
+    }
+
+    // VERIFICAÇÃO 3: Verifique contra o lembrete de reposição do usuário.
+    final activeUser = userProvider.activeUser;
+    if (activeUser == null) return false;
+    final settings =
+        await database.userSettingsDao.getSettingsForUser(activeUser.id);
+    final refillReminder = settings?.refillReminder ?? 5; // Usa 5 como padrão
+
+    if (newStock <= refillReminder) {
+      return true; // CONDIÇÃO ATINGIDA! Sinalize para a UI.
+    }
+
+    return false; // Nenhuma condição de alerta foi atingida.
   }
 
   Future<void> skipDoseAndReschedule(DoseEventWithPrescription doseData) async {

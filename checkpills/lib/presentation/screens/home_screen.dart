@@ -28,7 +28,50 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // SUBSTITUA O MÉTODO _handleSingleDoseSkip INTEIRO POR ESTE
+  void _showLowStockDialog(Prescription prescription) {
+    final provider = Provider.of<MedicationProvider>(context, listen: false);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(Icons.warning_amber_rounded,
+            color: Colors.orange[700], size: 48),
+        title: const Text('Estoque Baixo', textAlign: TextAlign.center),
+        content: Text(
+          'Atenção: Seu estoque de ${prescription.name} está baixo. Deseja adicionar mais agora?',
+          textAlign: TextAlign.center,
+        ),
+        actions: <Widget>[
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ElevatedButton(
+                child: const Text('Adicionar Estoque'),
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  _showAddStockDialog(context, prescription);
+                },
+              ),
+              OutlinedButton(
+                child: const Text('Não controlar estoque'),
+                onPressed: () {
+                  provider.stopTrackingStock(prescription.id);
+                  Navigator.of(ctx).pop();
+                },
+              ),
+              TextButton(
+                child: const Text('Lembrar Depois'),
+                onPressed: () => Navigator.of(ctx).pop(),
+              )
+            ],
+          )
+        ],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.0),
+        ),
+      ),
+    );
+  }
+
   void _handleSingleDoseSkip(DoseEventWithPrescription doseData) {
     final provider = Provider.of<MedicationProvider>(context, listen: false);
 
@@ -532,15 +575,32 @@ class _HomeScreenState extends State<HomeScreen> {
                         doseData: result,
                         onTap: () => _showDoseDetails(result),
                         onUndoSkip: () => provider
-                            .undoSkipDose(result), // PARÂMETRO ADICIONADO
-                        onToggleStatus: () {
+                            .undoSkipDose(result),
+                        onToggleStatus: () async {
                           if (isTaken) {
-                            provider.toggleDoseStatus(result);
+                            // Ao desmarcar, não precisamos checar o estoque
+                            await provider.toggleDoseStatus(result);
                             return;
                           }
+
                           if (prescription.stock == -1 ||
                               prescription.stock > 0) {
-                            provider.toggleDoseStatus(result);
+                            // Await para esperar a resposta do provider
+                            final bool shouldShowWarning =
+                                await provider.toggleDoseStatus(result);
+
+                            // Se o provider sinalizar, mostre o novo diálogo
+                            if (shouldShowWarning && mounted) {
+                              // Precisamos de uma pequena pausa para o estado do provider ser atualizado
+                              // antes de lermos o valor do estoque para o diálogo.
+                              Future.delayed(const Duration(milliseconds: 100),
+                                  () {
+                                final updatedPrescription = provider
+                                    .prescriptionList
+                                    .firstWhere((p) => p.id == prescription.id);
+                                _showLowStockDialog(updatedPrescription);
+                              });
+                            }
                           } else {
                             _showOutOfStockDialog(context, prescription);
                           }
