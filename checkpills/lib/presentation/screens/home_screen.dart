@@ -102,13 +102,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     backgroundColor: Colors.orange,
                   ),
                 );
-                Navigator.of(dialogContext).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Dose marcada como "não tomada".'),
-                    backgroundColor: Colors.orange,
-                  ),
-                );
               },
             ),
             // Botão 1: Reagendar

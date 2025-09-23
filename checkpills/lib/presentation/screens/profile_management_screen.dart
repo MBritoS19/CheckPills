@@ -62,8 +62,9 @@ class ProfileManagementScreen extends StatelessWidget {
                     value: 'edit',
                     child: Text('Renomear'),
                   ),
-                  const PopupMenuItem<String>(
+                  PopupMenuItem<String>(
                     value: 'delete',
+                    enabled: allUsers.length > 1,
                     child: Text('Excluir'),
                   ),
                 ],
@@ -75,11 +76,11 @@ class ProfileManagementScreen extends StatelessWidget {
     );
   }
 
-  void _showAddOrEditProfileDialog(
-      BuildContext context, UserProvider provider,
+  void _showAddOrEditProfileDialog(BuildContext context, UserProvider provider,
       {User? userToEdit}) {
     final bool isEditing = userToEdit != null;
-    final controller = TextEditingController(text: isEditing ? userToEdit.name : '');
+    final controller =
+        TextEditingController(text: isEditing ? userToEdit.name : '');
 
     showDialog(
       context: context,
@@ -101,8 +102,8 @@ class ProfileManagementScreen extends StatelessWidget {
               final name = controller.text;
               if (name.isNotEmpty) {
                 if (isEditing) {
-                  provider.updateUser(
-                      UsersCompanion(id: Value(userToEdit.id), name: Value(name)));
+                  provider.updateUser(UsersCompanion(
+                      id: Value(userToEdit.id), name: Value(name)));
                 } else {
                   provider.addUser(name);
                 }
@@ -135,7 +136,7 @@ class ProfileManagementScreen extends StatelessWidget {
             child: const Text('Excluir'),
             onPressed: () async {
               // Fecha o dialog de confirmação antes de pedir a senha
-              Navigator.of(dialogContext).pop(); 
+              Navigator.of(dialogContext).pop();
               // Tenta autenticar antes de excluir
               await _authenticateAndDelete(context, provider, userToDelete);
             },
@@ -163,7 +164,8 @@ class ProfileManagementScreen extends StatelessWidget {
         provider.deleteUser(userToDelete.id);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Perfil "${userToDelete.name}" excluído com sucesso.'),
+            content:
+                Text('Perfil "${userToDelete.name}" excluído com sucesso.'),
             backgroundColor: Colors.green,
           ),
         );
