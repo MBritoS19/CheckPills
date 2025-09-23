@@ -1,4 +1,5 @@
 import 'package:CheckPills/data/datasources/database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart';
 
@@ -12,21 +13,33 @@ class UserProvider with ChangeNotifier {
   User? get activeUser => _activeUser;
   List<User> get allUsers => _allUsers;
   bool get isInitialized => _isInitialized;
+  
+  int? _lastActiveUserId; // Nova variável para guardar o ID carregado
 
   UserProvider({required this.database}) {
     print("✅ [UserProvider] Criado. Iniciando a inicialização...");
     _initialize();
 
     database.usersDao.watchAllUsers().listen((users) {
-      print("🔔 [UserProvider] A stream de usuários foi atualizada. Usuários encontrados: ${users.length}");
+      print(
+          "🔔 [UserProvider] A stream de usuários foi atualizada. Usuários encontrados: ${users.length}");
       _allUsers = users;
 
       if (_activeUser == null || !users.any((u) => u.id == _activeUser!.id)) {
+        User? userToSelect;
         if (users.isNotEmpty) {
-          print("👤 [UserProvider] Selecionando o primeiro usuário como ativo: ${users.first.name}");
-          _selectUser(users.first);
+          // Tenta encontrar o usuário pelo ID salvo
+          if (_lastActiveUserId != null) {
+            userToSelect = users.firstWhere((u) => u.id == _lastActiveUserId,
+                orElse: () => users.first);
+          } else {
+            // Se não houver ID salvo, seleciona o primeiro da lista
+            userToSelect = users.first;
+          }
+          print(
+              "👤 [UserProvider] Selecionando usuário ativo: ${userToSelect.name}");
+          _selectUser(userToSelect);
         } else {
-          print("👤 [UserProvider] Nenhum usuário ativo para selecionar.");
           _activeUser = null;
         }
       }
@@ -35,19 +48,22 @@ class UserProvider with ChangeNotifier {
   }
 
   Future<void> _initialize() async {
-    print("⏳ [UserProvider] Verificando se o primeiro usuário existe...");
+    print("⏳ [UserProvider] Carregando último ID de perfil ativo...");
+    final prefs = await SharedPreferences.getInstance();
+    _lastActiveUserId = prefs.getInt('last_active_user_id');
+    print("💾 [UserProvider] ID carregado: $_lastActiveUserId");
+
     final initialUsers = await database.usersDao.getAllUsers();
-    
     if (initialUsers.isEmpty) {
-      print("✍️ [UserProvider] Nenhum usuário encontrado. Criando 'Perfil Principal'...");
+      print(
+          "✍️ [UserProvider] Nenhum usuário encontrado. Criando 'Perfil Principal'...");
       await addUser("Perfil Principal");
-      print("✅ [UserProvider] 'Perfil Principal' criado.");
     } else {
-      print("👍 [UserProvider] Usuários já existem. Pulando a criação.");
+      print("👍 [UserProvider] Usuários já existem.");
     }
-    
+
     _isInitialized = true;
-    print("🏁 [UserProvider] Inicialização concluída. Notificando a UI.");
+    print("🏁 [UserProvider] Inicialização concluída.");
     notifyListeners();
   }
 
@@ -57,11 +73,16 @@ class UserProvider with ChangeNotifier {
     }
   }
 
-  void selectUser(User user) {
+  Future<void> selectUser(User user) async {
     if (_activeUser?.id != user.id) {
       _activeUser = user;
       print("🔄 [UserProvider] Usuário trocado manualmente para: ${user.name}");
       notifyListeners();
+
+      // Salva o ID do novo perfil ativo
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('last_active_user_id', user.id);
+      print("💾 [UserProvider] ID ${user.id} salvo como último perfil ativo.");
     }
   }
 
