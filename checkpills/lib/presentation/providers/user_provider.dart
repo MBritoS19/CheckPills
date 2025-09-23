@@ -13,7 +13,7 @@ class UserProvider with ChangeNotifier {
   User? get activeUser => _activeUser;
   List<User> get allUsers => _allUsers;
   bool get isInitialized => _isInitialized;
-  
+
   int? _lastActiveUserId; // Nova variável para guardar o ID carregado
 
   UserProvider({required this.database}) {
@@ -104,5 +104,13 @@ class UserProvider with ChangeNotifier {
 
   Future<void> updateUser(UsersCompanion updatedUser) async {
     await database.usersDao.updateUser(updatedUser);
+
+    if (updatedUser.id.present && _activeUser?.id == updatedUser.id.value) {
+      if (updatedUser.name.present) {
+        _activeUser = _activeUser?.copyWith(name: updatedUser.name.value);
+      }
+    }
+
+    notifyListeners();
   }
 }
