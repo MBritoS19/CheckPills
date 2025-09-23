@@ -168,15 +168,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 HapticFeedback.lightImpact();
                 Navigator.of(dialogContext).pop(); // Fecha o diálogo de opções
 
+                // --- INÍCIO DA CORREÇÃO ---
+                final now = DateTime.now();
+                final doseDate = doseData.doseEvent.scheduledTime;
+
+                // Se a data da dose já passou, a data inicial do seletor será 'hoje'.
+                // Caso contrário, será a data original da dose.
+                final initialPickerDate =
+                    doseDate.isBefore(now) ? now : doseDate;
+                // --- FIM DA CORREÇÃO ---
+
                 final pickedDate = await showDatePicker(
                   context: context,
                   locale: const Locale('pt', 'BR'),
-                  initialDate: doseData.doseEvent.scheduledTime,
-                  firstDate: DateTime.now(),
+                  initialDate:
+                      initialPickerDate, // <-- USA A NOVA VARIÁVEL CORRIGIDA
+                  firstDate:
+                      now, // A primeira data possível continua sendo hoje
                   lastDate: DateTime(2101),
                 );
 
-                // 👇 CORREÇÃO: Usamos 'mounted' do State
                 if (pickedDate == null || !mounted) return;
 
                 final pickedTime = await showTimePicker(
@@ -186,7 +197,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   helpText: 'SELECIONE O NOVO HORÁRIO',
                 );
 
-                // 👇 CORREÇÃO: Usamos 'mounted' do State
                 if (pickedTime == null || !mounted) return;
 
                 final newDateTime = DateTime(
@@ -200,7 +210,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 await provider.rescheduleSingleDose(
                     doseData.doseEvent.id, newDateTime);
 
-                // 👇 CORREÇÃO: Usamos 'mounted' do State
                 if (!mounted) return;
 
                 ScaffoldMessenger.of(context).showSnackBar(
