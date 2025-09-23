@@ -3,6 +3,7 @@ import 'package:CheckPills/presentation/providers/medication_provider.dart';
 import 'package:CheckPills/presentation/providers/user_provider.dart';
 import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
 import 'package:CheckPills/presentation/screens/calendar_screen.dart';
+import 'package:CheckPills/presentation/screens/profile_management_screen.dart';
 import 'package:CheckPills/presentation/widgets/dose_details_modal.dart';
 import 'package:CheckPills/presentation/widgets/dose_event_card.dart';
 import 'package:flutter/services.dart';
@@ -69,6 +70,62 @@ class _HomeScreenState extends State<HomeScreen> {
           borderRadius: BorderRadius.circular(20.0),
         ),
       ),
+    );
+  }
+
+  // Adicione este novo método à classe _HomeScreenState
+  void _showProfileSwitcherDialog(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final allUsers = userProvider.allUsers;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return SimpleDialog(
+          title: const Text('Trocar de Perfil'),
+          children: [
+            // Mapeia todos os usuários para uma lista de opções clicáveis
+            ...allUsers
+                .map((user) => SimpleDialogOption(
+                      onPressed: () {
+                        userProvider.selectUser(user);
+                        Navigator.pop(dialogContext); // Fecha o diálogo
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Text(user.name,
+                            style: const TextStyle(fontSize: 16)),
+                      ),
+                    ))
+                .toList(),
+
+            // Adiciona um divisor antes da última opção
+            const Divider(),
+
+            // Adiciona a opção para ir para a tela de gerenciamento completo
+            SimpleDialogOption(
+              onPressed: () {
+                Navigator.pop(dialogContext); // Fecha o diálogo
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileManagementScreen(),
+                  ),
+                );
+              },
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: Row(
+                  children: [
+                    Icon(Icons.settings, size: 20),
+                    SizedBox(width: 12),
+                    Text('Gerenciar Perfis'),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -453,32 +510,34 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Consumer<UserProvider>(
           builder: (context, userProvider, child) {
             final userName = userProvider.activeUser?.name;
-            return Row(
-              children: [
-                SizedBox(
-                  height: 40,
-                  width: 40,
-                  child: Image.asset('assets/images/logo.jpg'),
+            return InkWell(
+              onTap: () {
+                // Só abre o menu se houver mais de um perfil
+                if (userProvider.allUsers.length > 1) {
+                  HapticFeedback.lightImpact();
+                  _showProfileSwitcherDialog(context);
+                }
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min, // Mantém a Row compacta
+                  children: [
+                    SizedBox(
+                      height: 40,
+                      width: 40,
+                      child: Image.asset('assets/images/logo.jpg'),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(userName ?? 'Sem Perfil'),
+                    // 👇 ADICIONAMOS O ÍCONE DE SETA SE HOUVER MAIS DE UM PERFIL
+                    if (userProvider.allUsers.length > 1)
+                      const Icon(Icons.arrow_drop_down),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Builder(
-                    builder: (BuildContext context) {
-                      final double screenWidth =
-                          MediaQuery.of(context).size.width;
-                      final int characterLimit = screenWidth < 400 ? 10 : 20;
-                      final String nameToDisplay = userName ?? 'Sem Perfil';
-
-                      final String displayedName = nameToDisplay.length >
-                              characterLimit
-                          ? nameToDisplay.substring(0, characterLimit) + '...'
-                          : nameToDisplay;
-
-                      return Text(displayedName);
-                    },
-                  ),
-                ),
-              ],
+              ),
             );
           },
         ),
