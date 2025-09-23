@@ -34,7 +34,7 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
     // Agora pegamos os dois providers necessários
     final settingsProvider = context.watch<UserSettingsProvider>();
     final userProvider = context.watch<UserProvider>();
-    
+
     // O nome do usuário vem do UserProvider
     final String? currentUserName = userProvider.activeUser?.name;
     // As configurações vêm do UserSettingsProvider
@@ -60,10 +60,38 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
             _buildSectionHeader("Perfil"),
             ListTile(
               leading: const Icon(Icons.person_outline),
-              title: Text(currentUserName ?? 'Carregando...'), // Mostra o nome do perfil ativo
+              title: Flexible(
+                child: Builder(
+                  builder: (BuildContext context) {
+                    // Obtém a largura da tela do dispositivo
+                    final double screenWidth =
+                        MediaQuery.of(context).size.width;
+
+                    // Define o limite de caracteres com base na largura da tela
+                    // Para telas pequenas (< 400px), o limite é 10.
+                    // Para telas maiores, o limite é 20.
+                    final int characterLimit = screenWidth < 400 ? 10 : 20;
+
+                    // Armazena o nome do usuário ou 'Carregando...'
+                    final String nameToDisplay =
+                        currentUserName ?? 'Carregando...';
+
+                    // Verifica se o nome precisa ser encurtado
+                    final String displayedName =
+                        nameToDisplay.length > characterLimit
+                            ? nameToDisplay.substring(0, characterLimit) + '...'
+                            : nameToDisplay;
+
+                    return Text(
+                      displayedName,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 18),
+                    );
+                  },
+                ),
+              ),
               trailing: const Icon(Icons.edit_outlined),
               onTap: () {
-                // Só permite editar se o usuário ativo já foi carregado
                 if (userProvider.activeUser != null) {
                   _showUserNameDialog(context, userProvider);
                 }
@@ -71,17 +99,17 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
             ),
 
             ListTile(
-    leading: const Icon(Icons.switch_account_outlined),
-    title: const Text('Gerenciar Perfis'),
-    trailing: const Icon(Icons.arrow_forward_ios),
-    onTap: () {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => const ProfileManagementScreen(),
-        ),
-      );
-    },
-  ),
+              leading: const Icon(Icons.switch_account_outlined),
+              title: const Text('Gerenciar Perfis'),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileManagementScreen(),
+                  ),
+                );
+              },
+            ),
 
             // SEÇÃO DE APARÊNCIA
             _buildSectionHeader("Aparência"),
@@ -90,8 +118,8 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
               title: const Text('Modo Noturno'),
               value: settings.darkMode, // Usa as configurações carregadas
               onChanged: (bool value) {
-                settingsProvider
-                    .updateSettings(UserSettingsCompanion(darkMode: Value(value)));
+                settingsProvider.updateSettings(
+                    UserSettingsCompanion(darkMode: Value(value)));
               },
             ),
 

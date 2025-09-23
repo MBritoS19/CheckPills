@@ -468,7 +468,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Image.asset('assets/images/logo.jpg'),
                 ),
                 const SizedBox(width: 8),
-                Text(userName ?? 'Sem Perfil'),
+                Expanded(
+                  child: Builder(
+                    builder: (BuildContext context) {
+                      final double screenWidth =
+                          MediaQuery.of(context).size.width;
+                      final int characterLimit = screenWidth < 400 ? 10 : 20;
+                      final String nameToDisplay = userName ?? 'Sem Perfil';
+
+                      final String displayedName = nameToDisplay.length >
+                              characterLimit
+                          ? nameToDisplay.substring(0, characterLimit) + '...'
+                          : nameToDisplay;
+
+                      return Text(displayedName);
+                    },
+                  ),
+                ),
               ],
             );
           },
@@ -574,8 +590,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: DoseEventCard(
                         doseData: result,
                         onTap: () => _showDoseDetails(result),
-                        onUndoSkip: () => provider
-                            .undoSkipDose(result),
+                        onUndoSkip: () => provider.undoSkipDose(result),
                         onToggleStatus: () async {
                           if (isTaken) {
                             // Ao desmarcar, não precisamos checar o estoque
