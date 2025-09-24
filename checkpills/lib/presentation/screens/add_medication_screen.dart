@@ -64,6 +64,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     'Pó': 'mg',
     'Outros': 'unidade(s)',
   };
+
   final List<String> _allDoseUnits = [
     'unidade(s)',
     'comprimido(s)',
@@ -74,6 +75,16 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     'g',
     'L',
     'dose(s)'
+  ];
+
+  static const List<String> _medicationTypes = [
+    'Comprimido',
+    'Injeção',
+    'Gotas',
+    'Líquido',
+    'Inalação',
+    'Pó',
+    'Outros'
   ];
 
   @override
@@ -157,7 +168,13 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         _selectedDoseUnit = doseParts.sublist(1).join(' ');
       }
     }
-    _selectedType = p.type;
+    if (_medicationTypes.contains(p.type)) {
+      _selectedType = p.type;
+    } else {
+      // Se não for, é um tipo customizado
+      _selectedType = 'Outros';
+      _customTypeController.text = p.type;
+    }
     if (p.intervalValue == 0) {
       _isSingleDose = true;
     }
@@ -167,6 +184,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
       _dontTrackStock = false;
       _stockController.text = p.stock.toString();
     }
+    _selectedFirstDoseDate = p.firstDoseTime;
     _selectedHour = p.firstDoseTime.hour;
     _selectedMinute = p.firstDoseTime.minute;
     _intervalValue = p.intervalValue;
@@ -447,7 +465,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     );
   }
 
-  // Adicione este método dentro da classe _AddMedicationScreenState
   Future<void> _pickAndSaveImage(ImageSource source) async {
     final imagePicker = ImagePicker();
     final pickedFile =
@@ -654,16 +671,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   Widget _buildTypeSelectionPage({
     required double screenWidth,
   }) {
-    const types = [
-      'Comprimido',
-      'Injeção',
-      'Gotas',
-      'Líquido',
-      'Inalação',
-      'Pó',
-      'Outros'
-    ];
-
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
       child: SingleChildScrollView(
@@ -680,7 +687,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
             Wrap(
               spacing: 12.0,
               runSpacing: 12.0,
-              children: types.map((type) {
+              children: _medicationTypes.map((type) {
                 return ChoiceChip(
                   label: Text(type,
                       style: const TextStyle(fontWeight: FontWeight.w500)),
