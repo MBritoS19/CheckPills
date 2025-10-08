@@ -24,6 +24,13 @@ class DoseDetailsModal extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
+    // Obter as dimensões da tela
+    final Size screenSize = MediaQuery.of(context).size;
+    final double screenWidth = screenSize.width;
+
+    // Calcular o novo tamanho baseado na porcentagem (ex: 30% da largura da tela)
+    final double imageSize = screenWidth * 0.50; // 30% da largura da tela
+
     // --- HELPER PARA O HEADER DE STATUS ---
     Widget buildStatusHeader() {
       IconData icon;
@@ -56,12 +63,14 @@ class DoseDetailsModal extends StatelessWidget {
           children: [
             Icon(icon, color: color),
             const SizedBox(width: 8),
-            Text(text, style: textTheme.titleMedium?.copyWith(color: color, fontWeight: FontWeight.bold)),
+            Text(text,
+                style: textTheme.titleMedium
+                    ?.copyWith(color: color, fontWeight: FontWeight.bold)),
           ],
         ),
       );
     }
-    
+
     // --- HELPER PARA AS LINHAS DE INFORMAÇÃO ---
     Widget buildInfoRow(String label, String value) {
       return Padding(
@@ -69,13 +78,16 @@ class DoseDetailsModal extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: textTheme.bodyMedium?.copyWith(color: Colors.grey[600])),
-            Text(value, style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Text(label,
+                style: textTheme.bodyMedium?.copyWith(color: Colors.grey[600])),
+            Text(value,
+                style: textTheme.bodyMedium
+                    ?.copyWith(fontWeight: FontWeight.bold)),
           ],
         ),
       );
     }
-    
+
     // --- HELPER PARA OS CARDS DE SEÇÃO ---
     Widget buildInfoCard(String title, List<Widget> children) {
       return Card(
@@ -89,7 +101,9 @@ class DoseDetailsModal extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              Text(title,
+                  style: textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
               const Divider(height: 24),
               ...children,
             ],
@@ -99,12 +113,14 @@ class DoseDetailsModal extends StatelessWidget {
     }
 
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           AppBar(
-            title: Text(prescription.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+            title: Text(prescription.name,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
             leading: null,
             automaticallyImplyLeading: false,
             actions: [
@@ -117,7 +133,7 @@ class DoseDetailsModal extends StatelessWidget {
               borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
             ),
           ),
-          
+
           buildStatusHeader(),
 
           Expanded(
@@ -133,33 +149,36 @@ class DoseDetailsModal extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                           child: Image.file(
                             File(prescription.imagePath!),
-                            width: 120, height: 120, fit: BoxFit.cover,
+                            // Usando o tamanho calculado
+                            width: imageSize,
+                            height: imageSize,
+                            fit: BoxFit.cover,
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 16),
                   ],
-                  
                   buildInfoCard("Detalhes da Dose", [
-                    buildInfoRow("Horário Agendado", DateFormat('HH:mm').format(doseEvent.scheduledTime)),
+                    buildInfoRow("Horário Agendado",
+                        DateFormat('HH:mm').format(doseEvent.scheduledTime)),
                     buildInfoRow("Quantidade", prescription.doseDescription),
                     if (prescription.stock != -1)
-                      buildInfoRow("Estoque Restante", '${prescription.stock} unidades'),
+                      buildInfoRow(
+                          "Estoque Restante", '${prescription.stock} unidades'),
                   ]),
-
                   const SizedBox(height: 16),
-                  
                   buildInfoCard("Informações do Tratamento", [
                     buildInfoRow("Tipo", prescription.type),
                     // NOVO CÓDIGO
-if (prescription.intervalValue > 0)
-  buildInfoRow(
-      "Intervalo", 'A cada ${prescription.intervalValue} ${prescription.intervalUnit}'),
-                    if (!prescription.isContinuous && prescription.durationTreatment != null)
-                      buildInfoRow("Duração", '${prescription.durationTreatment} ${prescription.unitTreatment}'),
+                    if (prescription.intervalValue > 0)
+                      buildInfoRow("Intervalo",
+                          'A cada ${prescription.intervalValue} ${prescription.intervalUnit}'),
+                    if (!prescription.isContinuous &&
+                        prescription.durationTreatment != null)
+                      buildInfoRow("Duração",
+                          '${prescription.durationTreatment} ${prescription.unitTreatment}'),
                   ]),
-
                   if (prescription.notes?.isNotEmpty ?? false) ...[
                     const SizedBox(height: 16),
                     buildInfoCard("Observações", [
@@ -170,7 +189,7 @@ if (prescription.intervalValue > 0)
               ),
             ),
           ),
-          
+
           // --- BARRA DE AÇÕES APRIMORADA ---
           Container(
             padding: const EdgeInsets.all(16.0),
@@ -185,7 +204,8 @@ if (prescription.intervalValue > 0)
                     icon: const Icon(Icons.edit),
                     label: const Text("Editar"),
                     onPressed: onEdit,
-                    style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
+                    style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -193,8 +213,11 @@ if (prescription.intervalValue > 0)
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.redo),
                     label: const Text("Pular Dose"),
-                    onPressed: doseEvent.status == DoseStatus.pendente ? onSkip : null, // Desativa se não estiver pendente
-                    style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
+                    onPressed: doseEvent.status == DoseStatus.pendente
+                        ? onSkip
+                        : null, // Desativa se não estiver pendente
+                    style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12)),
                   ),
                 ),
                 IconButton(
