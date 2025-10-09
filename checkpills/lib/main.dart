@@ -3,6 +3,8 @@ import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
 import 'package:CheckPills/presentation/providers/medication_provider.dart';
 import 'package:CheckPills/presentation/providers/user_settings_provider.dart';
 import 'package:CheckPills/presentation/providers/user_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:CheckPills/presentation/screens/onboarding_screen.dart';
 import 'package:CheckPills/presentation/screens/home_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:CheckPills/data/datasources/database.dart';
@@ -133,7 +135,8 @@ class _MainScreenState extends State<MainScreen> {
               ),
               useSafeArea: true,
               builder: (BuildContext context) {
-                return const AddMedicationScreen(key: ValueKey('add_new_medication'));
+                return const AddMedicationScreen(
+                    key: ValueKey('add_new_medication'));
               },
             );
           },
@@ -177,25 +180,57 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-class AppInitializer extends StatelessWidget {
+enum AppStatus { loading, onboarding, home }
+
+class AppInitializer extends StatefulWidget {
   const AppInitializer({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final userProvider = context.watch<UserProvider>();
-    
-    // Print do estado atual toda vez que o widget for reconstruído
-    print("🔄 [AppInitializer] Reconstruindo. Estado: isInitialized=${userProvider.isInitialized}, activeUser=${userProvider.activeUser?.name}");
+  State<AppInitializer> createState() => _AppInitializerState();
+}
 
-    if (!userProvider.isInitialized || userProvider.activeUser == null) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+class _AppInitializerState extends State<AppInitializer> {
+  AppStatus _status = AppStatus.loading;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+    // AGORA a inicialização espera de verdade o provider ficar pronto.
+    await userProvider.initializationDone;
+
+    final prefs = await SharedPreferences.getInstance();
+    final bool isCompleted = prefs.getBool('onboarding_concluido') ?? false;
+
+    // Verificação de segurança para o contexto
+    if (mounted) {
+      setState(() {
+        _status = isCompleted ? AppStatus.home : AppStatus.onboarding;
+      });
     }
+  }
 
-    print("🚀 [AppInitializer] Condição satisfeita! Mostrando a MainScreen.");
-    return const MainScreen();
+  @override
+  Widget build(BuildContext context) {
+    switch (_status) {
+      case AppStatus.loading:
+        return const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        );
+      case AppStatus.onboarding:
+        // Passamos uma função para o OnboardingScreen nos avisar quando terminar
+        return OnboardingScreen(onFinish: () {
+          setState(() {
+            _status = AppStatus.home;
+          });
+        });
+      case AppStatus.home:
+        return const MainScreen();
+    }
   }
 }
