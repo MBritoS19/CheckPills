@@ -10,6 +10,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:CheckPills/data/datasources/database.dart';
 import 'package:CheckPills/core/theme/app_theme.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -96,6 +97,11 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  final GlobalKey _fabKey = GlobalKey();
+  final GlobalKey _profileKey = GlobalKey();
+  final GlobalKey _calendarKey = GlobalKey();
+  final GlobalKey _weekNavKey = GlobalKey();
+  final GlobalKey _doseCardKey = GlobalKey();
 
   void _onItemTapped(int index) {
     setState(() {
@@ -109,71 +115,96 @@ class _MainScreenState extends State<MainScreen> {
     final screenHeight = MediaQuery.of(context).size.height;
 
     final List<Widget> screens = [
-      const HomeScreen(),
+      HomeScreen(
+        fabKey: _fabKey,
+        profileKey: _profileKey,
+        calendarKey: _calendarKey,
+        weekNavKey: _weekNavKey,
+        doseCardKey: _doseCardKey,
+      ),
       const ConfigurationScreen(),
     ];
 
-    final Widget currentScreen = screens[_selectedIndex];
-
-    return Scaffold(
-      body: currentScreen,
-      floatingActionButton: SizedBox(
-        height: screenWidth * 0.18,
-        width: screenWidth * 0.18,
-        child: FloatingActionButton(
-          shape: const CircleBorder(),
-          child: Icon(
-            Icons.add,
-            size: screenWidth * 0.1,
-          ),
-          onPressed: () {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-              ),
-              useSafeArea: true,
-              builder: (BuildContext context) {
-                return const AddMedicationScreen(
-                    key: ValueKey('add_new_medication'));
-              },
-            );
-          },
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 10.0,
-        height: screenHeight * 0.09,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: <Widget>[
-            Transform.translate(
-              offset: const Offset(0, -5.0),
-              child: IconButton(
-                icon: const Icon(Icons.home),
-                onPressed: () => _onItemTapped(0),
-                color: _selectedIndex == 0
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.grey,
-                iconSize: screenWidth * 0.09,
-              ),
-            ),
-            SizedBox(width: screenWidth * 0.1),
-            Transform.translate(
-              offset: const Offset(0, -5.0),
-              child: IconButton(
-                icon: const Icon(Icons.settings),
-                onPressed: () => _onItemTapped(1),
-                color: _selectedIndex == 1
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.grey,
-                iconSize: screenWidth * 0.09,
-              ),
-            ),
+    return ShowCaseWidget(
+      builder: (context) => Scaffold(
+        body: TutorialController(
+          showcaseKeys: [
+            // Passamos a lista de chaves na ordem correta
+            _profileKey,
+            _weekNavKey,
+            _calendarKey,
+            _doseCardKey,
+            _fabKey,
           ],
+          child: IndexedStack(
+            index: _selectedIndex,
+            children: screens,
+          ),
+        ),
+        floatingActionButton: Showcase(
+          key: _fabKey,
+          description:
+              'Use este botão a qualquer momento para adicionar um novo medicamento.',
+          child: SizedBox(
+            height: screenWidth * 0.18,
+            width: screenWidth * 0.18,
+            child: FloatingActionButton(
+              shape: const CircleBorder(),
+              child: Icon(
+                Icons.add,
+                size: screenWidth * 0.1,
+              ),
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(20.0)),
+                  ),
+                  useSafeArea: true,
+                  builder: (BuildContext context) {
+                    return const AddMedicationScreen(
+                        key: ValueKey('add_new_medication'));
+                  },
+                );
+              },
+            ),
+          ),
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        bottomNavigationBar: BottomAppBar(
+          shape: const CircularNotchedRectangle(),
+          notchMargin: 10.0,
+          height: screenHeight * 0.09,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: <Widget>[
+              Transform.translate(
+                offset: const Offset(0, -5.0),
+                child: IconButton(
+                  icon: const Icon(Icons.home),
+                  onPressed: () => _onItemTapped(0),
+                  color: _selectedIndex == 0
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.grey,
+                  iconSize: screenWidth * 0.09,
+                ),
+              ),
+              SizedBox(width: screenWidth * 0.1),
+              Transform.translate(
+                offset: const Offset(0, -5.0),
+                child: IconButton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: () => _onItemTapped(1),
+                  color: _selectedIndex == 1
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.grey,
+                  iconSize: screenWidth * 0.09,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -200,14 +231,10 @@ class _AppInitializerState extends State<AppInitializer> {
 
   Future<void> _initializeApp() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-
-    // AGORA a inicialização espera de verdade o provider ficar pronto.
     await userProvider.initializationDone;
 
     final prefs = await SharedPreferences.getInstance();
     final bool isCompleted = prefs.getBool('onboarding_concluido') ?? false;
-
-    // Verificação de segurança para o contexto
     if (mounted) {
       setState(() {
         _status = isCompleted ? AppStatus.home : AppStatus.onboarding;
@@ -223,7 +250,6 @@ class _AppInitializerState extends State<AppInitializer> {
           body: Center(child: CircularProgressIndicator()),
         );
       case AppStatus.onboarding:
-        // Passamos uma função para o OnboardingScreen nos avisar quando terminar
         return OnboardingScreen(onFinish: () {
           setState(() {
             _status = AppStatus.home;
@@ -232,5 +258,49 @@ class _AppInitializerState extends State<AppInitializer> {
       case AppStatus.home:
         return const MainScreen();
     }
+  }
+}
+
+class TutorialController extends StatefulWidget {
+  final Widget child;
+  final List<GlobalKey> showcaseKeys;
+
+  const TutorialController({
+    super.key,
+    required this.child,
+    required this.showcaseKeys,
+  });
+
+  @override
+  State<TutorialController> createState() => _TutorialControllerState();
+}
+
+class _TutorialControllerState extends State<TutorialController> {
+  @override
+  void initState() {
+    super.initState();
+    // Usamos addPostFrameCallback para garantir que tudo foi construído
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndShowTutorial();
+    });
+  }
+
+  void _checkAndShowTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool tutorialShown =
+        prefs.getBool('home_tutorial_concluido') ?? false;
+
+    if (!tutorialShown && mounted) {
+      // Inicia o tutorial
+      ShowCaseWidget.of(context).startShowCase(widget.showcaseKeys);
+
+      // CORREÇÃO: Salva o estado IMEDIATAMENTE após iniciar.
+      await prefs.setBool('home_tutorial_concluido', true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
   }
 }

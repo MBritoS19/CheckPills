@@ -10,9 +10,23 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final GlobalKey fabKey;
+  final GlobalKey profileKey;
+  final GlobalKey calendarKey;
+  final GlobalKey weekNavKey;
+  final GlobalKey doseCardKey;
+
+  const HomeScreen({
+    super.key,
+    required this.fabKey,
+    required this.profileKey,
+    required this.calendarKey,
+    required this.weekNavKey,
+    required this.doseCardKey,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -73,7 +87,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Adicione este novo método à classe _HomeScreenState
   void _showProfileSwitcherDialog(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final allUsers = userProvider.allUsers;
@@ -84,12 +97,11 @@ class _HomeScreenState extends State<HomeScreen> {
         return SimpleDialog(
           title: const Text('Trocar de Perfil'),
           children: [
-            // Mapeia todos os usuários para uma lista de opções clicáveis
             ...allUsers
                 .map((user) => SimpleDialogOption(
                       onPressed: () {
                         userProvider.selectUser(user);
-                        Navigator.pop(dialogContext); // Fecha o diálogo
+                        Navigator.pop(dialogContext);
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -98,14 +110,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ))
                 .toList(),
-
-            // Adiciona um divisor antes da última opção
             const Divider(),
-
-            // Adiciona a opção para ir para a tela de gerenciamento completo
             SimpleDialogOption(
               onPressed: () {
-                Navigator.pop(dialogContext); // Fecha o diálogo
+                Navigator.pop(dialogContext);
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => const ProfileManagementScreen(),
@@ -141,12 +149,10 @@ class _HomeScreenState extends State<HomeScreen> {
               "Esta é uma dose única. O que você gostaria de fazer?"),
           actionsAlignment: MainAxisAlignment.spaceEvenly,
           actions: <Widget>[
-            // Botão 3: Cancelar
             TextButton(
               child: const Text("Cancelar"),
               onPressed: () => Navigator.of(dialogContext).pop(),
             ),
-            // Botão 2: Não Vou Tomar
             TextButton(
               child: const Text("Não Vou Tomar"),
               onPressed: () {
@@ -161,30 +167,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-            // Botão 1: Reagendar
             ElevatedButton(
               child: const Text("Reagendar..."),
               onPressed: () async {
                 HapticFeedback.lightImpact();
-                Navigator.of(dialogContext).pop(); // Fecha o diálogo de opções
-
-                // --- INÍCIO DA CORREÇÃO ---
+                Navigator.of(dialogContext).pop();
                 final now = DateTime.now();
                 final doseDate = doseData.doseEvent.scheduledTime;
-
-                // Se a data da dose já passou, a data inicial do seletor será 'hoje'.
-                // Caso contrário, será a data original da dose.
                 final initialPickerDate =
                     doseDate.isBefore(now) ? now : doseDate;
-                // --- FIM DA CORREÇÃO ---
-
                 final pickedDate = await showDatePicker(
                   context: context,
                   locale: const Locale('pt', 'BR'),
-                  initialDate:
-                      initialPickerDate, // <-- USA A NOVA VARIÁVEL CORRIGIDA
-                  firstDate:
-                      now, // A primeira data possível continua sendo hoje
+                  initialDate: initialPickerDate,
+                  firstDate: now,
                   lastDate: DateTime(2101),
                 );
 
@@ -298,15 +294,11 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) => DoseDetailsModal(
         doseData: doseData,
         onSkip: () {
-          Navigator.of(context).pop(); // Fecha o modal de detalhes primeiro
+          Navigator.of(context).pop();
           final prescription = doseData.prescription;
-
-          // Nova lógica que verifica o tipo de dose
           if (prescription.intervalValue == 0) {
-            // É uma dose única, chama nosso novo método
             _handleSingleDoseSkip(doseData);
           } else {
-            // É uma dose recorrente, mantém o comportamento antigo
             provider.skipDoseAndReschedule(doseData);
           }
         },
@@ -450,8 +442,6 @@ class _HomeScreenState extends State<HomeScreen> {
         .fetchDoseEventsForDay(newDate);
   }
 
-  // A FUNÇÃO _showImageDialog FOI REMOVIDA DAQUI
-
   void _goToPreviousWeek() {
     _updateSelectedDate(_selectedDate.subtract(const Duration(days: 7)));
   }
@@ -501,8 +491,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       builder: (BuildContext context) {
         return AddMedicationScreen(
-          key: ValueKey(
-              prescription.id), // <-- ADICIONADO: Chave única para edição
+          key: ValueKey(prescription.id),
           prescription: prescription,
         );
       },
@@ -519,49 +508,58 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Consumer<UserProvider>(
           builder: (context, userProvider, child) {
             final userName = userProvider.activeUser?.name;
-            return InkWell(
-              onTap: () {
-                // Só abre o menu se houver mais de um perfil
-                if (userProvider.allUsers.length > 1) {
-                  HapticFeedback.lightImpact();
-                  _showProfileSwitcherDialog(context);
-                }
-              },
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min, // Mantém a Row compacta
-                  children: [
-                    SizedBox(
-                      height: 40,
-                      width: 40,
-                      child: Image.asset('assets/images/logo.jpg'),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(userName ?? 'Sem Perfil'),
-                    // 👇 ADICIONAMOS O ÍCONE DE SETA SE HOUVER MAIS DE UM PERFIL
-                    if (userProvider.allUsers.length > 1)
-                      const Icon(Icons.arrow_drop_down),
-                  ],
+            return Showcase(
+              key: widget.profileKey,
+              description:
+                  'Toque aqui para trocar entre perfis ou para gerenciar suas contas.',
+              child: InkWell(
+                onTap: () {
+                  if (userProvider.allUsers.length > 1) {
+                    HapticFeedback.lightImpact();
+                    _showProfileSwitcherDialog(context);
+                  }
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 8.0, horizontal: 4.0),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        height: 40,
+                        width: 40,
+                        child: Image.asset('assets/images/logo.jpg'),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(userName ?? 'Sem Perfil'),
+                      if (userProvider.allUsers.length > 1)
+                        const Icon(Icons.arrow_drop_down),
+                    ],
+                  ),
                 ),
               ),
             );
           },
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.calendar_month),
-            onPressed: () async {
-              final selectedDate = await Navigator.push<DateTime>(
-                context,
-                MaterialPageRoute(builder: (context) => const CalendarScreen()),
-              );
-              if (selectedDate != null && context.mounted) {
-                _updateSelectedDate(selectedDate);
-              }
-            },
+          Showcase(
+            key: widget.calendarKey,
+            description:
+                'Acesse o calendário completo para ter uma visão mensal de suas doses.',
+            child: IconButton(
+              icon: const Icon(Icons.calendar_month),
+              onPressed: () async {
+                final selectedDate = await Navigator.push<DateTime>(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const CalendarScreen()),
+                );
+                if (selectedDate != null && context.mounted) {
+                  _updateSelectedDate(selectedDate);
+                }
+              },
+            ),
           ),
         ],
       ),
@@ -580,9 +578,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       onPressed: _goToPreviousWeek,
                     ),
                     Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: _generateWeekDays(screenWidth),
+                      child: Showcase(
+                        key: widget.weekNavKey,
+                        description:
+                            'Navegue pelas semanas e toque em um dia para ver as doses agendadas.',
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: _generateWeekDays(screenWidth),
+                        ),
                       ),
                     ),
                     IconButton(
@@ -616,8 +619,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
 
                 return ListView.builder(
-                  padding:
-                      const EdgeInsets.only(bottom: 80), // Padding para o FAB
+                  padding: const EdgeInsets.only(bottom: 80),
                   itemCount: doseEventsResults.length,
                   itemBuilder: (BuildContext context, int index) {
                     final result = doseEventsResults[index];
@@ -625,7 +627,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     final isTaken =
                         result.doseEvent.status == DoseStatus.tomada;
 
-                    return Dismissible(
+                    final doseCardWidget = Dismissible(
                       key: ValueKey(result.doseEvent.id),
                       background: Container(
                         color: Colors.blueAccent,
@@ -654,21 +656,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         onUndoSkip: () => provider.undoSkipDose(result),
                         onToggleStatus: () async {
                           if (isTaken) {
-                            // Ao desmarcar, não precisamos checar o estoque
                             await provider.toggleDoseStatus(result);
                             return;
                           }
 
                           if (prescription.stock == -1 ||
                               prescription.stock > 0) {
-                            // Await para esperar a resposta do provider
                             final bool shouldShowWarning =
                                 await provider.toggleDoseStatus(result);
-
-                            // Se o provider sinalizar, mostre o novo diálogo
                             if (shouldShowWarning && mounted) {
-                              // Precisamos de uma pequena pausa para o estado do provider ser atualizado
-                              // antes de lermos o valor do estoque para o diálogo.
                               Future.delayed(const Duration(milliseconds: 100),
                                   () {
                                 final updatedPrescription = provider
@@ -683,6 +679,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         },
                       ),
                     );
+                    if (index == 0 && doseEventsResults.isNotEmpty) {
+                      return Showcase(
+                        key: widget.doseCardKey,
+                        description:
+                            'Este é um lembrete de dose. Toque para ver detalhes ou deslize para editar/excluir.',
+                        child: doseCardWidget,
+                      );
+                    }
+
+                    return doseCardWidget;
                   },
                 );
               },

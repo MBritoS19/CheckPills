@@ -1,6 +1,7 @@
 import 'package:CheckPills/presentation/providers/user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -163,7 +164,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
 
                   // BOTÃO PRÓXIMO / CONCLUIR
-                  FloatingActionButton(
+                  FloatingActionButton.small(
                     onPressed: () {
                       if (_currentPage == pages.length - 1) {
                         if (_isNameValid) _finishOnboarding();
@@ -235,11 +236,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         const SizedBox(height: 32),
         TextField(
           controller: _nameController,
+          textAlign: TextAlign.center,
+          maxLength: 30,
+          inputFormatters: [
+            LengthLimitingTextInputFormatter(30),
+          ],
           decoration: const InputDecoration(
             labelText: 'Seu nome ou apelido',
             border: OutlineInputBorder(),
+            counterText: "", // Oculta o contador padrão
           ),
-          textAlign: TextAlign.center,
         ),
       ],
     );
