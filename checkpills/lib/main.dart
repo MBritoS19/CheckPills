@@ -2,6 +2,7 @@ import 'package:CheckPills/presentation/screens/configuration_screen.dart';
 import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
 import 'package:CheckPills/presentation/providers/medication_provider.dart';
 import 'package:CheckPills/presentation/providers/user_settings_provider.dart';
+import 'package:CheckPills/presentation/widgets/custom_showcase_tooltip.dart';
 import 'package:CheckPills/presentation/providers/user_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:CheckPills/presentation/screens/onboarding_screen.dart';
@@ -116,7 +117,6 @@ class _MainScreenState extends State<MainScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    // A lista de telas permanece a mesma
     final List<Widget> screens = [
       HomeScreen(
         fabKey: _fabKey,
@@ -128,9 +128,9 @@ class _MainScreenState extends State<MainScreen> {
       const ConfigurationScreen(),
     ];
 
+    // Esta é a estrutura final e limpa.
     return ShowCaseWidget(
       builder: (context) => TutorialController(
-        // <-- O TutorialController agora é pai do Scaffold
         showcaseKeys: [
           _profileKey,
           _weekNavKey,
@@ -141,15 +141,21 @@ class _MainScreenState extends State<MainScreen> {
           _settingsKey
         ],
         child: Scaffold(
-          // <-- O Scaffold se torna o filho
           body: IndexedStack(
             index: _selectedIndex,
             children: screens,
           ),
-          floatingActionButton: Showcase(
+          floatingActionButton: Showcase.withWidget(
+            // MUDANÇA 1
             key: _fabKey,
-            description:
-                'Use este botão a qualquer momento para adicionar um novo medicamento.',
+            width: 280,
+            height: 120,
+            container: CustomShowcaseTooltip(
+              description:
+                  'Use este botão a qualquer momento para adicionar um novo medicamento.',
+              onNext: () => ShowCaseWidget.of(context).next(),
+              onSkip: () => ShowCaseWidget.of(context).dismiss(),
+            ),
             child: SizedBox(
               height: screenWidth * 0.18,
               width: screenWidth * 0.18,
@@ -186,11 +192,17 @@ class _MainScreenState extends State<MainScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: <Widget>[
-                Showcase(
-                  // <-- Showcase agora é o pai
+                Showcase.withWidget(
+                  // MUDANÇA 2
                   key: _homeKey,
-                  description:
-                      'Toque aqui para voltar à tela principal a qualquer momento.',
+                  width: 280,
+                  height: 100,
+                  container: CustomShowcaseTooltip(
+                    description:
+                        'Toque aqui para voltar à tela principal a qualquer momento.',
+                    onNext: () => ShowCaseWidget.of(context).next(),
+                    onSkip: () => ShowCaseWidget.of(context).dismiss(),
+                  ),
                   child: Transform.translate(
                     offset: const Offset(0, -5.0),
                     child: IconButton(
@@ -204,11 +216,17 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                 ),
                 SizedBox(width: screenWidth * 0.1),
-                Showcase(
-                  // <-- Showcase agora é o pai
+                Showcase.withWidget(
+                  // MUDANÇA 3
                   key: _settingsKey,
-                  description:
-                      'Acesse as configurações do perfil e do aplicativo aqui.',
+                  width: 280,
+                  height: 100,
+                  container: CustomShowcaseTooltip(
+                    description:
+                        'Acesse as configurações do perfil e do aplicativo aqui.',
+                    onNext: () => ShowCaseWidget.of(context).next(),
+                    onSkip: () => ShowCaseWidget.of(context).dismiss(),
+                  ),
                   child: Transform.translate(
                     offset: const Offset(0, -5.0),
                     child: IconButton(
