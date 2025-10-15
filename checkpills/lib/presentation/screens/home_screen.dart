@@ -6,10 +6,12 @@ import 'package:CheckPills/presentation/screens/calendar_screen.dart';
 import 'package:CheckPills/presentation/screens/profile_management_screen.dart';
 import 'package:CheckPills/presentation/widgets/dose_details_modal.dart';
 import 'package:CheckPills/presentation/widgets/dose_event_card.dart';
+import 'package:CheckPills/presentation/widgets/tutorial_dose_card_placeholder.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:showcaseview/showcaseview.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -34,13 +36,28 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   DateTime _selectedDate = DateTime.now();
+  bool _showTutorialPlaceholder = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkIfTutorialIsNeeded(); // <-- Nova função chamada aqui
       _updateSelectedDate(DateTime.now());
     });
+  }
+
+  // Nova função para verificar se o tutorial precisa ser exibido
+  void _checkIfTutorialIsNeeded() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool tutorialShown =
+        prefs.getBool('home_tutorial_concluido') ?? false;
+    // Se o tutorial ainda não foi mostrado, ativamos nossa flag
+    if (!tutorialShown && mounted) {
+      setState(() {
+        _showTutorialPlaceholder = true;
+      });
+    }
   }
 
   void _showLowStockDialog(Prescription prescription) {
@@ -435,6 +452,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _updateSelectedDate(DateTime newDate) {
+    if (_showTutorialPlaceholder) {
+      setState(() {
+        _showTutorialPlaceholder = false;
+      });
+    }
+
     setState(() {
       _selectedDate = newDate;
     });
@@ -459,7 +482,7 @@ class _HomeScreenState extends State<HomeScreen> {
     for (int i = 0; i < 7; i++) {
       DateTime currentDate = startOfWeek.add(Duration(days: i));
       String dayOfWeek =
-          weekdayFormat.format(currentDate).substring(0, 3) + '.';
+          '${weekdayFormat.format(currentDate).substring(0, 3)}.';
 
       weekDays.add(
         InkWell(
@@ -612,85 +635,96 @@ class _HomeScreenState extends State<HomeScreen> {
               builder: (context, provider, child) {
                 final doseEventsResults = provider.doseEventsForDay;
 
+                // ESTRUTURA LÓGICA CORRIGIDA:
+                // 1. PRIMEIRO, verificamos se a lista de dados está vazia.
                 if (doseEventsResults.isEmpty) {
-                  return const Center(
-                    child: Text('Nenhuma dose para este dia.'),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 80),
-                  itemCount: doseEventsResults.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    final result = doseEventsResults[index];
-                    final prescription = result.prescription;
-                    final isTaken =
-                        result.doseEvent.status == DoseStatus.tomada;
-
-                    final doseCardWidget = Dismissible(
-                      key: ValueKey(result.doseEvent.id),
-                      background: Container(
-                        color: Colors.blueAccent,
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.only(left: 20),
-                        child: const Icon(Icons.edit, color: Colors.white),
-                      ),
-                      secondaryBackground: Container(
-                        color: Colors.red,
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20),
-                        child: const Icon(Icons.delete, color: Colors.white),
-                      ),
-                      confirmDismiss: (direction) async {
-                        if (direction == DismissDirection.endToStart) {
-                          await _handleDelete(context, provider, prescription);
-                          return false;
-                        } else {
-                          _navigateToEditScreen(prescription);
-                          return false;
-                        }
-                      },
-                      child: DoseEventCard(
-                        doseData: result,
-                        onTap: () => _showDoseDetails(result),
-                        onUndoSkip: () => provider.undoSkipDose(result),
-                        onToggleStatus: () async {
-                          if (isTaken) {
-                            await provider.toggleDoseStatus(result);
-                            return;
-                          }
-
-                          if (prescription.stock == -1 ||
-                              prescription.stock > 0) {
-                            final bool shouldShowWarning =
-                                await provider.toggleDoseStatus(result);
-                            if (shouldShowWarning && mounted) {
-                              Future.delayed(const Duration(milliseconds: 100),
-                                  () {
-                                final updatedPrescription = provider
-                                    .prescriptionList
-                                    .firstWhere((p) => p.id == prescription.id);
-                                _showLowStockDialog(updatedPrescription);
-                              });
-                            }
-                          } else {
-                            _showOutOfStockDialog(context, prescription);
-                          }
-                        },
+                  // 2. SE estiver vazia, ENTÃO verificamos se é por causa do tutorial.
+                  if (_showTutorialPlaceholder) {
+                    // Se for o tutorial, mostramos o placeholder.
+                    return Showcase(
+                      key: widget.doseCardKey,
+                      description:
+                          'Este é um lembrete de dose. Toque para ver detalhes ou deslize para editar/excluir.',
+                      child: Dismissible(
+                        key: const ValueKey('tutorial_placeholder_dismissible'),
+                        background: Container(),
+                        secondaryBackground: Container(),
+                        child: const TutorialDoseCardPlaceholder(),
                       ),
                     );
-                    if (index == 0 && doseEventsResults.isNotEmpty) {
-                      return Showcase(
-                        key: widget.doseCardKey,
-                        description:
-                            'Este é um lembrete de dose. Toque para ver detalhes ou deslize para editar/excluir.',
-                        child: doseCardWidget,
-                      );
-                    }
+                  } else {
+                    // Se não for o tutorial, mostramos a mensagem padrão.
+                    return const Center(
+                      child: Text('Nenhuma dose para este dia.'),
+                    );
+                  }
+                } else {
+                  // 3. SE a lista NÃO estiver vazia, então construímos a lista de medicamentos.
+                  return ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 80),
+                    itemCount: doseEventsResults.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      final result = doseEventsResults[index];
+                      final prescription = result.prescription;
+                      final isTaken =
+                          result.doseEvent.status == DoseStatus.tomada;
 
-                    return doseCardWidget;
-                  },
-                );
+                      // A lógica aqui agora é simples, apenas retorna o card.
+                      return Dismissible(
+                        key: ValueKey(result.doseEvent.id),
+                        background: Container(
+                          color: Colors.blueAccent,
+                          alignment: Alignment.centerLeft,
+                          padding: const EdgeInsets.only(left: 20),
+                          child: const Icon(Icons.edit, color: Colors.white),
+                        ),
+                        secondaryBackground: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20),
+                          child: const Icon(Icons.delete, color: Colors.white),
+                        ),
+                        confirmDismiss: (direction) async {
+                          if (direction == DismissDirection.endToStart) {
+                            await _handleDelete(
+                                context, provider, prescription);
+                            return false;
+                          } else {
+                            _navigateToEditScreen(prescription);
+                            return false;
+                          }
+                        },
+                        child: DoseEventCard(
+                          doseData: result,
+                          onTap: () => _showDoseDetails(result),
+                          onUndoSkip: () => provider.undoSkipDose(result),
+                          onToggleStatus: () async {
+                            if (isTaken) {
+                              await provider.toggleDoseStatus(result);
+                              return;
+                            }
+                            if (prescription.stock == -1 ||
+                                prescription.stock > 0) {
+                              final bool shouldShowWarning =
+                                  await provider.toggleDoseStatus(result);
+                              if (shouldShowWarning && mounted) {
+                                Future.delayed(
+                                    const Duration(milliseconds: 100), () {
+                                  final updatedPrescription =
+                                      provider.prescriptionList.firstWhere(
+                                          (p) => p.id == prescription.id);
+                                  _showLowStockDialog(updatedPrescription);
+                                });
+                              }
+                            } else {
+                              _showOutOfStockDialog(context, prescription);
+                            }
+                          },
+                        ),
+                      );
+                    },
+                  );
+                }
               },
             ),
           ),

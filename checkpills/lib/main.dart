@@ -102,6 +102,8 @@ class _MainScreenState extends State<MainScreen> {
   final GlobalKey _calendarKey = GlobalKey();
   final GlobalKey _weekNavKey = GlobalKey();
   final GlobalKey _doseCardKey = GlobalKey();
+  final GlobalKey _homeKey = GlobalKey();
+  final GlobalKey _settingsKey = GlobalKey();
 
   void _onItemTapped(int index) {
     setState(() {
@@ -114,6 +116,7 @@ class _MainScreenState extends State<MainScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
+    // A lista de telas permanece a mesma
     final List<Widget> screens = [
       HomeScreen(
         fabKey: _fabKey,
@@ -126,84 +129,100 @@ class _MainScreenState extends State<MainScreen> {
     ];
 
     return ShowCaseWidget(
-      builder: (context) => Scaffold(
-        body: TutorialController(
-          showcaseKeys: [
-            // Passamos a lista de chaves na ordem correta
-            _profileKey,
-            _weekNavKey,
-            _calendarKey,
-            _doseCardKey,
-            _fabKey,
-          ],
-          child: IndexedStack(
+      builder: (context) => TutorialController(
+        // <-- O TutorialController agora é pai do Scaffold
+        showcaseKeys: [
+          _profileKey,
+          _weekNavKey,
+          _calendarKey,
+          _doseCardKey,
+          _homeKey,
+          _fabKey,
+          _settingsKey
+        ],
+        child: Scaffold(
+          // <-- O Scaffold se torna o filho
+          body: IndexedStack(
             index: _selectedIndex,
             children: screens,
           ),
-        ),
-        floatingActionButton: Showcase(
-          key: _fabKey,
-          description:
-              'Use este botão a qualquer momento para adicionar um novo medicamento.',
-          child: SizedBox(
-            height: screenWidth * 0.18,
-            width: screenWidth * 0.18,
-            child: FloatingActionButton(
-              shape: const CircleBorder(),
-              child: Icon(
-                Icons.add,
-                size: screenWidth * 0.1,
+          floatingActionButton: Showcase(
+            key: _fabKey,
+            description:
+                'Use este botão a qualquer momento para adicionar um novo medicamento.',
+            child: SizedBox(
+              height: screenWidth * 0.18,
+              width: screenWidth * 0.18,
+              child: FloatingActionButton(
+                shape: const CircleBorder(),
+                child: Icon(
+                  Icons.add,
+                  size: screenWidth * 0.1,
+                ),
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(20.0)),
+                    ),
+                    useSafeArea: true,
+                    builder: (BuildContext context) {
+                      return const AddMedicationScreen(
+                          key: ValueKey('add_new_medication'));
+                    },
+                  );
+                },
               ),
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(20.0)),
-                  ),
-                  useSafeArea: true,
-                  builder: (BuildContext context) {
-                    return const AddMedicationScreen(
-                        key: ValueKey('add_new_medication'));
-                  },
-                );
-              },
             ),
           ),
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        bottomNavigationBar: BottomAppBar(
-          shape: const CircularNotchedRectangle(),
-          notchMargin: 10.0,
-          height: screenHeight * 0.09,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: <Widget>[
-              Transform.translate(
-                offset: const Offset(0, -5.0),
-                child: IconButton(
-                  icon: const Icon(Icons.home),
-                  onPressed: () => _onItemTapped(0),
-                  color: _selectedIndex == 0
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.grey,
-                  iconSize: screenWidth * 0.09,
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerDocked,
+          bottomNavigationBar: BottomAppBar(
+            shape: const CircularNotchedRectangle(),
+            notchMargin: 10.0,
+            height: screenHeight * 0.09,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: <Widget>[
+                Showcase(
+                  // <-- Showcase agora é o pai
+                  key: _homeKey,
+                  description:
+                      'Toque aqui para voltar à tela principal a qualquer momento.',
+                  child: Transform.translate(
+                    offset: const Offset(0, -5.0),
+                    child: IconButton(
+                      icon: const Icon(Icons.home),
+                      onPressed: () => _onItemTapped(0),
+                      color: _selectedIndex == 0
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.grey,
+                      iconSize: screenWidth * 0.09,
+                    ),
+                  ),
                 ),
-              ),
-              SizedBox(width: screenWidth * 0.1),
-              Transform.translate(
-                offset: const Offset(0, -5.0),
-                child: IconButton(
-                  icon: const Icon(Icons.settings),
-                  onPressed: () => _onItemTapped(1),
-                  color: _selectedIndex == 1
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.grey,
-                  iconSize: screenWidth * 0.09,
+                SizedBox(width: screenWidth * 0.1),
+                Showcase(
+                  // <-- Showcase agora é o pai
+                  key: _settingsKey,
+                  description:
+                      'Acesse as configurações do perfil e do aplicativo aqui.',
+                  child: Transform.translate(
+                    offset: const Offset(0, -5.0),
+                    child: IconButton(
+                      icon: const Icon(Icons.settings),
+                      onPressed: () => _onItemTapped(1),
+                      color: _selectedIndex == 1
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.grey,
+                      iconSize: screenWidth * 0.09,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -291,11 +310,14 @@ class _TutorialControllerState extends State<TutorialController> {
         prefs.getBool('home_tutorial_concluido') ?? false;
 
     if (!tutorialShown && mounted) {
-      // Inicia o tutorial
-      ShowCaseWidget.of(context).startShowCase(widget.showcaseKeys);
-
-      // CORREÇÃO: Salva o estado IMEDIATAMENTE após iniciar.
-      await prefs.setBool('home_tutorial_concluido', true);
+      // A CORREÇÃO ESTÁ AQUI: Adicionamos um pequeno atraso.
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (mounted) {
+          // Verificamos novamente se o widget ainda está na tela
+          ShowCaseWidget.of(context).startShowCase(widget.showcaseKeys);
+          prefs.setBool('home_tutorial_concluido', true);
+        }
+      });
     }
   }
 
