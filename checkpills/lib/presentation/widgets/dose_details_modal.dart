@@ -8,6 +8,7 @@ class DoseDetailsModal extends StatelessWidget {
   final VoidCallback onSkip;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onToggleStatus; // <-- NOVO CAMPO
 
   const DoseDetailsModal({
     super.key,
@@ -15,6 +16,7 @@ class DoseDetailsModal extends StatelessWidget {
     required this.onSkip,
     required this.onEdit,
     required this.onDelete,
+    required this.onToggleStatus, // <-- TORNAR OBRIGATÓRIO
   });
 
   @override
@@ -36,12 +38,14 @@ class DoseDetailsModal extends StatelessWidget {
       IconData icon;
       String text;
       Color color;
+      VoidCallback? action;
 
       switch (doseEvent.status) {
         case DoseStatus.tomada:
           icon = Icons.check_circle;
           text = "Dose Tomada";
           color = colorScheme.primary;
+          action = onToggleStatus;
           break;
         case DoseStatus.pulada:
           icon = Icons.skip_next_outlined;
@@ -52,6 +56,7 @@ class DoseDetailsModal extends StatelessWidget {
           icon = Icons.radio_button_unchecked;
           text = "Dose Pendente";
           color = Colors.grey;
+          action = onToggleStatus;
           break;
       }
 
@@ -61,7 +66,13 @@ class DoseDetailsModal extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color),
+            // Botão/Ícone que permite o toggle
+            action != null
+                ? IconButton(
+                    icon: Icon(icon, color: color),
+                    onPressed: action,
+                  )
+                : Icon(icon, color: color), // Ícone estático se não houver ação
             const SizedBox(width: 8),
             Text(text,
                 style: textTheme.titleMedium

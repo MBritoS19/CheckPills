@@ -282,7 +282,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showDoseDetails(DoseEventWithPrescription doseData) {
-    final provider = Provider.of<MedicationProvider>(context, listen: false);
+    // REMOVER: final provider = Provider.of<MedicationProvider>(context, listen: false);
 
     showModalBottomSheet(
       context: context,
@@ -291,26 +291,71 @@ class _HomeScreenState extends State<HomeScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
       ),
-      builder: (context) => DoseDetailsModal(
-        doseData: doseData,
-        onSkip: () {
-          Navigator.of(context).pop();
-          final prescription = doseData.prescription;
-          if (prescription.intervalValue == 0) {
-            _handleSingleDoseSkip(doseData);
-          } else {
-            provider.skipDoseAndReschedule(doseData);
-          }
-        },
-        onEdit: () {
-          Navigator.of(context).pop();
-          _navigateToEditScreen(doseData.prescription);
-        },
-        onDelete: () {
-          Navigator.of(context).pop();
-          _handleDelete(context, provider, doseData.prescription);
-        },
-      ),
+      builder: (context) {
+        // Usar um Consumer para reagir às mudanças do MedicationProvider
+        return Consumer<MedicationProvider>(
+          builder: (context, provider, child) {
+            // A doseData que recebemos pode estar desatualizada.
+            // Buscamos a versão mais atualizada no provider para reconstruir o modal.
+            final currentDoseData = provider.doseEventsForDay.firstWhere(
+              (e) => e.doseEvent.id == doseData.doseEvent.id,
+              // Fallback para o dado original se não for encontrado (embora improvável)
+              orElse: () => doseData,
+            );
+
+            // As closures (onSkip, onEdit, etc.) usarão o 'provider' do Consumer.
+            return DoseDetailsModal(
+              doseData: currentDoseData, // Passa o dado atualizado
+              onSkip: () {
+                Navigator.of(context).pop();
+                final prescription = currentDoseData.prescription;
+                if (prescription.intervalValue == 0) {
+                  _handleSingleDoseSkip(currentDoseData);
+                } else {
+                  provider.skipDoseAndReschedule(currentDoseData);
+                }
+              },
+              onEdit: () {
+                Navigator.of(context).pop();
+                _navigateToEditScreen(currentDoseData.prescription);
+              },
+              onDelete: () {
+                Navigator.of(context).pop();
+                _handleDelete(context, provider, currentDoseData.prescription);
+              },
+              onToggleStatus: () async {
+                // Não precisa fechar o modal, ele será reconstruído.
+
+                final prescription = currentDoseData.prescription;
+                final isTaken =
+                    currentDoseData.doseEvent.status == DoseStatus.tomada;
+
+                // Lógica de desmarcar (se já foi tomada)
+                if (isTaken) {
+                  await provider.toggleDoseStatus(currentDoseData);
+                  return;
+                }
+
+                // Lógica de marcar (se pendente)
+                if (prescription.stock == -1 || prescription.stock > 0) {
+                  final bool shouldShowWarning =
+                      await provider.toggleDoseStatus(currentDoseData);
+                  if (shouldShowWarning && mounted) {
+                    Future.delayed(const Duration(milliseconds: 100), () {
+                      // Após 100ms e a reconstrução, verificamos o estoque
+                      final updatedPrescription = provider.prescriptionList
+                          .firstWhere((p) => p.id == prescription.id);
+                      _showLowStockDialog(updatedPrescription);
+                    });
+                  }
+                } else {
+                  _showOutOfStockDialog(context, prescription);
+                }
+              },
+            );
+          },
+        );
+      },
     );
   }
 
