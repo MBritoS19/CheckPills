@@ -358,7 +358,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     final formKey = GlobalKey<FormState>(); // Chave para controlar o formulário
     int tempValue = _intervalValue;
     String tempUnit = _selectedIntervalUnit;
-    final List<String> units = ['Horas', 'Dias', 'Semanas', 'Meses'];
+    final List<String> unitsRow1 = ['Horas', 'Dias'];
+    final List<String> unitsRow2 = ['Semanas', 'Meses'];
 
     showModalBottomSheet(
       context: context,
@@ -414,7 +415,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                         }
                         final number = int.tryParse(value);
                         if (number == null || number <= 0) {
-                          return 'Deve ser > 0';
+                          return 'Deve ser  0';
                         }
                         return null;
                       },
@@ -424,18 +425,80 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    SegmentedButton<String>(
-                      segments: units
-                          .map((unit) => ButtonSegment<String>(
-                              value: unit, label: Text(unit)))
-                          .toList(),
-                      selected: {tempUnit},
-                      onSelectionChanged: (Set<String> newSelection) {
-                        HapticFeedback.lightImpact();
-                        modalSetState(() {
-                          tempUnit = newSelection.first;
-                        });
-                      },
+                    Column(
+                      // Centraliza o bloco de botões horizontalmente, caso o pai não seja full-width
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // PRIMEIRA LINHA DE BOTÕES
+                        Row(
+                          // Usa Row para garantir que o SegmentedButton ocupe o máximo de largura possível
+                          children: [
+                            Expanded(
+                              // Força o SegmentedButton a preencher a largura total da Row
+                              child: SegmentedButton<String>(
+                                segments: unitsRow1
+                                    .map((unit) => ButtonSegment<String>(
+                                        value: unit, label: Text(unit)))
+                                    .toList(),
+
+                                // Estilo 1: Personalização do tema (opcional)
+                                style: SegmentedButton.styleFrom(
+                                  // Borda mais arredondada (se quiser)
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10)),
+                                ),
+
+                                emptySelectionAllowed: true,
+                                selected: unitsRow1.contains(tempUnit)
+                                    ? {tempUnit}
+                                    : {},
+                                onSelectionChanged: (Set<String> newSelection) {
+                                  HapticFeedback.lightImpact();
+                                  modalSetState(() {
+                                    tempUnit = newSelection.first;
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        // SEGUNDA LINHA DE BOTÕES
+                        Row(
+                          // Usa Row para garantir que o SegmentedButton ocupe o máximo de largura possível
+                          children: [
+                            Expanded(
+                              // Força o SegmentedButton a preencher a largura total da Row
+                              child: SegmentedButton<String>(
+                                segments: unitsRow2
+                                    .map((unit) => ButtonSegment<String>(
+                                        value: unit, label: Text(unit)))
+                                    .toList(),
+
+                                // Estilo 1: Personalização do tema (opcional)
+                                style: SegmentedButton.styleFrom(
+                                  // Borda mais arredondada (se quiser)
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10)),
+                                ),
+
+                                emptySelectionAllowed: true,
+                                selected: unitsRow2.contains(tempUnit)
+                                    ? {tempUnit}
+                                    : {},
+                                onSelectionChanged: (Set<String> newSelection) {
+                                  HapticFeedback.lightImpact();
+                                  modalSetState(() {
+                                    tempUnit = newSelection.first;
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton(
