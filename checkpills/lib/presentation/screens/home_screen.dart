@@ -600,7 +600,24 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Image.asset('assets/images/logo.jpg'),
                       ),
                       const SizedBox(width: 8),
-                      Text(userName ?? 'Sem Perfil'),
+
+                      // --- APLICAÇÃO DA LÓGICA DE TRUNCAMENTO AQUI ---
+                      Flexible(
+                        // O widget Flexible permite que o Text ocupe apenas o espaço restante,
+                        // garantindo que não haja overflow, e que os outros widgets sejam visíveis.
+                        child: Text(
+                          // Use 'userName' (ou 'currentUserName' se for a mesma variável do exemplo anterior)
+                          userName ?? 'Sem Perfil',
+
+                          // maxLines: 1 garante que o texto fique em uma única linha.
+                          maxLines: 1,
+
+                          // TextOverflow.ellipsis adiciona "..." quando o texto é muito longo para o espaço disponível.
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // ------------------------------------------------
+
                       if (userProvider.allUsers.length > 1)
                         const Icon(Icons.arrow_drop_down),
                     ],
