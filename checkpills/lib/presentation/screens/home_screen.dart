@@ -437,6 +437,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final stockController = TextEditingController();
     final provider = Provider.of<MedicationProvider>(context, listen: false);
 
+    // 1. CHAVE DO FORMULÁRIO: Adiciona uma chave para gerenciar o estado do formulário.
+    final _formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -451,14 +454,30 @@ class _HomeScreenState extends State<HomeScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: stockController,
-              keyboardType: TextInputType.number,
-              autofocus: true,
-              textAlign: TextAlign.center,
-              decoration: const InputDecoration(
-                labelText: 'Nova quantidade',
-                border: OutlineInputBorder(),
+
+            // 2. WIDGET FORM: Envolve o campo para usar a validação.
+            Form(
+              key: _formKey,
+              child: TextFormField(
+                // Usamos TextFormField
+                controller: stockController,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                textAlign: TextAlign.center,
+
+                // 3. VALIDADOR: Verifica se o valor é >= 1
+                validator: (value) {
+                  final int? stockValue = int.tryParse(value ?? '');
+                  if (stockValue == null || stockValue < 1) {
+                    return 'O valor deve ser maior ou igual a 1.';
+                  }
+                  return null; // A validação é bem-sucedida.
+                },
+
+                decoration: const InputDecoration(
+                  labelText: 'Nova quantidade',
+                  border: OutlineInputBorder(),
+                ),
               ),
             ),
           ],
@@ -470,9 +489,12 @@ class _HomeScreenState extends State<HomeScreen> {
               ElevatedButton(
                 child: const Text('Salvar'),
                 onPressed: () {
-                  final newStock = int.tryParse(stockController.text);
-                  if (newStock != null) {
-                    provider.updatePrescriptionStock(prescription.id, newStock);
+                  // 4. CHAMADA DE VALIDAÇÃO: Verifica se o formulário é válido.
+                  if (_formKey.currentState!.validate()) {
+                    final newStock = int.tryParse(stockController.text);
+                    // Como a validação passou, newStock já é garantidamente >= 1
+                    provider.updatePrescriptionStock(
+                        prescription.id, newStock!);
                     Navigator.of(ctx).pop();
                   }
                 },
@@ -607,7 +629,24 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Image.asset('assets/images/logo.jpg'),
                       ),
                       const SizedBox(width: 8),
-                      Text(userName ?? 'Sem Perfil'),
+
+                      // --- APLICAÇÃO DA LÓGICA DE TRUNCAMENTO AQUI ---
+                      Flexible(
+                        // O widget Flexible permite que o Text ocupe apenas o espaço restante,
+                        // garantindo que não haja overflow, e que os outros widgets sejam visíveis.
+                        child: Text(
+                          // Use 'userName' (ou 'currentUserName' se for a mesma variável do exemplo anterior)
+                          userName ?? 'Sem Perfil',
+
+                          // maxLines: 1 garante que o texto fique em uma única linha.
+                          maxLines: 1,
+
+                          // TextOverflow.ellipsis adiciona "..." quando o texto é muito longo para o espaço disponível.
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // ------------------------------------------------
+
                       if (userProvider.allUsers.length > 1)
                         const Icon(Icons.arrow_drop_down),
                     ],

@@ -63,29 +63,25 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
               title: Flexible(
                 child: Builder(
                   builder: (BuildContext context) {
-                    // Obtém a largura da tela do dispositivo
-                    final double screenWidth =
-                        MediaQuery.of(context).size.width;
-
-                    // Define o limite de caracteres com base na largura da tela
-                    // Para telas pequenas (< 400px), o limite é 10.
-                    // Para telas maiores, o limite é 20.
-                    final int characterLimit = screenWidth < 400 ? 10 : 20;
-
-                    // Armazena o nome do usuário ou 'Carregando...'
+                    // 1. Armazena o nome do usuário ou 'Carregando...'
                     final String nameToDisplay =
                         currentUserName ?? 'Carregando...';
 
-                    // Verifica se o nome precisa ser encurtado
-                    final String displayedName =
-                        nameToDisplay.length > characterLimit
-                            ? nameToDisplay.substring(0, characterLimit) + '...'
-                            : nameToDisplay;
+                    // 2. Garante que o widget ocupe 100% da largura.
+                    return SizedBox(
+                      width: double.infinity, // Garante 100% da largura do pai
+                      child: Text(
+                        nameToDisplay, // Usamos o nome COMPLETO.
 
-                    return Text(
-                      displayedName,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 18),
+                        // O Flutter calcula o quanto cabe na largura total e adiciona "..."
+                        // no final da linha, cumprindo o requisito de limitar o texto ao tamanho do celular.
+                        overflow: TextOverflow.ellipsis,
+
+                        // Garante que o truncamento aconteça em uma única linha.
+                        maxLines: 1,
+
+                        style: const TextStyle(fontSize: 18),
+                      ),
                     );
                   },
                 ),
