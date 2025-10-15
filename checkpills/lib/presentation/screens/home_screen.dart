@@ -7,6 +7,7 @@ import 'package:CheckPills/presentation/screens/profile_management_screen.dart';
 import 'package:CheckPills/presentation/widgets/dose_details_modal.dart';
 import 'package:CheckPills/presentation/widgets/dose_event_card.dart';
 import 'package:CheckPills/presentation/widgets/tutorial_dose_card_placeholder.dart';
+import 'package:CheckPills/presentation/widgets/custom_showcase_tooltip.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -576,10 +577,16 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Consumer<UserProvider>(
           builder: (context, userProvider, child) {
             final userName = userProvider.activeUser?.name;
-            return Showcase(
+            return Showcase.withWidget(
               key: widget.profileKey,
-              description:
-                  'Toque aqui para trocar entre perfis ou para gerenciar suas contas.',
+              width: 280,
+              height: 100,
+              container: CustomShowcaseTooltip(
+                description:
+                    'Toque aqui para trocar entre perfis ou para gerenciar suas contas.',
+                onNext: () => ShowCaseWidget.of(context).next(),
+                onSkip: () => ShowCaseWidget.of(context).dismiss(),
+              ),
               child: InkWell(
                 onTap: () {
                   if (userProvider.allUsers.length > 1) {
@@ -611,10 +618,16 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
         actions: [
-          Showcase(
+          Showcase.withWidget(
             key: widget.calendarKey,
-            description:
-                'Acesse o calendário completo para ter uma visão mensal de suas doses.',
+            width: 280,
+            height: 100,
+            container: CustomShowcaseTooltip(
+              description:
+                  'Navegue pelas semanas e toque em um dia para ver as doses agendadas.',
+              onNext: () => ShowCaseWidget.of(context).next(),
+              onSkip: () => ShowCaseWidget.of(context).dismiss(),
+            ),
             child: IconButton(
               icon: const Icon(Icons.calendar_month),
               onPressed: () async {
@@ -646,10 +659,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       onPressed: _goToPreviousWeek,
                     ),
                     Expanded(
-                      child: Showcase(
+                      child: Showcase.withWidget(
                         key: widget.weekNavKey,
-                        description:
-                            'Navegue pelas semanas e toque em um dia para ver as doses agendadas.',
+                        width: 280,
+                        height: 100,
+                        container: CustomShowcaseTooltip(
+                          description:
+                              'Navegue pelas semanas e toque em um dia para ver as doses agendadas.',
+                          onNext: () => ShowCaseWidget.of(context).next(),
+                          onSkip: () => ShowCaseWidget.of(context).dismiss(),
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: _generateWeekDays(screenWidth),
@@ -686,10 +705,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   // 2. SE estiver vazia, ENTÃO verificamos se é por causa do tutorial.
                   if (_showTutorialPlaceholder) {
                     // Se for o tutorial, mostramos o placeholder.
-                    return Showcase(
+                    return Showcase.withWidget(
                       key: widget.doseCardKey,
-                      description:
-                          'Este é um lembrete de dose. Toque para ver detalhes ou deslize para editar/excluir.',
+                      width: 280,
+                      height: 120, // Um pouco mais de altura para este
+                      container: CustomShowcaseTooltip(
+                        description:
+                            'Este é um lembrete de dose. Toque para ver detalhes ou deslize para editar/excluir.',
+                        onNext: () => ShowCaseWidget.of(context).next(),
+                        onSkip: () => ShowCaseWidget.of(context).dismiss(),
+                      ),
                       child: Dismissible(
                         key: const ValueKey('tutorial_placeholder_dismissible'),
                         background: Container(),
