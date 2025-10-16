@@ -778,6 +778,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       final isTaken =
                           result.doseEvent.status == DoseStatus.tomada;
 
+                      // NOVO: LÓGICA PARA VERIFICAR SE ESTÁ ATRASADA
+                      // A dose está atrasada se a hora agendada já passou E o status é 'pendente'.
+                      final bool doseEstaAtrasada = result
+                              .doseEvent.scheduledTime
+                              .isBefore(DateTime.now()) &&
+                          result.doseEvent.status == DoseStatus.pendente;
+
                       // A lógica aqui agora é simples, apenas retorna o card.
                       return Dismissible(
                         key: ValueKey(result.doseEvent.id),
@@ -805,6 +812,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         },
                         child: DoseEventCard(
                           doseData: result,
+                          // ADICIONADO: Passando o estado de atraso para o card
+                          isOverdue: doseEstaAtrasada,
                           onTap: () => _showDoseDetails(result),
                           onUndoSkip: () => provider.undoSkipDose(result),
                           onToggleStatus: () async {

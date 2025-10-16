@@ -8,6 +8,8 @@ class DoseEventCard extends StatelessWidget {
   final VoidCallback onToggleStatus;
   final VoidCallback onTap;
   final VoidCallback onUndoSkip;
+  // Propriedade para indicar se a dose está atrasada (overdue).
+  final bool isOverdue;
 
   const DoseEventCard({
     super.key,
@@ -15,6 +17,7 @@ class DoseEventCard extends StatelessWidget {
     required this.onToggleStatus,
     required this.onTap,
     required this.onUndoSkip,
+    this.isOverdue = false, // Adicionada no construtor
   });
 
   @override
@@ -25,11 +28,31 @@ class DoseEventCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     // --- LÓGICA DE OPACIDADE E RISCADO ---
-    // Doses que não estão pendentes ficam com a opacidade reduzida
     final bool isActionCompleted = doseEvent.status != DoseStatus.pendente;
     final double contentOpacity = isActionCompleted ? 0.6 : 1.0;
     final TextDecoration? textDecoration =
         isActionCompleted ? TextDecoration.lineThrough : null;
+
+    // --- LÓGICA DE DESTAQUE PARA DOSE ATRASADA (LARANJA CLARO) ---
+    // Aplica destaque APENAS se estiver atrasada (isOverdue == true) E pendente (!isActionCompleted)
+    final bool shouldHighlightOverdue = isOverdue && !isActionCompleted;
+
+    // Cor Laranja CLARO para o fundo
+    final Color veryLightOrange = Colors.orange.shade50;
+
+    // Cor Laranja Escuro para o texto (para contraste)
+    final Color darkOrange = Colors.orange.shade800;
+
+    final Color cardBackgroundColor = shouldHighlightOverdue
+        ? veryLightOrange // Fundo suave laranja usando shade50
+        : colorScheme.surface;
+
+    // Borda removida (cor transparente e largura 0.0)
+    final Color cardBorderColor = Colors.transparent;
+
+    // Cor condicional para o texto do horário (Laranja Escuro)
+    final Color timeTextColor =
+        shouldHighlightOverdue ? darkOrange : colorScheme.primary;
 
     Widget buildStatusIcon() {
       switch (doseEvent.status) {
@@ -56,8 +79,17 @@ class DoseEventCard extends StatelessWidget {
 
     return Card(
       elevation: 2,
+      // Aplicando a cor de fundo condicional
+      color: cardBackgroundColor,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+      shape: RoundedRectangleBorder(
+        // Borda completamente removida
+        side: BorderSide(
+          color: cardBorderColor,
+          width: 0.0,
+        ),
+        borderRadius: BorderRadius.circular(12.0),
+      ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12.0),
@@ -70,20 +102,23 @@ class DoseEventCard extends StatelessWidget {
                 // --- BLOCO DO HORÁRIO ---
                 Container(
                   width: 90,
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         DateFormat('HH:mm').format(doseEvent.scheduledTime),
                         style: textTheme.titleLarge?.copyWith(
-                          color: colorScheme.primary,
+                          // Aplicando a cor condicional ao texto do horário (Laranja)
+                          color: timeTextColor,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
                         "Horário",
-                        style: textTheme.bodySmall?.copyWith(color: Colors.grey),
+                        style:
+                            textTheme.bodySmall?.copyWith(color: Colors.grey),
                       ),
                     ],
                   ),
@@ -95,7 +130,8 @@ class DoseEventCard extends StatelessWidget {
                 // --- BLOCO DE DETALHES ---
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12.0, vertical: 8.0),
                     child: Row(
                       children: [
                         // Imagem
@@ -112,7 +148,8 @@ class DoseEventCard extends StatelessWidget {
                                       File(prescription.imagePath!),
                                       fit: BoxFit.cover,
                                     )
-                                  : const Icon(Icons.medication_liquid, color: Colors.grey),
+                                  : const Icon(Icons.medication_liquid,
+                                      color: Colors.grey),
                             ),
                           ),
                         ),
