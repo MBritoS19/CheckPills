@@ -592,6 +592,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
@@ -778,67 +779,128 @@ class _HomeScreenState extends State<HomeScreen> {
                       final isTaken =
                           result.doseEvent.status == DoseStatus.tomada;
 
-                      // NOVO: LÓGICA PARA VERIFICAR SE ESTÁ ATRASADA
-                      // A dose está atrasada se a hora agendada já passou E o status é 'pendente'.
+                      // --- LÓGICA DE CLASSIFICAÇÃO PARA SEPARADORES ---
+
+                      // 1. Define o status atual
+                      String currentStatusKey;
                       final bool doseEstaAtrasada = result
                               .doseEvent.scheduledTime
                               .isBefore(DateTime.now()) &&
                           result.doseEvent.status == DoseStatus.pendente;
 
-                      // A lógica aqui agora é simples, apenas retorna o card.
-                      return Dismissible(
-                        key: ValueKey(result.doseEvent.id),
-                        background: Container(
-                          color: Colors.blueAccent,
-                          alignment: Alignment.centerLeft,
-                          padding: const EdgeInsets.only(left: 20),
-                          child: const Icon(Icons.edit, color: Colors.white),
-                        ),
-                        secondaryBackground: Container(
-                          color: Colors.red,
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20),
-                          child: const Icon(Icons.delete, color: Colors.white),
-                        ),
-                        confirmDismiss: (direction) async {
-                          if (direction == DismissDirection.endToStart) {
-                            await _handleDelete(
-                                context, provider, prescription);
-                            return false;
-                          } else {
-                            _navigateToEditScreen(prescription);
-                            return false;
-                          }
-                        },
-                        child: DoseEventCard(
-                          doseData: result,
-                          // ADICIONADO: Passando o estado de atraso para o card
-                          isOverdue: doseEstaAtrasada,
-                          onTap: () => _showDoseDetails(result),
-                          onUndoSkip: () => provider.undoSkipDose(result),
-                          onToggleStatus: () async {
-                            if (isTaken) {
-                              await provider.toggleDoseStatus(result);
-                              return;
-                            }
-                            if (prescription.stock == -1 ||
-                                prescription.stock > 0) {
-                              final bool shouldShowWarning =
-                                  await provider.toggleDoseStatus(result);
-                              if (shouldShowWarning && mounted) {
-                                Future.delayed(
-                                    const Duration(milliseconds: 100), () {
-                                  final updatedPrescription =
-                                      provider.prescriptionList.firstWhere(
-                                          (p) => p.id == prescription.id);
-                                  _showLowStockDialog(updatedPrescription);
-                                });
+                      if (doseEstaAtrasada) {
+                        currentStatusKey = 'Atrasadas';
+                      } else if (result.doseEvent.status ==
+                          DoseStatus.pendente) {
+                        currentStatusKey = 'Pendentes';
+                      } else {
+                        currentStatusKey = 'Tomadas';
+                      }
+
+                      // 2. Define o status do item anterior (se houver)
+                      String? previousStatusKey;
+                      if (index > 0) {
+                        final previousResult = doseEventsResults[index - 1];
+                        final bool previousDoseEstaAtrasada = previousResult
+                                .doseEvent.scheduledTime
+                                .isBefore(DateTime.now()) &&
+                            previousResult.doseEvent.status ==
+                                DoseStatus.pendente;
+
+                        if (previousDoseEstaAtrasada) {
+                          previousStatusKey = 'Atrasadas';
+                        } else if (previousResult.doseEvent.status ==
+                            DoseStatus.pendente) {
+                          previousStatusKey = 'Pendentes';
+                        } else {
+                          previousStatusKey = 'Tomadas';
+                        }
+                      }
+
+                      // 3. Determina se um separador deve ser inserido (se for o primeiro OU se o status mudou)
+                      final bool shouldShowSeparator =
+                          index == 0 || currentStatusKey != previousStatusKey;
+
+                      // --- FIM DA LÓGICA DE CLASSIFICAÇÃO ---
+
+                      // 4. Constrói o widget (pode ser uma Column para incluir o separador)
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (shouldShowSeparator)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  left: 16.0,
+                                  right: 16.0,
+                                  top: 16.0,
+                                  bottom: 8.0),
+                              child: Text(
+                                currentStatusKey,
+                                style: textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: currentStatusKey == 'Atrasadas'
+                                      ? Colors.orange.shade800
+                                      : colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          Dismissible(
+                            key: ValueKey(result.doseEvent.id),
+                            background: Container(
+                              color: Colors.blueAccent,
+                              alignment: Alignment.centerLeft,
+                              padding: const EdgeInsets.only(left: 20),
+                              child:
+                                  const Icon(Icons.edit, color: Colors.white),
+                            ),
+                            secondaryBackground: Container(
+                              color: Colors.red,
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              child:
+                                  const Icon(Icons.delete, color: Colors.white),
+                            ),
+                            confirmDismiss: (direction) async {
+                              if (direction == DismissDirection.endToStart) {
+                                await _handleDelete(
+                                    context, provider, prescription);
+                                return false;
+                              } else {
+                                _navigateToEditScreen(prescription);
+                                return false;
                               }
-                            } else {
-                              _showOutOfStockDialog(context, prescription);
-                            }
-                          },
-                        ),
+                            },
+                            child: DoseEventCard(
+                              doseData: result,
+                              // PONTO CRÍTICO: PASSANDO A INFORMAÇÃO DE ATRASO PARA O CARD
+                              isOverdue: doseEstaAtrasada,
+                              onTap: () => _showDoseDetails(result),
+                              onUndoSkip: () => provider.undoSkipDose(result),
+                              onToggleStatus: () async {
+                                if (isTaken) {
+                                  await provider.toggleDoseStatus(result);
+                                  return;
+                                }
+                                if (prescription.stock == -1 ||
+                                    prescription.stock > 0) {
+                                  final bool shouldShowWarning =
+                                      await provider.toggleDoseStatus(result);
+                                  if (shouldShowWarning && mounted) {
+                                    Future.delayed(
+                                        const Duration(milliseconds: 100), () {
+                                      final updatedPrescription =
+                                          provider.prescriptionList.firstWhere(
+                                              (p) => p.id == prescription.id);
+                                      _showLowStockDialog(updatedPrescription);
+                                    });
+                                  }
+                                } else {
+                                  _showOutOfStockDialog(context, prescription);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
                       );
                     },
                   );

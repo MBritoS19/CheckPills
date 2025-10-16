@@ -81,6 +81,7 @@ class MedicationProvider with ChangeNotifier {
         .watchDoseEventsForDay(activeUser.id, date)
         .listen((doses) {
       _doseEventsForDay = doses;
+      _sortDoseEvents(_doseEventsForDay); // APLICAÇÃO DA ORDENAÇÃO
       notifyListeners();
     });
   }
@@ -336,6 +337,54 @@ class MedicationProvider with ChangeNotifier {
         return prescription.firstDoseTime.add(const Duration(days: 365 * 10));
     }
   }
+
+  // --- LÓGICA DE ORDENAÇÃO POR STATUS (NOVO CÓDIGO) ---
+
+  // Método auxiliar para determinar a prioridade de ordenação
+  // 1: Pendentes (no horário/futuro)
+  // 2: Atrasadas
+  // 3: Completas (Tomadas ou Puladas)
+  int _getDosePriority(DoseEventWithPrescription dose) {
+    final status = dose.doseEvent.status;
+    final scheduledTime = dose.doseEvent.scheduledTime;
+    final now = DateTime.now();
+
+    // 3. Doses Tomadas ou Puladas (Completas) - Última prioridade
+    if (status == DoseStatus.tomada || status == DoseStatus.pulada) {
+      return 3;
+    }
+
+    // 1 & 2. Doses Pendentes
+    if (status == DoseStatus.pendente) {
+      // 2. Atrasadas: Agendada antes de agora
+      if (scheduledTime.isBefore(now)) {
+        return 2;
+      }
+      // 1. Pendentes (no horário/futuro) - Primeira prioridade
+      return 1;
+    }
+
+    // Default
+    return 4;
+  }
+
+  // Ordena a lista de doses de acordo com o status
+  void _sortDoseEvents(List<DoseEventWithPrescription> doses) {
+    doses.sort((a, b) {
+      final priorityA = _getDosePriority(a);
+      final priorityB = _getDosePriority(b);
+
+      // 1. Ordena pela prioridade (1, 2, 3)
+      if (priorityA != priorityB) {
+        return priorityA.compareTo(priorityB);
+      }
+
+      // 2. Se a prioridade for a mesma, ordena pelo horário agendado (mais cedo primeiro)
+      return a.doseEvent.scheduledTime.compareTo(b.doseEvent.scheduledTime);
+    });
+  }
+
+  // --- FIM DA LÓGICA DE ORDENAÇÃO ---
 
   @override
   void dispose() {
