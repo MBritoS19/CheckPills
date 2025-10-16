@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 class CustomShowcaseTooltip extends StatelessWidget {
   final String description;
-  final VoidCallback onNext;
-  final VoidCallback onSkip;
+  final ShowCaseWidgetState showcaseState; // A "linha direta" para o estado
+  final VoidCallback onTutorialFinish;
+  final bool isLastStep;
 
   const CustomShowcaseTooltip({
     super.key,
     required this.description,
-    required this.onNext,
-    required this.onSkip,
+    required this.showcaseState, // Novo parâmetro
+    required this.onTutorialFinish,
+    this.isLastStep = false,
   });
 
   @override
@@ -29,13 +32,23 @@ class CustomShowcaseTooltip extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed: onSkip,
+                  onPressed: () {
+                    onTutorialFinish();
+                    showcaseState.dismiss(); // USA O ESTADO DIRETAMENTE
+                  },
                   child: const Text('Pular'),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(
-                  onPressed: onNext,
-                  child: const Text('Próximo'),
+                  onPressed: () {
+                    if (isLastStep) {
+                      onTutorialFinish();
+                      showcaseState.dismiss(); // USA O ESTADO DIRETAMENTE
+                    } else {
+                      showcaseState.next(); // USA O ESTADO DIRETAMENTE
+                    }
+                  },
+                  child: Text(isLastStep ? 'Concluir' : 'Próximo'),
                 ),
               ],
             ),

@@ -97,6 +97,9 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  // A GlobalKey para o ShowCaseWidget foi removida, pois não é a abordagem correta.
+  final GlobalKey<HomeScreenState> _homeScreenKey =
+      GlobalKey<HomeScreenState>();
   int _selectedIndex = 0;
   final GlobalKey _fabKey = GlobalKey();
   final GlobalKey _profileKey = GlobalKey();
@@ -117,133 +120,149 @@ class _MainScreenState extends State<MainScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
+    // A lista de telas agora aceita os callbacks.
     final List<Widget> screens = [
       HomeScreen(
+        key: _homeScreenKey,
+        showcaseKey: null, // Será preenchido pelo builder abaixo
         fabKey: _fabKey,
         profileKey: _profileKey,
         calendarKey: _calendarKey,
         weekNavKey: _weekNavKey,
         doseCardKey: _doseCardKey,
+        onTutorialFinish: () =>
+            _homeScreenKey.currentState?.hideTutorialPlaceholder(),
       ),
       const ConfigurationScreen(),
     ];
 
-    // Esta é a estrutura final e limpa.
     return ShowCaseWidget(
-      builder: (context) => TutorialController(
-        showcaseKeys: [
-          _profileKey,
-          _weekNavKey,
-          _calendarKey,
-          _doseCardKey,
-          _homeKey,
-          _fabKey,
-          _settingsKey
-        ],
-        child: Scaffold(
-          body: IndexedStack(
-            index: _selectedIndex,
-            children: screens,
-          ),
-          floatingActionButton: Showcase.withWidget(
-            // MUDANÇA 1
-            key: _fabKey,
-            width: 280,
-            height: 120,
-            container: CustomShowcaseTooltip(
-              description:
-                  'Use este botão a qualquer momento para adicionar um novo medicamento.',
-              onNext: () => ShowCaseWidget.of(context).next(),
-              onSkip: () => ShowCaseWidget.of(context).dismiss(),
+      builder: (context) {
+        screens[0] = HomeScreen(
+          key: _homeScreenKey,
+          showcaseKey: ShowCaseWidget.of(context),
+          fabKey: _fabKey,
+          profileKey: _profileKey,
+          calendarKey: _calendarKey,
+          weekNavKey: _weekNavKey,
+          doseCardKey: _doseCardKey,
+          onTutorialFinish: () =>
+              _homeScreenKey.currentState?.hideTutorialPlaceholder(),
+        );
+
+        return TutorialController(
+          showcaseKeys: [
+            _profileKey,
+            _weekNavKey,
+            _calendarKey,
+            _doseCardKey,
+            _homeKey,
+            _fabKey,
+            _settingsKey
+          ],
+          child: Scaffold(
+            body: IndexedStack(
+              index: _selectedIndex,
+              children: screens,
             ),
-            child: SizedBox(
-              height: screenWidth * 0.18,
-              width: screenWidth * 0.18,
-              child: FloatingActionButton(
-                shape: const CircleBorder(),
-                child: Icon(
-                  Icons.add,
-                  size: screenWidth * 0.1,
+            floatingActionButton: Showcase.withWidget(
+              key: _fabKey,
+              width: 280,
+              height: 120,
+              container: CustomShowcaseTooltip(
+                description:
+                    'Use este botão a qualquer momento para adicionar um novo medicamento.',
+                showcaseState: ShowCaseWidget.of(context),
+                onTutorialFinish: () =>
+                    _homeScreenKey.currentState?.hideTutorialPlaceholder(),
+              ),
+              child: SizedBox(
+                height: screenWidth * 0.18,
+                width: screenWidth * 0.18,
+                child: FloatingActionButton(
+                  shape: const CircleBorder(),
+                  child: Icon(Icons.add, size: screenWidth * 0.1),
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(20.0)),
+                      ),
+                      useSafeArea: true,
+                      builder: (BuildContext context) {
+                        return const AddMedicationScreen(
+                            key: ValueKey('add_new_medication'));
+                      },
+                    );
+                  },
                 ),
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(20.0)),
+              ),
+            ),
+            floatingActionButtonLocation:
+                FloatingActionButtonLocation.centerDocked,
+            bottomNavigationBar: BottomAppBar(
+              shape: const CircularNotchedRectangle(),
+              notchMargin: 10.0,
+              height: screenHeight * 0.09,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: <Widget>[
+                  Showcase.withWidget(
+                    key: _homeKey,
+                    width: 280,
+                    height: 100,
+                    container: CustomShowcaseTooltip(
+                      description:
+                          'Toque aqui para voltar à tela principal a qualquer momento.',
+                      showcaseState: ShowCaseWidget.of(context),
+                      onTutorialFinish: () => _homeScreenKey.currentState
+                          ?.hideTutorialPlaceholder(),
                     ),
-                    useSafeArea: true,
-                    builder: (BuildContext context) {
-                      return const AddMedicationScreen(
-                          key: ValueKey('add_new_medication'));
-                    },
-                  );
-                },
+                    child: Transform.translate(
+                      offset: const Offset(0, -5.0),
+                      child: IconButton(
+                        icon: const Icon(Icons.home),
+                        onPressed: () => _onItemTapped(0),
+                        color: _selectedIndex == 0
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.grey,
+                        iconSize: screenWidth * 0.09,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: screenWidth * 0.1),
+                  Showcase.withWidget(
+                    key: _settingsKey,
+                    width: 280,
+                    height: 100,
+                    container: CustomShowcaseTooltip(
+                      description:
+                          'Acesse as configurações do perfil e do aplicativo aqui.',
+                      showcaseState: ShowCaseWidget.of(context),
+                      onTutorialFinish: () => _homeScreenKey.currentState
+                          ?.hideTutorialPlaceholder(),
+                      isLastStep: true,
+                    ),
+                    child: Transform.translate(
+                      offset: const Offset(0, -5.0),
+                      child: IconButton(
+                        icon: const Icon(Icons.settings),
+                        onPressed: () => _onItemTapped(1),
+                        color: _selectedIndex == 1
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.grey,
+                        iconSize: screenWidth * 0.09,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          floatingActionButtonLocation:
-              FloatingActionButtonLocation.centerDocked,
-          bottomNavigationBar: BottomAppBar(
-            shape: const CircularNotchedRectangle(),
-            notchMargin: 10.0,
-            height: screenHeight * 0.09,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: <Widget>[
-                Showcase.withWidget(
-                  // MUDANÇA 2
-                  key: _homeKey,
-                  width: 280,
-                  height: 100,
-                  container: CustomShowcaseTooltip(
-                    description:
-                        'Toque aqui para voltar à tela principal a qualquer momento.',
-                    onNext: () => ShowCaseWidget.of(context).next(),
-                    onSkip: () => ShowCaseWidget.of(context).dismiss(),
-                  ),
-                  child: Transform.translate(
-                    offset: const Offset(0, -5.0),
-                    child: IconButton(
-                      icon: const Icon(Icons.home),
-                      onPressed: () => _onItemTapped(0),
-                      color: _selectedIndex == 0
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.grey,
-                      iconSize: screenWidth * 0.09,
-                    ),
-                  ),
-                ),
-                SizedBox(width: screenWidth * 0.1),
-                Showcase.withWidget(
-                  // MUDANÇA 3
-                  key: _settingsKey,
-                  width: 280,
-                  height: 100,
-                  container: CustomShowcaseTooltip(
-                    description:
-                        'Acesse as configurações do perfil e do aplicativo aqui.',
-                    onNext: () => ShowCaseWidget.of(context).next(),
-                    onSkip: () => ShowCaseWidget.of(context).dismiss(),
-                  ),
-                  child: Transform.translate(
-                    offset: const Offset(0, -5.0),
-                    child: IconButton(
-                      icon: const Icon(Icons.settings),
-                      onPressed: () => _onItemTapped(1),
-                      color: _selectedIndex == 1
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.grey,
-                      iconSize: screenWidth * 0.09,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

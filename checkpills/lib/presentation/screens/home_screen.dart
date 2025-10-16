@@ -16,26 +16,30 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:showcaseview/showcaseview.dart';
 
 class HomeScreen extends StatefulWidget {
+  final ShowCaseWidgetState? showcaseKey;
   final GlobalKey fabKey;
   final GlobalKey profileKey;
   final GlobalKey calendarKey;
   final GlobalKey weekNavKey;
   final GlobalKey doseCardKey;
+  final VoidCallback onTutorialFinish;
 
   const HomeScreen({
     super.key,
+    required this.showcaseKey,
     required this.fabKey,
     required this.profileKey,
     required this.calendarKey,
     required this.weekNavKey,
     required this.doseCardKey,
+    required this.onTutorialFinish,
   });
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> {
   DateTime _selectedDate = DateTime.now();
   bool _showTutorialPlaceholder = false;
 
@@ -43,17 +47,23 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkIfTutorialIsNeeded(); // <-- Nova função chamada aqui
+      _checkIfTutorialIsNeeded();
       _updateSelectedDate(DateTime.now());
     });
   }
 
-  // Nova função para verificar se o tutorial precisa ser exibido
+  void hideTutorialPlaceholder() {
+    if (mounted && _showTutorialPlaceholder) {
+      setState(() {
+        _showTutorialPlaceholder = false;
+      });
+    }
+  }
+
   void _checkIfTutorialIsNeeded() async {
     final prefs = await SharedPreferences.getInstance();
     final bool tutorialShown =
         prefs.getBool('home_tutorial_concluido') ?? false;
-    // Se o tutorial ainda não foi mostrado, ativamos nossa flag
     if (!tutorialShown && mounted) {
       setState(() {
         _showTutorialPlaceholder = true;
@@ -520,12 +530,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _updateSelectedDate(DateTime newDate) {
-    if (_showTutorialPlaceholder) {
-      setState(() {
-        _showTutorialPlaceholder = false;
-      });
-    }
-
     setState(() {
       _selectedDate = newDate;
     });
@@ -606,8 +610,8 @@ class _HomeScreenState extends State<HomeScreen> {
               container: CustomShowcaseTooltip(
                 description:
                     'Toque aqui para trocar entre perfis ou para gerenciar suas contas.',
-                onNext: () => ShowCaseWidget.of(context).next(),
-                onSkip: () => ShowCaseWidget.of(context).dismiss(),
+                showcaseState: widget.showcaseKey!,
+                onTutorialFinish: widget.onTutorialFinish,
               ),
               child: InkWell(
                 onTap: () {
@@ -664,8 +668,8 @@ class _HomeScreenState extends State<HomeScreen> {
             container: CustomShowcaseTooltip(
               description:
                   'Navegue pelas semanas e toque em um dia para ver as doses agendadas.',
-              onNext: () => ShowCaseWidget.of(context).next(),
-              onSkip: () => ShowCaseWidget.of(context).dismiss(),
+              showcaseState: widget.showcaseKey!,
+              onTutorialFinish: widget.onTutorialFinish,
             ),
             child: IconButton(
               icon: const Icon(Icons.calendar_month),
@@ -705,8 +709,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         container: CustomShowcaseTooltip(
                           description:
                               'Navegue pelas semanas e toque em um dia para ver as doses agendadas.',
-                          onNext: () => ShowCaseWidget.of(context).next(),
-                          onSkip: () => ShowCaseWidget.of(context).dismiss(),
+                          showcaseState: widget.showcaseKey!,
+                          onTutorialFinish: widget.onTutorialFinish,
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -751,8 +755,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       container: CustomShowcaseTooltip(
                         description:
                             'Este é um lembrete de dose. Toque para ver detalhes ou deslize para editar/excluir.',
-                        onNext: () => ShowCaseWidget.of(context).next(),
-                        onSkip: () => ShowCaseWidget.of(context).dismiss(),
+                        showcaseState: widget.showcaseKey!,
+                        onTutorialFinish: widget.onTutorialFinish,
                       ),
                       child: Dismissible(
                         key: const ValueKey('tutorial_placeholder_dismissible'),
