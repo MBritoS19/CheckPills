@@ -21,7 +21,7 @@ class UserSettings extends Table {
       integer().references(Users, #id, onDelete: KeyAction.cascade)();
 
   TextColumn get standardPillType => text().nullable()();
-  BoolColumn get darkMode => boolean().withDefault(const Constant(false))();
+  IntColumn get themeMode => integer().withDefault(const Constant(0))(); // 0: System, 1: Light, 2: Dark
   IntColumn get refillReminder => integer().withDefault(const Constant(5))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
@@ -79,7 +79,22 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onUpgrade: (migrator, from, to) async {
+        if (from == 5) {
+          // 1. Adiciona a nova coluna 'themeMode' à tabela 'user_settings'
+          await migrator.addColumn(userSettings, userSettings.themeMode);
+          
+          // 2. Remove a coluna antiga 'dark_mode'.
+          await migrator.dropColumn(userSettings, 'dark_mode');
+        }
+      },
+    );
+  }
 
   UsersDao get usersDao => UsersDao(this);
   UserSettingsDao get userSettingsDao => UserSettingsDao(this);

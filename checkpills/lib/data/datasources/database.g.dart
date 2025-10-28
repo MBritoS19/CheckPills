@@ -235,16 +235,14 @@ class $UserSettingsTable extends UserSettings
   late final GeneratedColumn<String> standardPillType = GeneratedColumn<String>(
       'standard_pill_type', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _darkModeMeta =
-      const VerificationMeta('darkMode');
+  static const VerificationMeta _themeModeMeta =
+      const VerificationMeta('themeMode');
   @override
-  late final GeneratedColumn<bool> darkMode = GeneratedColumn<bool>(
-      'dark_mode', aliasedName, false,
-      type: DriftSqlType.bool,
+  late final GeneratedColumn<int> themeMode = GeneratedColumn<int>(
+      'theme_mode', aliasedName, false,
+      type: DriftSqlType.int,
       requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('CHECK ("dark_mode" IN (0, 1))'),
-      defaultValue: const Constant(false));
+      defaultValue: const Constant(0));
   static const VerificationMeta _refillReminderMeta =
       const VerificationMeta('refillReminder');
   @override
@@ -273,7 +271,7 @@ class $UserSettingsTable extends UserSettings
   List<GeneratedColumn> get $columns => [
         userId,
         standardPillType,
-        darkMode,
+        themeMode,
         refillReminder,
         createdAt,
         updatedAt
@@ -298,9 +296,9 @@ class $UserSettingsTable extends UserSettings
           standardPillType.isAcceptableOrUnknown(
               data['standard_pill_type']!, _standardPillTypeMeta));
     }
-    if (data.containsKey('dark_mode')) {
-      context.handle(_darkModeMeta,
-          darkMode.isAcceptableOrUnknown(data['dark_mode']!, _darkModeMeta));
+    if (data.containsKey('theme_mode')) {
+      context.handle(_themeModeMeta,
+          themeMode.isAcceptableOrUnknown(data['theme_mode']!, _themeModeMeta));
     }
     if (data.containsKey('refill_reminder')) {
       context.handle(
@@ -329,8 +327,8 @@ class $UserSettingsTable extends UserSettings
           .read(DriftSqlType.int, data['${effectivePrefix}user_id'])!,
       standardPillType: attachedDatabase.typeMapping.read(
           DriftSqlType.string, data['${effectivePrefix}standard_pill_type']),
-      darkMode: attachedDatabase.typeMapping
-          .read(DriftSqlType.bool, data['${effectivePrefix}dark_mode'])!,
+      themeMode: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}theme_mode'])!,
       refillReminder: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}refill_reminder'])!,
       createdAt: attachedDatabase.typeMapping
@@ -349,14 +347,14 @@ class $UserSettingsTable extends UserSettings
 class UserSetting extends DataClass implements Insertable<UserSetting> {
   final int userId;
   final String? standardPillType;
-  final bool darkMode;
+  final int themeMode;
   final int refillReminder;
   final DateTime createdAt;
   final DateTime updatedAt;
   const UserSetting(
       {required this.userId,
       this.standardPillType,
-      required this.darkMode,
+      required this.themeMode,
       required this.refillReminder,
       required this.createdAt,
       required this.updatedAt});
@@ -367,7 +365,7 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
     if (!nullToAbsent || standardPillType != null) {
       map['standard_pill_type'] = Variable<String>(standardPillType);
     }
-    map['dark_mode'] = Variable<bool>(darkMode);
+    map['theme_mode'] = Variable<int>(themeMode);
     map['refill_reminder'] = Variable<int>(refillReminder);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -380,7 +378,7 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
       standardPillType: standardPillType == null && nullToAbsent
           ? const Value.absent()
           : Value(standardPillType),
-      darkMode: Value(darkMode),
+      themeMode: Value(themeMode),
       refillReminder: Value(refillReminder),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -393,7 +391,7 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
     return UserSetting(
       userId: serializer.fromJson<int>(json['userId']),
       standardPillType: serializer.fromJson<String?>(json['standardPillType']),
-      darkMode: serializer.fromJson<bool>(json['darkMode']),
+      themeMode: serializer.fromJson<int>(json['themeMode']),
       refillReminder: serializer.fromJson<int>(json['refillReminder']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -405,7 +403,7 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
     return <String, dynamic>{
       'userId': serializer.toJson<int>(userId),
       'standardPillType': serializer.toJson<String?>(standardPillType),
-      'darkMode': serializer.toJson<bool>(darkMode),
+      'themeMode': serializer.toJson<int>(themeMode),
       'refillReminder': serializer.toJson<int>(refillReminder),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -415,7 +413,7 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
   UserSetting copyWith(
           {int? userId,
           Value<String?> standardPillType = const Value.absent(),
-          bool? darkMode,
+          int? themeMode,
           int? refillReminder,
           DateTime? createdAt,
           DateTime? updatedAt}) =>
@@ -424,7 +422,7 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
         standardPillType: standardPillType.present
             ? standardPillType.value
             : this.standardPillType,
-        darkMode: darkMode ?? this.darkMode,
+        themeMode: themeMode ?? this.themeMode,
         refillReminder: refillReminder ?? this.refillReminder,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
@@ -435,7 +433,7 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
       standardPillType: data.standardPillType.present
           ? data.standardPillType.value
           : this.standardPillType,
-      darkMode: data.darkMode.present ? data.darkMode.value : this.darkMode,
+      themeMode: data.themeMode.present ? data.themeMode.value : this.themeMode,
       refillReminder: data.refillReminder.present
           ? data.refillReminder.value
           : this.refillReminder,
@@ -449,7 +447,7 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
     return (StringBuffer('UserSetting(')
           ..write('userId: $userId, ')
           ..write('standardPillType: $standardPillType, ')
-          ..write('darkMode: $darkMode, ')
+          ..write('themeMode: $themeMode, ')
           ..write('refillReminder: $refillReminder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -458,15 +456,15 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
   }
 
   @override
-  int get hashCode => Object.hash(
-      userId, standardPillType, darkMode, refillReminder, createdAt, updatedAt);
+  int get hashCode => Object.hash(userId, standardPillType, themeMode,
+      refillReminder, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is UserSetting &&
           other.userId == this.userId &&
           other.standardPillType == this.standardPillType &&
-          other.darkMode == this.darkMode &&
+          other.themeMode == this.themeMode &&
           other.refillReminder == this.refillReminder &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
@@ -475,14 +473,14 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
 class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
   final Value<int> userId;
   final Value<String?> standardPillType;
-  final Value<bool> darkMode;
+  final Value<int> themeMode;
   final Value<int> refillReminder;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   const UserSettingsCompanion({
     this.userId = const Value.absent(),
     this.standardPillType = const Value.absent(),
-    this.darkMode = const Value.absent(),
+    this.themeMode = const Value.absent(),
     this.refillReminder = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -490,7 +488,7 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
   UserSettingsCompanion.insert({
     this.userId = const Value.absent(),
     this.standardPillType = const Value.absent(),
-    this.darkMode = const Value.absent(),
+    this.themeMode = const Value.absent(),
     this.refillReminder = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -498,7 +496,7 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
   static Insertable<UserSetting> custom({
     Expression<int>? userId,
     Expression<String>? standardPillType,
-    Expression<bool>? darkMode,
+    Expression<int>? themeMode,
     Expression<int>? refillReminder,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -506,7 +504,7 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
     return RawValuesInsertable({
       if (userId != null) 'user_id': userId,
       if (standardPillType != null) 'standard_pill_type': standardPillType,
-      if (darkMode != null) 'dark_mode': darkMode,
+      if (themeMode != null) 'theme_mode': themeMode,
       if (refillReminder != null) 'refill_reminder': refillReminder,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -516,14 +514,14 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
   UserSettingsCompanion copyWith(
       {Value<int>? userId,
       Value<String?>? standardPillType,
-      Value<bool>? darkMode,
+      Value<int>? themeMode,
       Value<int>? refillReminder,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt}) {
     return UserSettingsCompanion(
       userId: userId ?? this.userId,
       standardPillType: standardPillType ?? this.standardPillType,
-      darkMode: darkMode ?? this.darkMode,
+      themeMode: themeMode ?? this.themeMode,
       refillReminder: refillReminder ?? this.refillReminder,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -539,8 +537,8 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
     if (standardPillType.present) {
       map['standard_pill_type'] = Variable<String>(standardPillType.value);
     }
-    if (darkMode.present) {
-      map['dark_mode'] = Variable<bool>(darkMode.value);
+    if (themeMode.present) {
+      map['theme_mode'] = Variable<int>(themeMode.value);
     }
     if (refillReminder.present) {
       map['refill_reminder'] = Variable<int>(refillReminder.value);
@@ -559,7 +557,7 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
     return (StringBuffer('UserSettingsCompanion(')
           ..write('userId: $userId, ')
           ..write('standardPillType: $standardPillType, ')
-          ..write('darkMode: $darkMode, ')
+          ..write('themeMode: $themeMode, ')
           ..write('refillReminder: $refillReminder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -2068,7 +2066,7 @@ typedef $$UserSettingsTableCreateCompanionBuilder = UserSettingsCompanion
     Function({
   Value<int> userId,
   Value<String?> standardPillType,
-  Value<bool> darkMode,
+  Value<int> themeMode,
   Value<int> refillReminder,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
@@ -2077,7 +2075,7 @@ typedef $$UserSettingsTableUpdateCompanionBuilder = UserSettingsCompanion
     Function({
   Value<int> userId,
   Value<String?> standardPillType,
-  Value<bool> darkMode,
+  Value<int> themeMode,
   Value<int> refillReminder,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
@@ -2115,8 +2113,8 @@ class $$UserSettingsTableFilterComposer
       column: $table.standardPillType,
       builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<bool> get darkMode => $composableBuilder(
-      column: $table.darkMode, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get themeMode => $composableBuilder(
+      column: $table.themeMode, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get refillReminder => $composableBuilder(
       column: $table.refillReminder,
@@ -2162,8 +2160,8 @@ class $$UserSettingsTableOrderingComposer
       column: $table.standardPillType,
       builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<bool> get darkMode => $composableBuilder(
-      column: $table.darkMode, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get themeMode => $composableBuilder(
+      column: $table.themeMode, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<int> get refillReminder => $composableBuilder(
       column: $table.refillReminder,
@@ -2208,8 +2206,8 @@ class $$UserSettingsTableAnnotationComposer
   GeneratedColumn<String> get standardPillType => $composableBuilder(
       column: $table.standardPillType, builder: (column) => column);
 
-  GeneratedColumn<bool> get darkMode =>
-      $composableBuilder(column: $table.darkMode, builder: (column) => column);
+  GeneratedColumn<int> get themeMode =>
+      $composableBuilder(column: $table.themeMode, builder: (column) => column);
 
   GeneratedColumn<int> get refillReminder => $composableBuilder(
       column: $table.refillReminder, builder: (column) => column);
@@ -2266,7 +2264,7 @@ class $$UserSettingsTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<int> userId = const Value.absent(),
             Value<String?> standardPillType = const Value.absent(),
-            Value<bool> darkMode = const Value.absent(),
+            Value<int> themeMode = const Value.absent(),
             Value<int> refillReminder = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
@@ -2274,7 +2272,7 @@ class $$UserSettingsTableTableManager extends RootTableManager<
               UserSettingsCompanion(
             userId: userId,
             standardPillType: standardPillType,
-            darkMode: darkMode,
+            themeMode: themeMode,
             refillReminder: refillReminder,
             createdAt: createdAt,
             updatedAt: updatedAt,
@@ -2282,7 +2280,7 @@ class $$UserSettingsTableTableManager extends RootTableManager<
           createCompanionCallback: ({
             Value<int> userId = const Value.absent(),
             Value<String?> standardPillType = const Value.absent(),
-            Value<bool> darkMode = const Value.absent(),
+            Value<int> themeMode = const Value.absent(),
             Value<int> refillReminder = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
@@ -2290,7 +2288,7 @@ class $$UserSettingsTableTableManager extends RootTableManager<
               UserSettingsCompanion.insert(
             userId: userId,
             standardPillType: standardPillType,
-            darkMode: darkMode,
+            themeMode: themeMode,
             refillReminder: refillReminder,
             createdAt: createdAt,
             updatedAt: updatedAt,

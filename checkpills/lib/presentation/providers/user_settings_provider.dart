@@ -43,9 +43,8 @@ class UserSettingsProvider with ChangeNotifier {
     final activeUser = userProvider.activeUser;
     if (activeUser == null) return;
 
-    // Atualização otimista (opcional, mas melhora a experiência do usuário)
-    if (newSettings.darkMode.present) {
-      _settings = _settings?.copyWith(darkMode: newSettings.darkMode.value);
+    if (newSettings.themeMode.present) { 
+      _settings = _settings?.copyWith(themeMode: newSettings.themeMode.value); 
     }
     if (newSettings.refillReminder.present) {
       _settings =

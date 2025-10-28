@@ -109,13 +109,12 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
 
             // SEÇÃO DE APARÊNCIA
             _buildSectionHeader("Aparência"),
-            SwitchListTile(
-              secondary: const Icon(Icons.dark_mode_outlined),
-              title: const Text('Modo Noturno'),
-              value: settings.darkMode, // Usa as configurações carregadas
-              onChanged: (bool value) {
-                settingsProvider.updateSettings(
-                    UserSettingsCompanion(darkMode: Value(value)));
+            ListTile(
+              leading: const Icon(Icons.brightness_6_outlined),
+              title: const Text('Tema'),
+              subtitle: Text(_getCurrentThemeName(settings.themeMode)),
+              onTap: () {
+                _showThemeSelectionDialog(context, settingsProvider);
               },
             ),
 
@@ -137,6 +136,60 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // NOVO MÉTODO PARA OBTER O NOME DO TEMA ATUAL
+  String _getCurrentThemeName(int themeMode) {
+    switch (themeMode) {
+      case 1:
+        return 'Claro';
+      case 2:
+        return 'Escuro';
+      default:
+        return 'Padrão do Sistema';
+    }
+  }
+
+  // NOVO MÉTODO PARA EXIBIR O DIÁLOGO DE SELEÇÃO
+  void _showThemeSelectionDialog(
+      BuildContext context, UserSettingsProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return SimpleDialog(
+          title: const Text('Selecionar Tema'),
+          children: [
+            SimpleDialogOption(
+              onPressed: () {
+                provider.updateSettings(
+                  const UserSettingsCompanion(themeMode: Value(0)), // Sistema
+                );
+                Navigator.pop(context);
+              },
+              child: const Text('Padrão do Sistema'),
+            ),
+            SimpleDialogOption(
+              onPressed: () {
+                provider.updateSettings(
+                  const UserSettingsCompanion(themeMode: Value(1)), // Claro
+                );
+                Navigator.pop(context);
+              },
+              child: const Text('Claro'),
+            ),
+            SimpleDialogOption(
+              onPressed: () {
+                provider.updateSettings(
+                  const UserSettingsCompanion(themeMode: Value(2)), // Escuro
+                );
+                Navigator.pop(context);
+              },
+              child: const Text('Escuro'),
+            ),
+          ],
+        );
+      },
     );
   }
 

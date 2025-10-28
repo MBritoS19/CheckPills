@@ -79,7 +79,7 @@ class UserProvider with ChangeNotifier {
 
     final defaultSettings = UserSettingsCompanion.insert(
       userId: Value(newId),
-      darkMode: const Value(false),
+      themeMode: const Value(0),
       refillReminder: const Value(5),
     );
     await database.userSettingsDao.updateSettingsForUser(defaultSettings);

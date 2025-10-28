@@ -68,13 +68,27 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final settingsProvider = context.watch<UserSettingsProvider>();
 
+    // Lógica para converter o int do banco de dados para o ThemeMode do Flutter
+    final ThemeMode currentThemeMode;
+    final int themeValue = settingsProvider.settings?.themeMode ?? 0; // Padrão para Sistema (0)
+
+    switch (themeValue) {
+      case 1:
+        currentThemeMode = ThemeMode.light;
+        break;
+      case 2:
+        currentThemeMode = ThemeMode.dark;
+        break;
+      default: // Caso 0 ou qualquer outro valor
+        currentThemeMode = ThemeMode.system;
+        break;
+    }
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: lightTheme,
       darkTheme: darkTheme,
-      themeMode: settingsProvider.settings?.darkMode ?? false
-          ? ThemeMode.dark
-          : ThemeMode.light,
+      themeMode: currentThemeMode, // [!code focus]
       home: const AppInitializer(),
       locale: const Locale('pt', 'BR'),
       localizationsDelegates: const [
