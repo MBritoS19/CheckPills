@@ -1,5 +1,3 @@
-// lib/core/theme/app_theme.dart
-
 import 'package:flutter/material.dart';
 
 // 1. DEFINIÇÃO DAS CORES PRINCIPAIS DO APP
@@ -16,8 +14,6 @@ const ColorScheme _lightColorScheme = ColorScheme(
   onSecondary: Colors.white,
   error: Colors.redAccent,
   onError: Colors.white,
-  background: _lightGreyBackground,
-  onBackground: Colors.black,
   surface: Colors.white,
   onSurface: Colors.black,
 );
@@ -31,8 +27,6 @@ const ColorScheme _darkColorScheme = ColorScheme(
   onSecondary: Colors.white,
   error: Colors.redAccent,
   onError: Colors.white,
-  background: Color(0xFF121212),
-  onBackground: Colors.white,
   surface: Color(0xFF1E1E1E),
   onSurface: Colors.white,
 );
@@ -41,13 +35,11 @@ const ColorScheme _darkColorScheme = ColorScheme(
 final ThemeData lightTheme = ThemeData(
   useMaterial3: true,
   colorScheme: _lightColorScheme,
-  scaffoldBackgroundColor: _lightColorScheme.background,
+  scaffoldBackgroundColor: _lightGreyBackground,
   appBarTheme: const AppBarTheme(
-    // REMOVEMOS as cores explícitas. O Material 3 agora usa as cores
-    // 'surface' e 'onSurface' do ColorScheme para a AppBar por padrão.
     elevation: 0,
   ),
-  cardTheme: CardThemeData( // CORRIGIDO: CardTheme -> CardThemeData
+  cardTheme: CardThemeData(
     color: _lightColorScheme.surface,
     elevation: 1,
   ),
@@ -70,12 +62,11 @@ final ThemeData lightTheme = ThemeData(
 final ThemeData darkTheme = ThemeData(
   useMaterial3: true,
   colorScheme: _darkColorScheme,
-  scaffoldBackgroundColor: _darkColorScheme.background,
+  scaffoldBackgroundColor: const Color(0xFF121212),
   appBarTheme: const AppBarTheme(
-    // Da mesma forma, removemos as cores explícitas aqui.
     elevation: 0,
   ),
-  cardTheme: CardThemeData( // CORRIGIDO: CardTheme -> CardThemeData
+  cardTheme: CardThemeData(
     color: _darkColorScheme.surface,
     elevation: 1,
   ),

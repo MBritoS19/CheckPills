@@ -96,9 +96,13 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  @override
   UsersDao get usersDao => UsersDao(this);
+  @override
   UserSettingsDao get userSettingsDao => UserSettingsDao(this);
+  @override
   PrescriptionsDao get prescriptionsDao => PrescriptionsDao(this);
+  @override
   DoseEventsDao get doseEventsDao => DoseEventsDao(this);
 }
 

@@ -25,14 +25,11 @@ class UserProvider with ChangeNotifier {
   Future<void> get initializationDone => _initializationCompleter.future;
 
   UserProvider({required this.database}) {
-    print("✅ [UserProvider] Criado. Aguardando inicialização controlada.");
     _listenToUserChanges();
   }
 
   void _listenToUserChanges() {
     database.usersDao.watchAllUsers().listen((users) async {
-      print(
-          "🔔 [UserProvider] Stream de usuários atualizada. Usuários: ${users.length}");
       _allUsers = users;
 
       User? userToSelect;
@@ -55,7 +52,6 @@ class UserProvider with ChangeNotifier {
         _isInitialized = true;
         _isFirstUserLoad = false;
         _initializationCompleter.complete();
-        print("🏁 [UserProvider] Inicialização concluída e sinalizada.");
       }
 
       notifyListeners();
@@ -69,7 +65,6 @@ class UserProvider with ChangeNotifier {
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('last_active_user_id', user.id);
-      print("💾 [UserProvider] ID ${user.id} salvo como último perfil ativo.");
     }
   }
 
