@@ -1,5 +1,9 @@
 import 'dart:io';
+import 'package:provider/provider.dart';
+import 'package:CheckPills/presentation/providers/user_provider.dart';
 import 'package:CheckPills/data/datasources/database.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:clipboard/clipboard.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -18,6 +22,43 @@ class DoseDetailsModal extends StatelessWidget {
     required this.onDelete,
     required this.onToggleStatus, // <-- TORNAR OBRIGATÓRIO
   });
+
+  // MÉTODO PARA CONSTRUIR A MENSAGEM A SER COMPARTILHADA/COPIADA
+  String _buildShareableMessage(BuildContext context) {
+    // Acessa o nome do usuário ativo através do UserProvider
+    final userName =
+        Provider.of<UserProvider>(context, listen: false).activeUser?.name ??
+            'Usuário';
+
+    // Formata a data e a hora de forma legível
+    final formattedTime =
+        DateFormat('HH:mm').format(doseData.doseEvent.scheduledTime);
+    final formattedDate = DateFormat("dd 'de' MMMM 'de' yyyy", 'pt_BR')
+        .format(doseData.doseEvent.scheduledTime);
+
+    // Lista para construir a mensagem dinamicamente
+    final messageParts = [
+      'Olá, $userName.',
+      '',
+      'Lembrete de medicação:',
+      '• Medicamento: ${doseData.prescription.name} (${doseData.prescription.doseDescription})',
+      '• Horário: Agendado para às $formattedTime do dia $formattedDate.',
+    ];
+
+    // Adiciona a linha de estoque apenas se o controle estiver ativo
+    if (doseData.prescription.stock != -1) {
+      messageParts.add(
+          '• Estoque Atual: ${doseData.prescription.stock} unidades');
+    }
+
+    // Adiciona a linha de observações apenas se houver notas
+    if (doseData.prescription.notes?.isNotEmpty ?? false) {
+      messageParts.add('• Observações: ${doseData.prescription.notes}');
+    }
+
+    // Junta todas as partes com quebras de linha
+    return messageParts.join('\n');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -135,10 +176,57 @@ class DoseDetailsModal extends StatelessWidget {
             leading: null,
             automaticallyImplyLeading: false,
             actions: [
+              // NOVO WIDGET: Menu de opções
+              PopupMenuButton<String>(
+                onSelected: (String value) async { // [!code focus] Adicionado 'async'
+                  final message = _buildShareableMessage(context);
+                  final imagePath = doseData.prescription.imagePath;
+
+                  if (value == 'copy') {
+                    // Ação de Copiar
+                    FlutterClipboard.copy(message).then((_) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Lembrete copiado para a área de transferência!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    });
+                  } else if (value == 'share') {
+                    // Ação de Compartilhar
+                    if (imagePath != null && await File(imagePath).exists()) {
+                      // Se houver uma imagem, compartilha imagem + texto
+                      await Share.shareXFiles(
+                        [XFile(imagePath)],
+                        text: message,
+                      );
+                    } else {
+                      // Se não houver imagem, compartilha apenas o texto
+                      await Share.share(message);
+                    }
+                  }
+                },
+                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                  const PopupMenuItem<String>(
+                    value: 'copy',
+                    child: ListTile(
+                      leading: Icon(Icons.copy_all_outlined),
+                      title: Text('Copiar detalhes'),
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'share',
+                    child: ListTile(
+                      leading: Icon(Icons.share_outlined),
+                      title: Text('Compartilhar'),
+                    ),
+                  ),
+                ],
+              ),
               IconButton(
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.of(context).pop(),
-              )
+              ),
             ],
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
