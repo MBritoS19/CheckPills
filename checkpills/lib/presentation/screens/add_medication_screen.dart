@@ -371,6 +371,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter modalSetState) {
             return Padding(
+              // Mantemos o padding fixo no Modal (padrão do Material Design)
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom + 16,
                 left: 16,
@@ -389,7 +390,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                       style: Theme.of(context).textTheme.titleLarge,
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 24), // Valor fixo no Modal
                     TextFormField(
                       initialValue: tempValue.toString(),
                       keyboardType: TextInputType.number,
@@ -424,7 +425,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                         tempValue = int.parse(value!);
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 16), // Valor fixo no Modal
                     Column(
                       // Centraliza o bloco de botões horizontalmente, caso o pai não seja full-width
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -463,7 +464,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                           ],
                         ),
 
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 8), // Valor fixo no Modal
 
                         // SEGUNDA LINHA DE BOTÕES
                         Row(
@@ -500,7 +501,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 24), // Valor fixo no Modal
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                           minimumSize: const Size.fromHeight(50)),
@@ -566,7 +567,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           Text('Quantas doses você tem em estoque?',
               style: TextStyle(
                   fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 24),
+          SizedBox(height: screenWidth * 0.06), // ALTERADO para responsivo
 
           // PASSO 1.1: Container Principal com Card
           Card(
@@ -579,7 +580,9 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               children: [
                 // PASSO 1.3: Organização Interna
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  // ALTERADO para responsivo
+                  padding: EdgeInsets.fromLTRB(screenWidth * 0.04,
+                      screenWidth * 0.04, screenWidth * 0.04, 0),
                   child: TextFormField(
                     controller: _stockController,
                     focusNode: _stockFocusNode,
@@ -745,7 +748,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                 style: TextStyle(
                     fontSize: screenWidth * 0.055,
                     fontWeight: FontWeight.bold)),
-            const SizedBox(height: 24),
+            SizedBox(height: screenWidth * 0.06), // ALTERADO para responsivo
             // NOVO CÓDIGO COM CHOICECHIP
             Wrap(
               spacing: 12.0,
@@ -768,7 +771,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               }).toList(),
             ),
             if (_selectedType == 'Outros') ...[
-              const SizedBox(height: 24),
+              SizedBox(height: screenWidth * 0.06), // ALTERADO para responsivo
               TextFormField(
                 controller: _customTypeController,
                 focusNode: _customTypeFocusNode,
@@ -823,12 +826,13 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: screenWidth * 0.04), // ALTERADO para responsivo
                 // Carrossel para a unidade
                 Expanded(
                   flex: 3, // Ocupa 3/5 do espaço
                   child: DropdownButtonFormField<String>(
-                    initialValue: _selectedDoseUnit,
+                    // CORREÇÃO: Usar 'value' para refletir o estado atualizado
+                    value: _selectedDoseUnit,
                     decoration: const InputDecoration(
                       labelText: 'Unidade',
                       border: OutlineInputBorder(),
@@ -888,7 +892,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                 style: TextStyle(
                     fontSize: screenWidth * 0.055,
                     fontWeight: FontWeight.bold)),
-            const SizedBox(height: 24),
+            SizedBox(height: screenWidth * 0.06), // ALTERADO para responsivo
 
             // PASSO 1: Agrupamento Visual com Card
             Card(
@@ -917,11 +921,14 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                       }
                     },
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: EdgeInsets.all(
+                          screenWidth * 0.04), // ALTERADO para responsivo
                       child: Row(
                         children: [
                           const Icon(Icons.calendar_today_outlined),
-                          const SizedBox(width: 16),
+                          SizedBox(
+                              width: screenWidth *
+                                  0.04), // ALTERADO para responsivo
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -955,11 +962,14 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                       }
                     },
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: EdgeInsets.all(
+                          screenWidth * 0.04), // ALTERADO para responsivo
                       child: Row(
                         children: [
                           const Icon(Icons.access_time_outlined),
-                          const SizedBox(width: 16),
+                          SizedBox(
+                              width: screenWidth *
+                                  0.04), // ALTERADO para responsivo
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -981,7 +991,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: screenWidth * 0.02), // ALTERADO para responsivo
 
             // PASSO 4: Posicionamento do Checkbox
             CheckboxListTile(
@@ -1016,7 +1026,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           Text('Qual o intervalo entre as doses?',
               style: TextStyle(
                   fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 24),
+          SizedBox(height: screenWidth * 0.06), // ALTERADO para responsivo
 
           // Aplicando o mesmo design de Card da tela de Data/Hora
           Card(
@@ -1030,11 +1040,13 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               // A linha inteira agora chama o modal que já tínhamos pronto
               onTap: _showIntervalPickerModal,
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: EdgeInsets.all(
+                    screenWidth * 0.04), // ALTERADO para responsivo
                 child: Row(
                   children: [
                     const Icon(Icons.timer_outlined),
-                    const SizedBox(width: 16),
+                    SizedBox(
+                        width: screenWidth * 0.04), // ALTERADO para responsivo
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -1074,7 +1086,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           Text('Qual a duração do tratamento?',
               style: TextStyle(
                   fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 24),
+          SizedBox(height: screenWidth * 0.06), // ALTERADO para responsivo
           Card(
             elevation: 0,
             shape: RoundedRectangleBorder(
@@ -1084,7 +1096,9 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  // ALTERADO para responsivo
+                  padding: EdgeInsets.fromLTRB(screenWidth * 0.04,
+                      screenWidth * 0.04, screenWidth * 0.04, 0),
                   child: Row(
                     children: [
                       Expanded(
@@ -1105,7 +1119,9 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      SizedBox(
+                          width:
+                              screenWidth * 0.04), // ALTERADO para responsivo
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           value: _selectedTreatmentUnit,
@@ -1200,11 +1216,12 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
             if (_currentPage == formPages.length - 1)
               // NOVO CONTEÚDO PARA O 'IF'
               Padding(
+                // ALTERADO: Padronizado para responsivo (removido + 12)
                 padding: EdgeInsets.fromLTRB(
                   screenWidth * 0.04,
                   screenWidth * 0.04,
                   screenWidth * 0.04,
-                  screenWidth * 0.04 + 12,
+                  screenWidth * 0.04,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1236,12 +1253,12 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               )
             else // Mostra os botões Anterior/Próximo
               Padding(
+                // ALTERADO: Padronizado para responsivo (removido + 12)
                 padding: EdgeInsets.fromLTRB(
                   screenWidth * 0.04, // Espaço da Esquerda
                   screenWidth * 0.04, // Espaço de Cima
                   screenWidth * 0.04, // Espaço da Direita
-                  screenWidth * 0.04 +
-                      12, // Espaço de Baixo (original + 12 pixels extras)
+                  screenWidth * 0.04, // Espaço de Baixo
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1377,8 +1394,12 @@ class FormProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth =
+        MediaQuery.of(context).size.width; // ADICIONADO para responsividade
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 24.0),
+      // ALTERADO para responsivo
+      padding: EdgeInsets.symmetric(
+          vertical: screenWidth * 0.06, horizontal: screenWidth * 0.06),
       child: Row(
         children: List.generate(totalPages, (index) {
           bool isCompleted = currentPage == totalPages - 1;
