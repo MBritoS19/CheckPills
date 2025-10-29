@@ -21,7 +21,8 @@ class UserSettings extends Table {
       integer().references(Users, #id, onDelete: KeyAction.cascade)();
 
   TextColumn get standardPillType => text().nullable()();
-  IntColumn get themeMode => integer().withDefault(const Constant(0))(); // 0: System, 1: Light, 2: Dark
+  IntColumn get themeMode => integer()
+      .withDefault(const Constant(0))(); // 0: System, 1: Light, 2: Dark
   IntColumn get refillReminder => integer().withDefault(const Constant(5))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
@@ -47,6 +48,11 @@ class Prescriptions extends Table {
   DateTimeColumn get firstDoseTime => dateTime()();
   TextColumn get notes => text().nullable()();
   TextColumn get imagePath => text().nullable()();
+  BoolColumn get enableNotifications =>
+      boolean().withDefault(const Constant(true))();
+  IntColumn get notifyMinutesBefore => integer().nullable()();
+  BoolColumn get notifyOnTime => boolean().withDefault(const Constant(true))();
+  IntColumn get notifyAfterMinutes => integer().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -79,18 +85,25 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
       onUpgrade: (migrator, from, to) async {
-        if (from == 5) {
-          // 1. Adiciona a nova coluna 'themeMode' à tabela 'user_settings'
+        if (from < 6) {
+          // Migrações para versões anteriores a 6
           await migrator.addColumn(userSettings, userSettings.themeMode);
-          
-          // 2. Remove a coluna antiga 'dark_mode'.
           await migrator.dropColumn(userSettings, 'dark_mode');
+        }
+        if (from < 7) {
+          await migrator.addColumn(
+              prescriptions, prescriptions.enableNotifications);
+          await migrator.addColumn(
+              prescriptions, prescriptions.notifyMinutesBefore);
+          await migrator.addColumn(prescriptions, prescriptions.notifyOnTime);
+          await migrator.addColumn(
+              prescriptions, prescriptions.notifyAfterMinutes);
         }
       },
     );
@@ -165,7 +178,6 @@ class PrescriptionsDao extends DatabaseAccessor<AppDatabase>
 class DoseEventsDao extends DatabaseAccessor<AppDatabase>
     with _$DoseEventsDaoMixin {
   DoseEventsDao(super.db);
-  
 
   Stream<List<DoseEventWithPrescription>> watchDoseEventsForDay(
       int userId, DateTime date) {
@@ -209,21 +221,22 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase>
   }
 
   Future<void> updateDoseEvent(int id, DoseEventsCompanion entry) {
-  return (update(doseEvents)..where((t) => t.id.equals(id))).write(entry);
-}
+    return (update(doseEvents)..where((t) => t.id.equals(id))).write(entry);
+  }
 
-Future<int> countFutureDoseEvents(int prescriptionId) async {
-  final now = DateTime.now();
-  final countExp = countAll();
-  final query = selectOnly(doseEvents)
-    ..addColumns([countExp])
-    ..where(doseEvents.prescriptionId.equals(prescriptionId))
-    ..where(doseEvents.scheduledTime.isBiggerOrEqualValue(now));
+  Future<int> countFutureDoseEvents(int prescriptionId) async {
+    final now = DateTime.now();
+    final countExp = countAll();
+    final query = selectOnly(doseEvents)
+      ..addColumns([countExp])
+      ..where(doseEvents.prescriptionId.equals(prescriptionId))
+      ..where(doseEvents.scheduledTime.isBiggerOrEqualValue(now));
 
-  // CORREÇÃO: Usamos getSingleOrNull e tratamos o caso nulo com '?? 0'.
-  final result = await query.map((row) => row.read(countExp)).getSingleOrNull();
-  return result ?? 0;
-}
+    // CORREÇÃO: Usamos getSingleOrNull e tratamos o caso nulo com '?? 0'.
+    final result =
+        await query.map((row) => row.read(countExp)).getSingleOrNull();
+    return result ?? 0;
+  }
 
   Future<void> addDoseEvent(DoseEventsCompanion companion) =>
       into(doseEvents).insert(companion);

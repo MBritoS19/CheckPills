@@ -664,6 +664,38 @@ class $PrescriptionsTable extends Prescriptions
   late final GeneratedColumn<String> imagePath = GeneratedColumn<String>(
       'image_path', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _enableNotificationsMeta =
+      const VerificationMeta('enableNotifications');
+  @override
+  late final GeneratedColumn<bool> enableNotifications = GeneratedColumn<bool>(
+      'enable_notifications', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("enable_notifications" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _notifyMinutesBeforeMeta =
+      const VerificationMeta('notifyMinutesBefore');
+  @override
+  late final GeneratedColumn<int> notifyMinutesBefore = GeneratedColumn<int>(
+      'notify_minutes_before', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _notifyOnTimeMeta =
+      const VerificationMeta('notifyOnTime');
+  @override
+  late final GeneratedColumn<bool> notifyOnTime = GeneratedColumn<bool>(
+      'notify_on_time', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("notify_on_time" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _notifyAfterMinutesMeta =
+      const VerificationMeta('notifyAfterMinutes');
+  @override
+  late final GeneratedColumn<int> notifyAfterMinutes = GeneratedColumn<int>(
+      'notify_after_minutes', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -696,6 +728,10 @@ class $PrescriptionsTable extends Prescriptions
         firstDoseTime,
         notes,
         imagePath,
+        enableNotifications,
+        notifyMinutesBefore,
+        notifyOnTime,
+        notifyAfterMinutes,
         createdAt,
         updatedAt
       ];
@@ -792,6 +828,30 @@ class $PrescriptionsTable extends Prescriptions
       context.handle(_imagePathMeta,
           imagePath.isAcceptableOrUnknown(data['image_path']!, _imagePathMeta));
     }
+    if (data.containsKey('enable_notifications')) {
+      context.handle(
+          _enableNotificationsMeta,
+          enableNotifications.isAcceptableOrUnknown(
+              data['enable_notifications']!, _enableNotificationsMeta));
+    }
+    if (data.containsKey('notify_minutes_before')) {
+      context.handle(
+          _notifyMinutesBeforeMeta,
+          notifyMinutesBefore.isAcceptableOrUnknown(
+              data['notify_minutes_before']!, _notifyMinutesBeforeMeta));
+    }
+    if (data.containsKey('notify_on_time')) {
+      context.handle(
+          _notifyOnTimeMeta,
+          notifyOnTime.isAcceptableOrUnknown(
+              data['notify_on_time']!, _notifyOnTimeMeta));
+    }
+    if (data.containsKey('notify_after_minutes')) {
+      context.handle(
+          _notifyAfterMinutesMeta,
+          notifyAfterMinutes.isAcceptableOrUnknown(
+              data['notify_after_minutes']!, _notifyAfterMinutesMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -837,6 +897,14 @@ class $PrescriptionsTable extends Prescriptions
           .read(DriftSqlType.string, data['${effectivePrefix}notes']),
       imagePath: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}image_path']),
+      enableNotifications: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}enable_notifications'])!,
+      notifyMinutesBefore: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}notify_minutes_before']),
+      notifyOnTime: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}notify_on_time'])!,
+      notifyAfterMinutes: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}notify_after_minutes']),
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
@@ -865,6 +933,10 @@ class Prescription extends DataClass implements Insertable<Prescription> {
   final DateTime firstDoseTime;
   final String? notes;
   final String? imagePath;
+  final bool enableNotifications;
+  final int? notifyMinutesBefore;
+  final bool notifyOnTime;
+  final int? notifyAfterMinutes;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Prescription(
@@ -882,6 +954,10 @@ class Prescription extends DataClass implements Insertable<Prescription> {
       required this.firstDoseTime,
       this.notes,
       this.imagePath,
+      required this.enableNotifications,
+      this.notifyMinutesBefore,
+      required this.notifyOnTime,
+      this.notifyAfterMinutes,
       required this.createdAt,
       required this.updatedAt});
   @override
@@ -908,6 +984,14 @@ class Prescription extends DataClass implements Insertable<Prescription> {
     }
     if (!nullToAbsent || imagePath != null) {
       map['image_path'] = Variable<String>(imagePath);
+    }
+    map['enable_notifications'] = Variable<bool>(enableNotifications);
+    if (!nullToAbsent || notifyMinutesBefore != null) {
+      map['notify_minutes_before'] = Variable<int>(notifyMinutesBefore);
+    }
+    map['notify_on_time'] = Variable<bool>(notifyOnTime);
+    if (!nullToAbsent || notifyAfterMinutes != null) {
+      map['notify_after_minutes'] = Variable<int>(notifyAfterMinutes);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -937,6 +1021,14 @@ class Prescription extends DataClass implements Insertable<Prescription> {
       imagePath: imagePath == null && nullToAbsent
           ? const Value.absent()
           : Value(imagePath),
+      enableNotifications: Value(enableNotifications),
+      notifyMinutesBefore: notifyMinutesBefore == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notifyMinutesBefore),
+      notifyOnTime: Value(notifyOnTime),
+      notifyAfterMinutes: notifyAfterMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notifyAfterMinutes),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -960,6 +1052,12 @@ class Prescription extends DataClass implements Insertable<Prescription> {
       firstDoseTime: serializer.fromJson<DateTime>(json['firstDoseTime']),
       notes: serializer.fromJson<String?>(json['notes']),
       imagePath: serializer.fromJson<String?>(json['imagePath']),
+      enableNotifications:
+          serializer.fromJson<bool>(json['enableNotifications']),
+      notifyMinutesBefore:
+          serializer.fromJson<int?>(json['notifyMinutesBefore']),
+      notifyOnTime: serializer.fromJson<bool>(json['notifyOnTime']),
+      notifyAfterMinutes: serializer.fromJson<int?>(json['notifyAfterMinutes']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -982,6 +1080,10 @@ class Prescription extends DataClass implements Insertable<Prescription> {
       'firstDoseTime': serializer.toJson<DateTime>(firstDoseTime),
       'notes': serializer.toJson<String?>(notes),
       'imagePath': serializer.toJson<String?>(imagePath),
+      'enableNotifications': serializer.toJson<bool>(enableNotifications),
+      'notifyMinutesBefore': serializer.toJson<int?>(notifyMinutesBefore),
+      'notifyOnTime': serializer.toJson<bool>(notifyOnTime),
+      'notifyAfterMinutes': serializer.toJson<int?>(notifyAfterMinutes),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -1002,6 +1104,10 @@ class Prescription extends DataClass implements Insertable<Prescription> {
           DateTime? firstDoseTime,
           Value<String?> notes = const Value.absent(),
           Value<String?> imagePath = const Value.absent(),
+          bool? enableNotifications,
+          Value<int?> notifyMinutesBefore = const Value.absent(),
+          bool? notifyOnTime,
+          Value<int?> notifyAfterMinutes = const Value.absent(),
           DateTime? createdAt,
           DateTime? updatedAt}) =>
       Prescription(
@@ -1022,6 +1128,14 @@ class Prescription extends DataClass implements Insertable<Prescription> {
         firstDoseTime: firstDoseTime ?? this.firstDoseTime,
         notes: notes.present ? notes.value : this.notes,
         imagePath: imagePath.present ? imagePath.value : this.imagePath,
+        enableNotifications: enableNotifications ?? this.enableNotifications,
+        notifyMinutesBefore: notifyMinutesBefore.present
+            ? notifyMinutesBefore.value
+            : this.notifyMinutesBefore,
+        notifyOnTime: notifyOnTime ?? this.notifyOnTime,
+        notifyAfterMinutes: notifyAfterMinutes.present
+            ? notifyAfterMinutes.value
+            : this.notifyAfterMinutes,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
       );
@@ -1055,6 +1169,18 @@ class Prescription extends DataClass implements Insertable<Prescription> {
           : this.firstDoseTime,
       notes: data.notes.present ? data.notes.value : this.notes,
       imagePath: data.imagePath.present ? data.imagePath.value : this.imagePath,
+      enableNotifications: data.enableNotifications.present
+          ? data.enableNotifications.value
+          : this.enableNotifications,
+      notifyMinutesBefore: data.notifyMinutesBefore.present
+          ? data.notifyMinutesBefore.value
+          : this.notifyMinutesBefore,
+      notifyOnTime: data.notifyOnTime.present
+          ? data.notifyOnTime.value
+          : this.notifyOnTime,
+      notifyAfterMinutes: data.notifyAfterMinutes.present
+          ? data.notifyAfterMinutes.value
+          : this.notifyAfterMinutes,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -1077,6 +1203,10 @@ class Prescription extends DataClass implements Insertable<Prescription> {
           ..write('firstDoseTime: $firstDoseTime, ')
           ..write('notes: $notes, ')
           ..write('imagePath: $imagePath, ')
+          ..write('enableNotifications: $enableNotifications, ')
+          ..write('notifyMinutesBefore: $notifyMinutesBefore, ')
+          ..write('notifyOnTime: $notifyOnTime, ')
+          ..write('notifyAfterMinutes: $notifyAfterMinutes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1099,6 +1229,10 @@ class Prescription extends DataClass implements Insertable<Prescription> {
       firstDoseTime,
       notes,
       imagePath,
+      enableNotifications,
+      notifyMinutesBefore,
+      notifyOnTime,
+      notifyAfterMinutes,
       createdAt,
       updatedAt);
   @override
@@ -1119,6 +1253,10 @@ class Prescription extends DataClass implements Insertable<Prescription> {
           other.firstDoseTime == this.firstDoseTime &&
           other.notes == this.notes &&
           other.imagePath == this.imagePath &&
+          other.enableNotifications == this.enableNotifications &&
+          other.notifyMinutesBefore == this.notifyMinutesBefore &&
+          other.notifyOnTime == this.notifyOnTime &&
+          other.notifyAfterMinutes == this.notifyAfterMinutes &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -1138,6 +1276,10 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
   final Value<DateTime> firstDoseTime;
   final Value<String?> notes;
   final Value<String?> imagePath;
+  final Value<bool> enableNotifications;
+  final Value<int?> notifyMinutesBefore;
+  final Value<bool> notifyOnTime;
+  final Value<int?> notifyAfterMinutes;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   const PrescriptionsCompanion({
@@ -1155,6 +1297,10 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
     this.firstDoseTime = const Value.absent(),
     this.notes = const Value.absent(),
     this.imagePath = const Value.absent(),
+    this.enableNotifications = const Value.absent(),
+    this.notifyMinutesBefore = const Value.absent(),
+    this.notifyOnTime = const Value.absent(),
+    this.notifyAfterMinutes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -1173,6 +1319,10 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
     required DateTime firstDoseTime,
     this.notes = const Value.absent(),
     this.imagePath = const Value.absent(),
+    this.enableNotifications = const Value.absent(),
+    this.notifyMinutesBefore = const Value.absent(),
+    this.notifyOnTime = const Value.absent(),
+    this.notifyAfterMinutes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   })  : userId = Value(userId),
@@ -1197,6 +1347,10 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
     Expression<DateTime>? firstDoseTime,
     Expression<String>? notes,
     Expression<String>? imagePath,
+    Expression<bool>? enableNotifications,
+    Expression<int>? notifyMinutesBefore,
+    Expression<bool>? notifyOnTime,
+    Expression<int>? notifyAfterMinutes,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
   }) {
@@ -1215,6 +1369,13 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
       if (firstDoseTime != null) 'first_dose_time': firstDoseTime,
       if (notes != null) 'notes': notes,
       if (imagePath != null) 'image_path': imagePath,
+      if (enableNotifications != null)
+        'enable_notifications': enableNotifications,
+      if (notifyMinutesBefore != null)
+        'notify_minutes_before': notifyMinutesBefore,
+      if (notifyOnTime != null) 'notify_on_time': notifyOnTime,
+      if (notifyAfterMinutes != null)
+        'notify_after_minutes': notifyAfterMinutes,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -1235,6 +1396,10 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
       Value<DateTime>? firstDoseTime,
       Value<String?>? notes,
       Value<String?>? imagePath,
+      Value<bool>? enableNotifications,
+      Value<int?>? notifyMinutesBefore,
+      Value<bool>? notifyOnTime,
+      Value<int?>? notifyAfterMinutes,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt}) {
     return PrescriptionsCompanion(
@@ -1252,6 +1417,10 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
       firstDoseTime: firstDoseTime ?? this.firstDoseTime,
       notes: notes ?? this.notes,
       imagePath: imagePath ?? this.imagePath,
+      enableNotifications: enableNotifications ?? this.enableNotifications,
+      notifyMinutesBefore: notifyMinutesBefore ?? this.notifyMinutesBefore,
+      notifyOnTime: notifyOnTime ?? this.notifyOnTime,
+      notifyAfterMinutes: notifyAfterMinutes ?? this.notifyAfterMinutes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -1302,6 +1471,18 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
     if (imagePath.present) {
       map['image_path'] = Variable<String>(imagePath.value);
     }
+    if (enableNotifications.present) {
+      map['enable_notifications'] = Variable<bool>(enableNotifications.value);
+    }
+    if (notifyMinutesBefore.present) {
+      map['notify_minutes_before'] = Variable<int>(notifyMinutesBefore.value);
+    }
+    if (notifyOnTime.present) {
+      map['notify_on_time'] = Variable<bool>(notifyOnTime.value);
+    }
+    if (notifyAfterMinutes.present) {
+      map['notify_after_minutes'] = Variable<int>(notifyAfterMinutes.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1328,6 +1509,10 @@ class PrescriptionsCompanion extends UpdateCompanion<Prescription> {
           ..write('firstDoseTime: $firstDoseTime, ')
           ..write('notes: $notes, ')
           ..write('imagePath: $imagePath, ')
+          ..write('enableNotifications: $enableNotifications, ')
+          ..write('notifyMinutesBefore: $notifyMinutesBefore, ')
+          ..write('notifyOnTime: $notifyOnTime, ')
+          ..write('notifyAfterMinutes: $notifyAfterMinutes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -2365,6 +2550,10 @@ typedef $$PrescriptionsTableCreateCompanionBuilder = PrescriptionsCompanion
   required DateTime firstDoseTime,
   Value<String?> notes,
   Value<String?> imagePath,
+  Value<bool> enableNotifications,
+  Value<int?> notifyMinutesBefore,
+  Value<bool> notifyOnTime,
+  Value<int?> notifyAfterMinutes,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
 });
@@ -2384,6 +2573,10 @@ typedef $$PrescriptionsTableUpdateCompanionBuilder = PrescriptionsCompanion
   Value<DateTime> firstDoseTime,
   Value<String?> notes,
   Value<String?> imagePath,
+  Value<bool> enableNotifications,
+  Value<int?> notifyMinutesBefore,
+  Value<bool> notifyOnTime,
+  Value<int?> notifyAfterMinutes,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
 });
@@ -2472,6 +2665,21 @@ class $$PrescriptionsTableFilterComposer
 
   ColumnFilters<String> get imagePath => $composableBuilder(
       column: $table.imagePath, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get enableNotifications => $composableBuilder(
+      column: $table.enableNotifications,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get notifyMinutesBefore => $composableBuilder(
+      column: $table.notifyMinutesBefore,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get notifyOnTime => $composableBuilder(
+      column: $table.notifyOnTime, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get notifyAfterMinutes => $composableBuilder(
+      column: $table.notifyAfterMinutes,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -2576,6 +2784,22 @@ class $$PrescriptionsTableOrderingComposer
   ColumnOrderings<String> get imagePath => $composableBuilder(
       column: $table.imagePath, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get enableNotifications => $composableBuilder(
+      column: $table.enableNotifications,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get notifyMinutesBefore => $composableBuilder(
+      column: $table.notifyMinutesBefore,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get notifyOnTime => $composableBuilder(
+      column: $table.notifyOnTime,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get notifyAfterMinutes => $composableBuilder(
+      column: $table.notifyAfterMinutes,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
@@ -2650,6 +2874,18 @@ class $$PrescriptionsTableAnnotationComposer
 
   GeneratedColumn<String> get imagePath =>
       $composableBuilder(column: $table.imagePath, builder: (column) => column);
+
+  GeneratedColumn<bool> get enableNotifications => $composableBuilder(
+      column: $table.enableNotifications, builder: (column) => column);
+
+  GeneratedColumn<int> get notifyMinutesBefore => $composableBuilder(
+      column: $table.notifyMinutesBefore, builder: (column) => column);
+
+  GeneratedColumn<bool> get notifyOnTime => $composableBuilder(
+      column: $table.notifyOnTime, builder: (column) => column);
+
+  GeneratedColumn<int> get notifyAfterMinutes => $composableBuilder(
+      column: $table.notifyAfterMinutes, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -2736,6 +2972,10 @@ class $$PrescriptionsTableTableManager extends RootTableManager<
             Value<DateTime> firstDoseTime = const Value.absent(),
             Value<String?> notes = const Value.absent(),
             Value<String?> imagePath = const Value.absent(),
+            Value<bool> enableNotifications = const Value.absent(),
+            Value<int?> notifyMinutesBefore = const Value.absent(),
+            Value<bool> notifyOnTime = const Value.absent(),
+            Value<int?> notifyAfterMinutes = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
           }) =>
@@ -2754,6 +2994,10 @@ class $$PrescriptionsTableTableManager extends RootTableManager<
             firstDoseTime: firstDoseTime,
             notes: notes,
             imagePath: imagePath,
+            enableNotifications: enableNotifications,
+            notifyMinutesBefore: notifyMinutesBefore,
+            notifyOnTime: notifyOnTime,
+            notifyAfterMinutes: notifyAfterMinutes,
             createdAt: createdAt,
             updatedAt: updatedAt,
           ),
@@ -2772,6 +3016,10 @@ class $$PrescriptionsTableTableManager extends RootTableManager<
             required DateTime firstDoseTime,
             Value<String?> notes = const Value.absent(),
             Value<String?> imagePath = const Value.absent(),
+            Value<bool> enableNotifications = const Value.absent(),
+            Value<int?> notifyMinutesBefore = const Value.absent(),
+            Value<bool> notifyOnTime = const Value.absent(),
+            Value<int?> notifyAfterMinutes = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
           }) =>
@@ -2790,6 +3038,10 @@ class $$PrescriptionsTableTableManager extends RootTableManager<
             firstDoseTime: firstDoseTime,
             notes: notes,
             imagePath: imagePath,
+            enableNotifications: enableNotifications,
+            notifyMinutesBefore: notifyMinutesBefore,
+            notifyOnTime: notifyOnTime,
+            notifyAfterMinutes: notifyAfterMinutes,
             createdAt: createdAt,
             updatedAt: updatedAt,
           ),

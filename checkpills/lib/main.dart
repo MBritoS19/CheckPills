@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:CheckPills/presentation/screens/onboarding_screen.dart';
 import 'package:CheckPills/presentation/screens/home_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:CheckPills/core/utils/notification_service.dart';
 import 'package:CheckPills/data/datasources/database.dart';
 import 'package:CheckPills/core/theme/app_theme.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -19,6 +20,9 @@ import 'package:flutter/services.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt_BR', null);
+
+  await NotificationService.instance.init();
+  await NotificationService.instance.requestPermissions();
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
