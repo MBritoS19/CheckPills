@@ -238,8 +238,8 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase>
     return result ?? 0;
   }
 
-  Future<void> addDoseEvent(DoseEventsCompanion companion) =>
-      into(doseEvents).insert(companion);
+  Future<DoseEvent> addDoseEvent(DoseEventsCompanion companion) =>
+      into(doseEvents).insertReturning(companion);
 
   Future<void> updateDoseEventStatus(
           int id, DoseStatus newStatus, DateTime? takenTime) =>

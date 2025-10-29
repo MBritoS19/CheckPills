@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:CheckPills/data/datasources/database.dart';
 import 'package:CheckPills/presentation/providers/user_provider.dart';
+import 'package:CheckPills/core/utils/notification_service.dart';
 import 'package:drift/drift.dart' hide Column;
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 
 class MedicationProvider with ChangeNotifier {
@@ -119,6 +121,8 @@ class MedicationProvider with ChangeNotifier {
 
   Future<void> updatePrescription(
       int id, PrescriptionsCompanion updatedPrescription) async {
+    await NotificationService.instance
+        .cancelAllNotificationsForPrescription(id);
     await database.prescriptionsDao
         .updatePrescription(updatedPrescription.copyWith(id: Value(id)));
     await database.doseEventsDao.deleteFutureDoseEventsForPrescription(id);
@@ -129,6 +133,7 @@ class MedicationProvider with ChangeNotifier {
 
   Future<void> deletePrescription(int id) async {
     await database.prescriptionsDao.deletePrescription(id);
+    await NotificationService.instance.cancelAllNotificationsForPrescription(id);
   }
 
   Future<bool> toggleDoseStatus(DoseEventWithPrescription doseData) async {
@@ -139,6 +144,13 @@ class MedicationProvider with ChangeNotifier {
         ? DoseStatus.pendente
         : DoseStatus.tomada;
     final takenTime = newStatus == DoseStatus.tomada ? DateTime.now() : null;
+
+    if (newStatus == DoseStatus.tomada) {
+      await NotificationService.instance
+          .cancelNotification(doseEvent.id * 10 + 2);
+      await NotificationService.instance
+          .cancelNotification(doseEvent.id * 10 + 3);
+    }
 
     await database.doseEventsDao
         .updateDoseEventStatus(doseEvent.id, newStatus, takenTime);
@@ -255,13 +267,61 @@ class MedicationProvider with ChangeNotifier {
   }
 
   Future<void> _generateAndInsertDoseEvents(Prescription prescription) async {
+    final notificationService = NotificationService.instance;
+
+    Future<void> scheduleNotificationsForDose(
+        int doseId, DateTime scheduledTime) async {
+      // 1. Lembrete Antecipado
+      if (prescription.notifyMinutesBefore != null) {
+        await notificationService.scheduleNotification(
+          id: doseId * 10 + 1,
+          title: 'Lembrete: ${prescription.name}',
+          body:
+              'Hora de tomar sua dose de ${prescription.doseDescription} em ${prescription.notifyMinutesBefore} minutos.',
+          scheduledDate: scheduledTime
+              .subtract(Duration(minutes: prescription.notifyMinutesBefore!)),
+          payload: 'PRESCRIPTION_ID:${prescription.id}',
+        );
+      }
+
+      // 2. Lembrete Pontual
+      if (prescription.notifyOnTime) {
+        await notificationService.scheduleNotification(
+          id: doseId * 10 + 2,
+          title: 'Está na hora: ${prescription.name}',
+          body: 'Tome sua dose de ${prescription.doseDescription} agora.',
+          scheduledDate: scheduledTime,
+          payload: 'PRESCRIPTION_ID:${prescription.id}',
+        );
+      }
+
+      // 3. Lembrete de Atraso
+      if (prescription.notifyAfterMinutes != null) {
+        await notificationService.scheduleNotification(
+          id: doseId * 10 + 3,
+          title: 'Dose Atrasada: ${prescription.name}',
+          body:
+              'Você esqueceu de tomar sua dose de ${prescription.doseDescription} às ${DateFormat('HH:mm').format(scheduledTime)}.',
+          scheduledDate: scheduledTime
+              .add(Duration(minutes: prescription.notifyAfterMinutes!)),
+          payload: 'PRESCRIPTION_ID:${prescription.id}',
+        );
+      }
+    }
+
+    // Lógica de geração de doses
     if (prescription.intervalValue == 0) {
+      // Dose única
       final newDoseEvent = DoseEventsCompanion.insert(
         prescriptionId: prescription.id,
         scheduledTime: prescription.firstDoseTime,
         status: const Value(DoseStatus.pendente),
       );
-      await database.doseEventsDao.addDoseEvent(newDoseEvent);
+      // CORRIGIDO: addDoseEvent agora retorna o objeto completo
+      final newDose = await database.doseEventsDao.addDoseEvent(newDoseEvent);
+      if (prescription.enableNotifications) {
+        await scheduleNotificationsForDose(newDose.id, newDose.scheduledTime);
+      }
       return;
     }
 
@@ -277,7 +337,11 @@ class MedicationProvider with ChangeNotifier {
         scheduledTime: nextDoseTime,
         status: const Value(DoseStatus.pendente),
       );
-      await database.doseEventsDao.addDoseEvent(newDoseEvent);
+      // CORRIGIDO: addDoseEvent agora retorna o objeto completo
+      final newDose = await database.doseEventsDao.addDoseEvent(newDoseEvent);
+      if (prescription.enableNotifications) {
+        await scheduleNotificationsForDose(newDose.id, newDose.scheduledTime);
+      }
 
       nextDoseTime = _calculateNextDoseTime(nextDoseTime, prescription);
     }

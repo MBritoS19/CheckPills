@@ -39,6 +39,10 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   String _selectedDoseUnit = 'unidade(s)';
   bool _dontTrackStock = false;
   bool _isSingleDose = false;
+  bool _enableNotifications = true;
+  int? _notifyMinutesBefore;
+  bool _notifyOnTime = true;
+  bool _notifyIfLate = true;
 
   final _customTypeController = TextEditingController();
   final _nameController = TextEditingController();
@@ -113,14 +117,126 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   @override
   void didUpdateWidget(covariant AddMedicationScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Se o medicamento passado para a tela mudou,
-    // preenchemos os campos novamente.
     if (widget.prescription != oldWidget.prescription) {
       _prefillFields();
     }
   }
 
-  // ADICIONE ESTES DOIS MÉTODOS
+  Widget _buildNotificationsPage({
+    required double screenWidth,
+  }) {
+    // Opções para o lembrete de antecedência
+    final Map<String, int?> reminderOptions = {
+      'Nenhum': null,
+      '5 min antes': 5,
+      '10 min antes': 10,
+      '15 min antes': 15,
+    };
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Configurar lembretes',
+                style: TextStyle(
+                    fontSize: screenWidth * 0.055,
+                    fontWeight: FontWeight.bold)),
+            SizedBox(height: screenWidth * 0.06),
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                side: BorderSide(color: Theme.of(context).dividerColor),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    title: const Text('Receber lembretes'),
+                    subtitle: const Text('Notificações para este medicamento'),
+                    value: _enableNotifications,
+                    onChanged: (value) {
+                      HapticFeedback.lightImpact();
+                      setState(() {
+                        _enableNotifications = value;
+                      });
+                    },
+                  ),
+                  // Mostra opções adicionais apenas se os lembretes estiverem ativados
+                  if (_enableNotifications) ...[
+                    const Divider(height: 1),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'QUANDO LEMBRAR?',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Lembrete de Antecedência
+                          const Text('Lembrete antecipado:'),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8.0,
+                            children: reminderOptions.keys.map((label) {
+                              return ChoiceChip(
+                                label: Text(label),
+                                selected: _notifyMinutesBefore ==
+                                    reminderOptions[label],
+                                onSelected: (selected) {
+                                  HapticFeedback.lightImpact();
+                                  setState(() {
+                                    _notifyMinutesBefore =
+                                        reminderOptions[label];
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 8),
+                          CheckboxListTile(
+                            title: const Text('No horário exato da dose'),
+                            value: _notifyOnTime,
+                            onChanged: (value) {
+                              setState(() {
+                                _notifyOnTime = value!;
+                              });
+                            },
+                            controlAffinity: ListTileControlAffinity.leading,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          CheckboxListTile(
+                            title: const Text('15 min após o horário'),
+                            subtitle: const Text('(Se a dose não foi tomada)'),
+                            value: _notifyIfLate,
+                            onChanged: (value) {
+                              setState(() {
+                                _notifyIfLate = value!;
+                              });
+                            },
+                            controlAffinity: ListTileControlAffinity.leading,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   void _showImageSourceSheet() {
     HapticFeedback.lightImpact();
@@ -195,6 +311,13 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
       _selectedTreatmentUnit = p.unitTreatment ?? 'Dias';
     }
     _notesController.text = p.notes ?? '';
+    setState(() {
+      _enableNotifications = p.enableNotifications;
+      _notifyMinutesBefore = p.notifyMinutesBefore;
+      _notifyOnTime = p.notifyOnTime;
+      _notifyIfLate = p.notifyAfterMinutes !=
+          null; 
+    });
   }
 
   @override
@@ -290,11 +413,9 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     });
   }
 
-  // NOVO MÉTODO COMPLETO
   List<Widget> _buildFormPages() {
     final screenWidth = MediaQuery.of(context).size.width;
 
-    // A lista de páginas é exatamente a mesma que estava no seu método build
     return [
       // Página 0: Nome e Imagem
       Padding(
@@ -339,6 +460,9 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         // Página 6: Duração
         _buildDurationPage(screenWidth: screenWidth),
       ],
+
+      _buildNotificationsPage(screenWidth: screenWidth),
+
       // Última Página: Observações
       _buildFormPage(
           title: 'Alguma observação?',
@@ -675,6 +799,10 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           : (_isContinuous ? null : _selectedTreatmentUnit)),
       notes: Value(_notesController.text),
       updatedAt: Value(DateTime.now()),
+      enableNotifications: Value(_enableNotifications),
+      notifyMinutesBefore: Value(_notifyMinutesBefore),
+      notifyOnTime: Value(_notifyOnTime),
+      notifyAfterMinutes: Value(_notifyIfLate ? 15 : null),
     );
 
     if (widget.prescription != null) {
@@ -828,14 +956,13 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                 ),
                 SizedBox(width: screenWidth * 0.04),
                 Expanded(
-                  flex: 3, 
+                  flex: 3,
                   child: DropdownButtonFormField<String>(
                     initialValue: _selectedDoseUnit,
                     decoration: const InputDecoration(
                       labelText: 'Unidade',
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16.0), 
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
                     ),
                     items: _allDoseUnits.map((String unit) {
                       return DropdownMenuItem<String>(
@@ -1317,8 +1444,10 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                     child: Icon(
                       Icons.add_a_photo_outlined,
                       size: 50,
-                      color:
-                          Theme.of(context).iconTheme.color?.withValues(alpha: 0.6),
+                      color: Theme.of(context)
+                          .iconTheme
+                          .color
+                          ?.withValues(alpha: 0.6),
                     ),
                   )
                 : Stack(
