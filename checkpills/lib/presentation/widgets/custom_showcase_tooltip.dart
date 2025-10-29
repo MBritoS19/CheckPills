@@ -3,20 +3,21 @@ import 'package:showcaseview/showcaseview.dart';
 
 class CustomShowcaseTooltip extends StatelessWidget {
   final String description;
-  final ShowCaseWidgetState showcaseState; // A "linha direta" para o estado
   final VoidCallback onTutorialFinish;
   final bool isLastStep;
 
   const CustomShowcaseTooltip({
     super.key,
     required this.description,
-    required this.showcaseState, // Novo parâmetro
     required this.onTutorialFinish,
     this.isLastStep = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Pega a instância atual do ShowcaseView (nova API)
+    final showcase = ShowcaseView.get();
+
     return Card(
       elevation: 8,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -34,7 +35,7 @@ class CustomShowcaseTooltip extends StatelessWidget {
                 TextButton(
                   onPressed: () {
                     onTutorialFinish();
-                    showcaseState.dismiss(); // USA O ESTADO DIRETAMENTE
+                    showcase.dismiss(); // Usa o novo objeto showcase
                   },
                   child: const Text('Pular'),
                 ),
@@ -43,9 +44,9 @@ class CustomShowcaseTooltip extends StatelessWidget {
                   onPressed: () {
                     if (isLastStep) {
                       onTutorialFinish();
-                      showcaseState.dismiss(); // USA O ESTADO DIRETAMENTE
+                      showcase.dismiss(); // Usa o novo objeto showcase
                     } else {
-                      showcaseState.next(); // USA O ESTADO DIRETAMENTE
+                      showcase.next(); // Avança para o próximo passo
                     }
                   },
                   child: Text(isLastStep ? 'Concluir' : 'Próximo'),

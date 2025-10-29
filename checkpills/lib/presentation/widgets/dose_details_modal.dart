@@ -47,8 +47,8 @@ class DoseDetailsModal extends StatelessWidget {
 
     // Adiciona a linha de estoque apenas se o controle estiver ativo
     if (doseData.prescription.stock != -1) {
-      messageParts.add(
-          '• Estoque Atual: ${doseData.prescription.stock} unidades');
+      messageParts
+          .add('• Estoque Atual: ${doseData.prescription.stock} unidades');
     }
 
     // Adiciona a linha de observações apenas se houver notas
@@ -103,7 +103,7 @@ class DoseDetailsModal extends StatelessWidget {
 
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -178,31 +178,35 @@ class DoseDetailsModal extends StatelessWidget {
             actions: [
               // NOVO WIDGET: Menu de opções
               PopupMenuButton<String>(
-                onSelected: (String value) async { // [!code focus] Adicionado 'async'
+                onSelected: (String value) async {
                   final message = _buildShareableMessage(context);
                   final imagePath = doseData.prescription.imagePath;
 
+                  // Capture tudo que depende de `context` antes do await:
+                  final scaffoldMessenger = ScaffoldMessenger.of(context);
+
                   if (value == 'copy') {
-                    // Ação de Copiar
-                    FlutterClipboard.copy(message).then((_) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Lembrete copiado para a área de transferência!'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    });
+                    // Ação de Copiar (await direto, sem usar context depois)
+                    await FlutterClipboard.copy(message);
+                    scaffoldMessenger.showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            'Lembrete copiado para a área de transferência!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
                   } else if (value == 'share') {
-                    // Ação de Compartilhar
+                    // Ação de Compartilhar (nova API)
                     if (imagePath != null && await File(imagePath).exists()) {
-                      // Se houver uma imagem, compartilha imagem + texto
-                      await Share.shareXFiles(
-                        [XFile(imagePath)],
+                      final params = ShareParams(
                         text: message,
+                        files: [XFile(imagePath)],
                       );
+                      await SharePlus.instance.share(params);
                     } else {
-                      // Se não houver imagem, compartilha apenas o texto
-                      await Share.share(message);
+                      await SharePlus.instance.share(
+                        ShareParams(text: message),
+                      );
                     }
                   }
                 },
@@ -223,6 +227,7 @@ class DoseDetailsModal extends StatelessWidget {
                   ),
                 ],
               ),
+
               IconButton(
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.of(context).pop(),

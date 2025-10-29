@@ -108,7 +108,7 @@ class AppDatabase extends _$AppDatabase {
 
 @DriftAccessor(tables: [Users])
 class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
-  UsersDao(AppDatabase db) : super(db);
+  UsersDao(super.db);
 
   Future<List<User>> getAllUsers() => select(users).get();
   Stream<List<User>> watchAllUsers() => select(users).watch();
@@ -121,7 +121,7 @@ class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
 @DriftAccessor(tables: [UserSettings])
 class UserSettingsDao extends DatabaseAccessor<AppDatabase>
     with _$UserSettingsDaoMixin {
-  UserSettingsDao(AppDatabase db) : super(db);
+  UserSettingsDao(super.db);
 
   Stream<UserSetting?> watchSettingsForUser(int userId) {
     return (select(userSettings)..where((t) => t.userId.equals(userId)))
@@ -141,7 +141,7 @@ class UserSettingsDao extends DatabaseAccessor<AppDatabase>
 @DriftAccessor(tables: [Prescriptions])
 class PrescriptionsDao extends DatabaseAccessor<AppDatabase>
     with _$PrescriptionsDaoMixin {
-  PrescriptionsDao(AppDatabase db) : super(db);
+  PrescriptionsDao(super.db);
 
   Stream<List<Prescription>> watchAllPrescriptionsForUser(int userId) =>
       (select(prescriptions)..where((t) => t.userId.equals(userId))).watch();
@@ -164,7 +164,7 @@ class PrescriptionsDao extends DatabaseAccessor<AppDatabase>
 @DriftAccessor(tables: [DoseEvents, Prescriptions])
 class DoseEventsDao extends DatabaseAccessor<AppDatabase>
     with _$DoseEventsDaoMixin {
-  DoseEventsDao(AppDatabase db) : super(db);
+  DoseEventsDao(super.db);
   
 
   Stream<List<DoseEventWithPrescription>> watchDoseEventsForDay(

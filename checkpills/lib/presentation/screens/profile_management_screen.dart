@@ -3,7 +3,7 @@ import 'package:CheckPills/presentation/providers/user_provider.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:local_auth/local_auth.dart'; // <- 1. IMPORTAÇÃO ADICIONADA
+import 'package:local_auth/local_auth.dart';
 import 'package:provider/provider.dart';
 
 class ProfileManagementScreen extends StatelessWidget {
@@ -154,13 +154,9 @@ class ProfileManagementScreen extends StatelessWidget {
       final bool didAuthenticate = await auth.authenticate(
         localizedReason:
             'Por favor, autentique-se para excluir o perfil "${userToDelete.name}".',
-        options: const AuthenticationOptions(
-          stickyAuth: true, // Mantém o pedido de autenticação na tela
-        ),
       );
 
       if (didAuthenticate && context.mounted) {
-        // Se autenticou com sucesso, exclui o usuário
         provider.deleteUser(userToDelete.id);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -170,7 +166,6 @@ class ProfileManagementScreen extends StatelessWidget {
           ),
         );
       } else if (context.mounted) {
-        // Se o usuário cancelou
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Exclusão cancelada.'),
@@ -179,11 +174,24 @@ class ProfileManagementScreen extends StatelessWidget {
         );
       }
     } on PlatformException catch (e) {
-      // Se ocorreu um erro (ex: sem biometria cadastrada)
       if (context.mounted) {
+        String errorMessage =
+            'Ocorreu um erro inesperado durante a autenticação.';
+
+        if (e.code == 'NotEnrolled') {
+          errorMessage =
+              'Nenhum método biométrico (digital, facial) foi cadastrado.';
+        } else if (e.code == 'NotAvailable') {
+          errorMessage =
+              'A autenticação biométrica não está disponível neste dispositivo.';
+        } else if (e.code == 'LockedOut' || e.code == 'PermanentlyLockedOut') {
+          errorMessage =
+              'Dispositivo bloqueado por muitas tentativas. Tente mais tarde.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro de autenticação: ${e.message}'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );

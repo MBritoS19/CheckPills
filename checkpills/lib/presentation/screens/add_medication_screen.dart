@@ -822,22 +822,20 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                     ],
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
-                      counterText: "", // Esconde o contador padrão
+                      counterText: "",
                     ),
                   ),
                 ),
-                SizedBox(width: screenWidth * 0.04), // ALTERADO para responsivo
-                // Carrossel para a unidade
+                SizedBox(width: screenWidth * 0.04),
                 Expanded(
-                  flex: 3, // Ocupa 3/5 do espaço
+                  flex: 3, 
                   child: DropdownButtonFormField<String>(
-                    // CORREÇÃO: Usar 'value' para refletir o estado atualizado
-                    value: _selectedDoseUnit,
+                    initialValue: _selectedDoseUnit,
                     decoration: const InputDecoration(
                       labelText: 'Unidade',
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16.0), // Ajuste opcional de padding
+                          horizontal: 16.0), 
                     ),
                     items: _allDoseUnits.map((String unit) {
                       return DropdownMenuItem<String>(
@@ -867,7 +865,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
     required double screenWidth,
   }) {
     // Função auxiliar para formatar a data de forma amigável
-    String _formatFirstDoseDate() {
+    String formatFirstDoseDate() {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
       final selectedDay = DateTime(_selectedFirstDoseDate.year,
@@ -934,7 +932,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                             children: [
                               Text("Data",
                                   style: Theme.of(context).textTheme.bodySmall),
-                              Text(_formatFirstDoseDate(),
+                              Text(formatFirstDoseDate(),
                                   style: Theme.of(context)
                                       .textTheme
                                       .titleMedium
@@ -1124,7 +1122,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                               screenWidth * 0.04), // ALTERADO para responsivo
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _selectedTreatmentUnit,
+                          initialValue: _selectedTreatmentUnit,
                           onChanged: _isContinuous
                               ? null
                               : (value) {
@@ -1315,16 +1313,14 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: _imagePath == null
-                // Cenário A: Sem Imagem (Placeholder)
                 ? Center(
                     child: Icon(
                       Icons.add_a_photo_outlined,
                       size: 50,
                       color:
-                          Theme.of(context).iconTheme.color?.withOpacity(0.6),
+                          Theme.of(context).iconTheme.color?.withValues(alpha: 0.6),
                     ),
                   )
-                // Cenário B: Com Imagem (Stack com overlays)
                 : Stack(
                     fit: StackFit.expand,
                     children: [
@@ -1332,12 +1328,11 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                         File(_imagePath!),
                         fit: BoxFit.cover,
                       ),
-                      // Gradiente para garantir a visibilidade dos ícones
                       Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              Colors.black.withOpacity(0.6),
+                              Colors.black.withValues(alpha: 0.6),
                               Colors.transparent
                             ],
                             begin: Alignment.bottomCenter,

@@ -135,7 +135,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           },
                     elevation: 0,
                     backgroundColor: _currentPage == 0
-                        ? Colors.grey.withOpacity(0.2)
+                        ? Colors.grey.withValues(alpha: 0.2)
                         : Theme.of(context).colorScheme.surface,
                     child: Icon(
                       Icons.arrow_back_ios_new,
@@ -175,15 +175,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         );
                       }
                     },
+                    backgroundColor:
+                        (_currentPage == pages.length - 1 && !_isNameValid)
+                            ? Colors.grey
+                            : Theme.of(context).colorScheme.primary,
                     child: Icon(
                       _currentPage == pages.length - 1
                           ? Icons.check
                           : Icons.arrow_forward_ios,
                     ),
-                    backgroundColor:
-                        (_currentPage == pages.length - 1 && !_isNameValid)
-                            ? Colors.grey
-                            : Theme.of(context).colorScheme.primary,
                   ),
                 ],
               ),

@@ -16,7 +16,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:showcaseview/showcaseview.dart';
 
 class HomeScreen extends StatefulWidget {
-  final ShowCaseWidgetState? showcaseKey;
   final GlobalKey fabKey;
   final GlobalKey profileKey;
   final GlobalKey calendarKey;
@@ -26,7 +25,6 @@ class HomeScreen extends StatefulWidget {
 
   const HomeScreen({
     super.key,
-    required this.showcaseKey,
     required this.fabKey,
     required this.profileKey,
     required this.calendarKey,
@@ -136,8 +134,7 @@ class HomeScreenState extends State<HomeScreen> {
                         child: Text(user.name,
                             style: const TextStyle(fontSize: 16)),
                       ),
-                    ))
-                .toList(),
+                    )),
             const Divider(),
             SimpleDialogOption(
               onPressed: () {
@@ -448,7 +445,7 @@ class HomeScreenState extends State<HomeScreen> {
     final provider = Provider.of<MedicationProvider>(context, listen: false);
 
     // 1. CHAVE DO FORMULÁRIO: Adiciona uma chave para gerenciar o estado do formulário.
-    final _formKey = GlobalKey<FormState>();
+    final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
@@ -467,7 +464,7 @@ class HomeScreenState extends State<HomeScreen> {
 
             // 2. WIDGET FORM: Envolve o campo para usar a validação.
             Form(
-              key: _formKey,
+              key: formKey,
               child: TextFormField(
                 // Usamos TextFormField
                 controller: stockController,
@@ -500,7 +497,7 @@ class HomeScreenState extends State<HomeScreen> {
                 child: const Text('Salvar'),
                 onPressed: () {
                   // 4. CHAMADA DE VALIDAÇÃO: Verifica se o formulário é válido.
-                  if (_formKey.currentState!.validate()) {
+                  if (formKey.currentState!.validate()) {
                     final newStock = int.tryParse(stockController.text);
                     // Como a validação passou, newStock já é garantidamente >= 1
                     provider.updatePrescriptionStock(
@@ -606,12 +603,10 @@ class HomeScreenState extends State<HomeScreen> {
             final userName = userProvider.activeUser?.name;
             return Showcase.withWidget(
               key: widget.profileKey,
-              width: 280,
-              height: 100,
+              targetBorderRadius: BorderRadius.circular(16),
               container: CustomShowcaseTooltip(
                 description:
                     'Toque aqui para trocar entre perfis ou para gerenciar suas contas.',
-                showcaseState: widget.showcaseKey!,
                 onTutorialFinish: widget.onTutorialFinish,
               ),
               child: InkWell(
@@ -664,12 +659,10 @@ class HomeScreenState extends State<HomeScreen> {
         actions: [
           Showcase.withWidget(
             key: widget.calendarKey,
-            width: 280,
-            height: 100,
+            targetBorderRadius: BorderRadius.circular(16),
             container: CustomShowcaseTooltip(
               description:
                   'Navegue pelas semanas e toque em um dia para ver as doses agendadas.',
-              showcaseState: widget.showcaseKey!,
               onTutorialFinish: widget.onTutorialFinish,
             ),
             child: IconButton(
@@ -705,12 +698,10 @@ class HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: Showcase.withWidget(
                         key: widget.weekNavKey,
-                        width: 280,
-                        height: 100,
+                        targetBorderRadius: BorderRadius.circular(16),
                         container: CustomShowcaseTooltip(
                           description:
                               'Navegue pelas semanas e toque em um dia para ver as doses agendadas.',
-                          showcaseState: widget.showcaseKey!,
                           onTutorialFinish: widget.onTutorialFinish,
                         ),
                         child: Row(
@@ -751,12 +742,10 @@ class HomeScreenState extends State<HomeScreen> {
                     // Se for o tutorial, mostramos o placeholder.
                     return Showcase.withWidget(
                       key: widget.doseCardKey,
-                      width: 280,
-                      height: 120, // Um pouco mais de altura para este
+                      targetBorderRadius: BorderRadius.circular(16),
                       container: CustomShowcaseTooltip(
                         description:
                             'Este é um lembrete de dose. Toque para ver detalhes ou deslize para editar/excluir.',
-                        showcaseState: widget.showcaseKey!,
                         onTutorialFinish: widget.onTutorialFinish,
                       ),
                       child: Dismissible(
