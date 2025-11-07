@@ -123,18 +123,17 @@ class HomeScreenState extends State<HomeScreen> {
         return SimpleDialog(
           title: const Text('Trocar de Perfil'),
           children: [
-            ...allUsers
-                .map((user) => SimpleDialogOption(
-                      onPressed: () {
-                        userProvider.selectUser(user);
-                        Navigator.pop(dialogContext);
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Text(user.name,
-                            style: const TextStyle(fontSize: 16)),
-                      ),
-                    )),
+            ...allUsers.map((user) => SimpleDialogOption(
+                  onPressed: () {
+                    userProvider.selectUser(user);
+                    Navigator.pop(dialogContext);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child:
+                        Text(user.name, style: const TextStyle(fontSize: 16)),
+                  ),
+                )),
             const Divider(),
             SimpleDialogOption(
               onPressed: () {
@@ -601,6 +600,7 @@ class HomeScreenState extends State<HomeScreen> {
         title: Consumer<UserProvider>(
           builder: (context, userProvider, child) {
             final userName = userProvider.activeUser?.name;
+
             return Showcase.withWidget(
               key: widget.profileKey,
               targetBorderRadius: BorderRadius.circular(16),

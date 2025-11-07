@@ -21,6 +21,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt_BR', null);
 
+  await NotificationService.instance.configureLocalTimezone();
   await NotificationService.instance.init();
   await NotificationService.instance.requestPermissions();
 
@@ -295,13 +296,30 @@ class AppInitializer extends StatefulWidget {
   State<AppInitializer> createState() => _AppInitializerState();
 }
 
-class _AppInitializerState extends State<AppInitializer> {
+class _AppInitializerState extends State<AppInitializer>
+    with WidgetsBindingObserver {
   AppStatus _status = AppStatus.loading;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeApp();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      debugPrint("App retomado, reconfigurando fuso horário...");
+      NotificationService.instance.configureLocalTimezone();
+    }
   }
 
   Future<void> _initializeApp() async {

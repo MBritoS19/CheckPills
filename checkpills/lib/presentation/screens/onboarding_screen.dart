@@ -164,6 +164,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
 
                   // BOTÃO PRÓXIMO / CONCLUIR
+
                   FloatingActionButton.small(
                     onPressed: () {
                       if (_currentPage == pages.length - 1) {
