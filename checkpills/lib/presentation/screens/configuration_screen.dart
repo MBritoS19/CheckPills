@@ -1,7 +1,7 @@
 import 'package:CheckPills/presentation/providers/user_provider.dart';
 import 'package:CheckPills/presentation/providers/user_settings_provider.dart';
 import 'package:CheckPills/presentation/screens/profile_management_screen.dart';
-import 'package:CheckPills/presentation/screens/reports_screen.dart'; // NOVA IMPORT
+import 'package:CheckPills/presentation/screens/reports_screen.dart'; // ADICIONE ESTE IMPORT
 import 'package:CheckPills/data/datasources/database.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
@@ -118,7 +118,7 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => const ReportsScreen(),
+                    builder: (context) => const ReportsScreen(), // CORRIGIDO
                   ),
                 );
               },

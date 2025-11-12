@@ -29,8 +29,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget build(BuildContext context) {
     final reportsProvider = context.watch<ReportsProvider>();
     final userProvider = context.watch<UserProvider>();
-
-    // Usa os dados completos do ReportsProvider
     final allEvents = reportsProvider.allEventsByDay;
 
     // Se não há usuário selecionado, usa o ativo
@@ -41,8 +39,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     // Filtra eventos baseado na seleção
     final filteredEvents = _showAllUsers
         ? allEvents // Mostra todos os usuários
-        : reportsProvider
-            .getEventsForUser(_selectedUser); // Usa o método do provider
+        : reportsProvider.getEventsForUser(_selectedUser);
 
     final stats = _calculateStatistics(filteredEvents, userProvider);
 
@@ -76,7 +73,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
             // Lista de medicamentos mais usados
             _buildTopMedications(stats),
-            const SizedBox(height: 20), // Adicionado espaçamento
 
             // Estatísticas por medicamento
             _buildMedicationDetails(stats),
@@ -231,17 +227,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildAdherenceChart(ReportStatistics stats) {
     if (stats.takenDoses + stats.skippedDoses + stats.pendingDoses == 0) {
-      return Card(
-        elevation: 2,
-        child: const Padding(
-          padding: EdgeInsets.all(16),
-          child: Center(
-            child: Text(
-              'Nenhuma dose encontrada para o filtro selecionado.',
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
+      return _buildEmptyStateCard(
+        icon: Icons.pie_chart,
+        title: 'Nenhuma Dose Encontrada',
+        message: 'Não há dados de doses para o filtro selecionado.',
       );
     }
 
@@ -294,16 +283,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildTopMedications(ReportStatistics stats) {
     if (stats.topMedications.isEmpty) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Center(
-            child: Text(
-              'Nenhum medicamento encontrado para o filtro selecionado.',
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
+      return _buildEmptyStateCard(
+        icon: Icons.medication_liquid,
+        title: 'Nenhum Medicamento',
+        message:
+            'Não foram encontrados medicamentos para o filtro selecionado.',
       );
     }
 
@@ -349,18 +333,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildMedicationDetails(ReportStatistics stats) {
     if (stats.medicationDetails.isEmpty) {
-      // Retorna Card com aviso centralizado
-      return const Card(
-        elevation: 2,
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Center(
-            child: Text(
-              'Nenhum detalhe de medicamento encontrado para o filtro selecionado.',
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
+      return _buildEmptyStateCard(
+        icon: Icons.analytics_outlined,
+        title: 'Sem Detalhes de Medicamentos',
+        message: 'Não há dados detalhados de medicamentos para exibir.',
       );
     }
 
@@ -418,7 +394,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildUserStatistics(ReportStatistics stats) {
     if (stats.userStatistics.isEmpty) {
-      return const SizedBox();
+      return _buildEmptyStateCard(
+        icon: Icons.group_off,
+        title: 'Sem Estatísticas por Perfil',
+        message:
+            'Não há dados de usuários para exibir estatísticas individuais.',
+      );
     }
 
     return Card(
@@ -471,6 +452,50 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     ),
                   ),
                 )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // NOVO MÉTODO: Widget centralizado para estados vazios
+  Widget _buildEmptyStateCard({
+    required IconData icon,
+    required String title,
+    required String message,
+  }) {
+    return Card(
+      elevation: 2,
+      child: Container(
+        width: double.infinity, // Ocupa toda a largura
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 64,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
           ],
         ),
       ),
@@ -663,15 +688,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final adherenceRate =
         totalDoses > 0 ? ((takenDoses / totalDoses) * 100).round() : 0;
 
-    // Ordena medicamentos por frequência
+    // Ordenação segura para topMedications
     final topMedications = medicationCounts.entries
         .map((entry) => MedicationStats(
               name: entry.key.name,
               doseCount: entry.value,
             ))
-        .toList()
-      ..sort((a, b) => b.doseCount.compareTo(a.doseCount))
-      ..take(5).toList();
+        .toList();
+
+    // Ordenação corrigida - comparação direta de inteiros
+    topMedications.sort((a, b) => b.doseCount.compareTo(a.doseCount));
+
+    // Pega apenas os 5 primeiros
+    final topFiveMedications = topMedications.take(5).toList();
 
     return ReportStatistics(
       takenDoses: takenDoses,
@@ -679,7 +708,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       pendingDoses: pendingDoses,
       adherenceRate: adherenceRate,
       totalMedications: medicationCounts.length,
-      topMedications: topMedications,
+      topMedications: topFiveMedications,
       medicationDetails: medicationDetails,
       userStatistics: userStatistics,
     );
