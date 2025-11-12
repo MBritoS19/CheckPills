@@ -159,6 +159,9 @@ class PrescriptionsDao extends DatabaseAccessor<AppDatabase>
   Stream<List<Prescription>> watchAllPrescriptionsForUser(int userId) =>
       (select(prescriptions)..where((t) => t.userId.equals(userId))).watch();
 
+  Stream<List<Prescription>> watchAllPrescriptions() =>
+      select(prescriptions).watch();
+
   Future<int> addPrescription(PrescriptionsCompanion companion) =>
       into(prescriptions).insert(companion);
   Future<bool> updatePrescription(PrescriptionsCompanion companion) =>

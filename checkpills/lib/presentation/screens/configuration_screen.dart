@@ -1,6 +1,7 @@
 import 'package:CheckPills/presentation/providers/user_provider.dart';
 import 'package:CheckPills/presentation/providers/user_settings_provider.dart';
 import 'package:CheckPills/presentation/screens/profile_management_screen.dart';
+import 'package:CheckPills/presentation/screens/reports_screen.dart'; // NOVA IMPORT
 import 'package:CheckPills/data/datasources/database.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
@@ -107,6 +108,22 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
               },
             ),
 
+            // NOVA SEÇÃO DE RELATÓRIOS
+            _buildSectionHeader("Relatórios"),
+            ListTile(
+              leading: const Icon(Icons.analytics_outlined),
+              title: const Text('Relatórios e Estatísticas'),
+              subtitle: const Text('Veja seu histórico de medicamentos'),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const ReportsScreen(),
+                  ),
+                );
+              },
+            ),
+
             // SEÇÃO DE APARÊNCIA
             _buildSectionHeader("Aparência"),
             ListTile(
@@ -139,7 +156,7 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
     );
   }
 
-  // NOVO MÉTODO PARA OBTER O NOME DO TEMA ATUAL
+  // ... (resto dos métodos permanece igual)
   String _getCurrentThemeName(int themeMode) {
     switch (themeMode) {
       case 1:
@@ -151,7 +168,6 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
     }
   }
 
-  // NOVO MÉTODO PARA EXIBIR O DIÁLOGO DE SELEÇÃO
   void _showThemeSelectionDialog(
       BuildContext context, UserSettingsProvider provider) {
     showDialog(
@@ -193,7 +209,6 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
     );
   }
 
-  // Este método agora recebe UserProvider para alterar o nome do PERFIL
   void _showUserNameDialog(BuildContext context, UserProvider provider) {
     final activeUser = provider.activeUser;
     if (activeUser == null) return;
@@ -239,7 +254,6 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
     );
   }
 
-  // Este método não muda, pois opera no UserSettingsProvider
   void _showRefillReminderDialog(
       BuildContext context, UserSettingsProvider provider) {
     showDialog(

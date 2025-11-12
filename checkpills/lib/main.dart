@@ -2,6 +2,7 @@ import 'package:CheckPills/presentation/screens/configuration_screen.dart';
 import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
 import 'package:CheckPills/presentation/providers/medication_provider.dart';
 import 'package:CheckPills/presentation/providers/user_settings_provider.dart';
+import 'package:CheckPills/presentation/providers/reports_provider.dart';
 import 'package:CheckPills/presentation/widgets/custom_showcase_tooltip.dart';
 import 'package:CheckPills/presentation/providers/user_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -32,38 +33,48 @@ Future<void> main() async {
 
   final AppDatabase database = AppDatabase();
 
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(
-          create: (context) => UserProvider(database: database),
+  runApp(MultiProvider(
+    providers: [
+      ChangeNotifierProvider(
+        create: (context) => UserProvider(database: database),
+      ),
+      ChangeNotifierProxyProvider<UserProvider, UserSettingsProvider>(
+        create: (context) => UserSettingsProvider(
+          database: database,
+          userProvider: Provider.of<UserProvider>(context, listen: false),
         ),
-        ChangeNotifierProxyProvider<UserProvider, UserSettingsProvider>(
-          create: (context) => UserSettingsProvider(
-            database: database,
-            userProvider: Provider.of<UserProvider>(context, listen: false),
-          ),
-          update: (context, userProvider, previousSettingsProvider) =>
-              UserSettingsProvider(
-            database: database,
-            userProvider: userProvider,
-          ),
+        update: (context, userProvider, previousSettingsProvider) =>
+            UserSettingsProvider(
+          database: database,
+          userProvider: userProvider,
         ),
-        ChangeNotifierProxyProvider<UserProvider, MedicationProvider>(
-          create: (context) => MedicationProvider(
-            database: database,
-            userProvider: Provider.of<UserProvider>(context, listen: false),
-          ),
-          update: (context, userProvider, previousMedicationProvider) =>
-              MedicationProvider(
-            database: database,
-            userProvider: userProvider,
-          ),
+      ),
+      ChangeNotifierProxyProvider<UserProvider, MedicationProvider>(
+        create: (context) => MedicationProvider(
+          database: database,
+          userProvider: Provider.of<UserProvider>(context, listen: false),
         ),
-      ],
-      child: const MyApp(),
-    ),
-  );
+        update: (context, userProvider, previousMedicationProvider) =>
+            MedicationProvider(
+          database: database,
+          userProvider: userProvider,
+        ),
+      ),
+      // NOVO PROVIDER PARA RELATÓRIOS
+      ChangeNotifierProxyProvider<UserProvider, ReportsProvider>(
+        create: (context) => ReportsProvider(
+          database: database,
+          userProvider: Provider.of<UserProvider>(context, listen: false),
+        ),
+        update: (context, userProvider, previousReportsProvider) =>
+            ReportsProvider(
+          database: database,
+          userProvider: userProvider,
+        ),
+      ),
+    ],
+    child: const MyApp(),
+  ));
 }
 
 class MyApp extends StatelessWidget {
