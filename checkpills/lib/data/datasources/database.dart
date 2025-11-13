@@ -117,6 +117,22 @@ class AppDatabase extends _$AppDatabase {
   PrescriptionsDao get prescriptionsDao => PrescriptionsDao(this);
   @override
   DoseEventsDao get doseEventsDao => DoseEventsDao(this);
+
+  Future<void> resetDatabase() async {
+    await transaction(() async {
+      // Ordem IMPORTANTE: primeiro deleta dependências, depois pais
+      await deleteAllDoseEvents();
+      await deleteAllPrescriptions();
+      await deleteAllSettings();
+      await deleteAllUsers();
+    });
+  }
+
+  // Métodos auxiliares para deletar todas as entradas de cada tabela
+  Future<int> deleteAllUsers() => delete(users).go();
+  Future<int> deleteAllSettings() => delete(userSettings).go();
+  Future<int> deleteAllPrescriptions() => delete(prescriptions).go();
+  Future<int> deleteAllDoseEvents() => delete(doseEvents).go();
 }
 
 @DriftAccessor(tables: [Users])
@@ -129,6 +145,8 @@ class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
   Future<int> deleteUser(int id) =>
       (delete(users)..where((t) => t.id.equals(id))).go();
   Future<bool> updateUser(UsersCompanion entry) => update(users).replace(entry);
+
+  Future<void> deleteAllUsers() => delete(users).go();
 }
 
 @DriftAccessor(tables: [UserSettings])
@@ -149,6 +167,8 @@ class UserSettingsDao extends DatabaseAccessor<AppDatabase>
   Future<void> updateSettingsForUser(UserSettingsCompanion entry) {
     return into(userSettings).insertOnConflictUpdate(entry);
   }
+
+  Future<void> deleteAllSettings() => delete(userSettings).go();
 }
 
 @DriftAccessor(tables: [Prescriptions])
@@ -175,6 +195,8 @@ class PrescriptionsDao extends DatabaseAccessor<AppDatabase>
       PrescriptionsCompanion(stock: Value(newStock)),
     );
   }
+
+  Future<void> deleteAllPrescriptions() => delete(prescriptions).go();
 }
 
 @DriftAccessor(tables: [DoseEvents, Prescriptions])
@@ -277,6 +299,8 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> deleteDoseEvent(int id) =>
       (delete(doseEvents)..where((t) => t.id.equals(id))).go();
+
+  Future<void> deleteAllDoseEvents() => delete(doseEvents).go();
 }
 
 LazyDatabase _openConnection() {

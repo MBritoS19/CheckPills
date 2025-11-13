@@ -1,11 +1,12 @@
 import 'package:CheckPills/presentation/providers/user_provider.dart';
 import 'package:CheckPills/presentation/providers/user_settings_provider.dart';
 import 'package:CheckPills/presentation/screens/profile_management_screen.dart';
-import 'package:CheckPills/presentation/screens/reports_screen.dart'; // ADICIONE ESTE IMPORT
+import 'package:CheckPills/presentation/screens/reports_screen.dart';
 import 'package:CheckPills/data/datasources/database.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:CheckPills/main.dart'; // ← ADICIONE ESTA LINHA
 
 class ConfigurationScreen extends StatefulWidget {
   const ConfigurationScreen({super.key});
@@ -15,6 +16,8 @@ class ConfigurationScreen extends StatefulWidget {
 }
 
 class _ConfigurationScreenState extends State<ConfigurationScreen> {
+  bool _isResetting = false;
+
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(
@@ -32,16 +35,28 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Agora pegamos os dois providers necessários
+    if (_isResetting) {
+      return _buildLoadingScreen('Reiniciando aplicativo...');
+    }
+
     final settingsProvider = context.watch<UserSettingsProvider>();
     final userProvider = context.watch<UserProvider>();
 
-    // O nome do usuário vem do UserProvider
     final String? currentUserName = userProvider.activeUser?.name;
-    // As configurações vêm do UserSettingsProvider
     final settings = settingsProvider.settings;
 
-    // Se as configurações ainda não carregaram, mostramos um loader
+    // Se não há usuários e o provider foi inicializado, vai para onboarding
+    if (userProvider.allUsers.isEmpty && userProvider.isInitialized) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const MyApp()),
+          (route) => false,
+        );
+      });
+      return _buildLoadingScreen('Redirecionando...');
+    }
+
+    // Loading normal enquanto carrega configurações
     if (settings == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Configurações')),
@@ -50,9 +65,7 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Configurações'),
-      ),
+      appBar: AppBar(title: const Text('Configurações')),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,7 +121,7 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
               },
             ),
 
-            // NOVA SEÇÃO DE RELATÓRIOS
+            // SEÇÃO DE RELATÓRIOS
             _buildSectionHeader("Relatórios"),
             ListTile(
               leading: const Icon(Icons.analytics_outlined),
@@ -118,7 +131,7 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => const ReportsScreen(), // CORRIGIDO
+                    builder: (context) => const ReportsScreen(),
                   ),
                 );
               },
@@ -143,11 +156,24 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
               subtitle:
                   const Text('Ser notificado quando restarem poucas doses'),
               trailing: Text(
-                '${settings.refillReminder} doses', // Usa as configurações carregadas
+                '${settings.refillReminder} doses',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               onTap: () {
                 _showRefillReminderDialog(context, settingsProvider);
+              },
+            ),
+
+            // SEÇÃO: MANUTENÇÃO
+            _buildSectionHeader("Manutenção"),
+            ListTile(
+              leading: const Icon(Icons.restart_alt, color: Colors.red),
+              title: const Text('Reiniciar Aplicativo',
+                  style: TextStyle(color: Colors.red)),
+              subtitle: const Text('Voltar às configurações iniciais'),
+              trailing: const Icon(Icons.arrow_forward_ios, color: Colors.red),
+              onTap: () {
+                _showResetConfirmationDialog(context, userProvider);
               },
             ),
           ],
@@ -156,7 +182,22 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
     );
   }
 
-  // ... (resto dos métodos permanece igual)
+  Widget _buildLoadingScreen(String message) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Configurações')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text(message),
+          ],
+        ),
+      ),
+    );
+  }
+
   String _getCurrentThemeName(int themeMode) {
     switch (themeMode) {
       case 1:
@@ -237,7 +278,6 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
               onPressed: () {
                 final newName = userNameController.text;
                 if (newName.isNotEmpty) {
-                  // A chamada de atualização agora é no UserProvider
                   provider.updateUser(
                     UsersCompanion(
                       id: Value(activeUser.id),
@@ -275,5 +315,77 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
         );
       },
     );
+  }
+
+  // NOVO MÉTODO: Diálogo de confirmação para reset
+  void _showResetConfirmationDialog(
+      BuildContext context, UserProvider provider) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Reiniciar Aplicativo'),
+          content: const Text(
+            'Tem certeza que deseja voltar o aplicativo às configurações iniciais?\n\n'
+            '⚠️  Esta ação irá:'
+            '\n• Apagar TODOS os usuários e perfis'
+            '\n• Remover TODOS os medicamentos'
+            '\n• Limpar TODOS os históricos'
+            '\n• Cancelar TODAS as notificações'
+            '\n• Voltar todas as configurações ao padrão'
+            '\n\nEsta ação NÃO pode ser desfeita!',
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text(
+                'Reiniciar Tudo',
+                style: TextStyle(color: Colors.red),
+              ),
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _performReset(context, provider);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // NOVO MÉTODO: Executar o reset
+  Future<void> _performReset(
+      BuildContext context, UserProvider provider) async {
+    setState(() {
+      _isResetting = true;
+    });
+
+    try {
+      // Executa o reset (apenas limpa dados)
+      await provider.resetApp();
+
+      // Navega diretamente para o MyApp
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const MyApp()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isResetting = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao reiniciar aplicativo: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

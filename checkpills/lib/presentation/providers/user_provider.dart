@@ -5,6 +5,7 @@ import 'package:CheckPills/data/datasources/database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class UserProvider with ChangeNotifier {
   final AppDatabase database;
@@ -15,8 +16,10 @@ class UserProvider with ChangeNotifier {
   bool _isInitialized = false;
 
   // Completer para sinalizar o fim da inicialização
-  final Completer<void> _initializationCompleter = Completer<void>();
+  Completer<void> _initializationCompleter = Completer<void>();
   bool _isFirstUserLoad = true;
+
+  final List<VoidCallback> _resetListeners = [];
 
   // Getters públicos
   User? get activeUser => _activeUser;
@@ -93,5 +96,41 @@ class UserProvider with ChangeNotifier {
       }
     }
     notifyListeners();
+  }
+
+  Future<void> resetApp() async {
+    try {
+      debugPrint('Iniciando reset do aplicativo...');
+
+      // 1. Cancela todas as notificações
+      final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+          FlutterLocalNotificationsPlugin();
+      await flutterLocalNotificationsPlugin.cancelAll();
+
+      // 2. Limpa o banco de dados
+      await database.resetDatabase();
+      debugPrint('Banco de dados limpo');
+
+      // 3. Limpa o SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      debugPrint('SharedPreferences limpo');
+
+      debugPrint('Reset do aplicativo concluído com sucesso');
+    } catch (e) {
+      debugPrint('Erro ao resetar app: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _cancelAllNotificationsDirectly() async {
+    try {
+      final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+          FlutterLocalNotificationsPlugin();
+      await flutterLocalNotificationsPlugin.cancelAll();
+      debugPrint('Todas as notificações canceladas diretamente');
+    } catch (e) {
+      debugPrint('Erro ao cancelar notificações: $e');
+    }
   }
 }
