@@ -20,9 +20,9 @@ class BackupData {
     required this.doseEvents,
   });
 
-  factory BackupData.fromJson(Map<String, dynamic> json) => 
+  factory BackupData.fromJson(Map<String, dynamic> json) =>
       _$BackupDataFromJson(json);
-      
+
   Map<String, dynamic> toJson() => _$BackupDataToJson(this);
 }
 
@@ -34,9 +34,9 @@ class UserBackup {
 
   UserBackup({required this.id, required this.name, required this.createdAt});
 
-  factory UserBackup.fromJson(Map<String, dynamic> json) => 
+  factory UserBackup.fromJson(Map<String, dynamic> json) =>
       _$UserBackupFromJson(json);
-      
+
   Map<String, dynamic> toJson() => _$UserBackupToJson(this);
 }
 
@@ -58,9 +58,9 @@ class UserSettingBackup {
     required this.updatedAt,
   });
 
-  factory UserSettingBackup.fromJson(Map<String, dynamic> json) => 
+  factory UserSettingBackup.fromJson(Map<String, dynamic> json) =>
       _$UserSettingBackupFromJson(json);
-      
+
   Map<String, dynamic> toJson() => _$UserSettingBackupToJson(this);
 }
 
@@ -110,9 +110,9 @@ class PrescriptionBackup {
     required this.updatedAt,
   });
 
-  factory PrescriptionBackup.fromJson(Map<String, dynamic> json) => 
+  factory PrescriptionBackup.fromJson(Map<String, dynamic> json) =>
       _$PrescriptionBackupFromJson(json);
-      
+
   Map<String, dynamic> toJson() => _$PrescriptionBackupToJson(this);
 }
 
@@ -136,8 +136,8 @@ class DoseEventBackup {
     required this.updatedAt,
   });
 
-  factory DoseEventBackup.fromJson(Map<String, dynamic> json) => 
+  factory DoseEventBackup.fromJson(Map<String, dynamic> json) =>
       _$DoseEventBackupFromJson(json);
-      
+
   Map<String, dynamic> toJson() => _$DoseEventBackupToJson(this);
 }

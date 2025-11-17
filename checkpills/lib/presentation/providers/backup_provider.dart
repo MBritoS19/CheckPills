@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:CheckPills/core/services/backup_service.dart';
 import 'package:CheckPills/data/datasources/database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BackupProvider with ChangeNotifier {
-  final BackupService _backupService; // Já está declarado como final
-  
-  // Inicialize a lista vazia
+  final BackupService _backupService;
+
   List<BackupFileInfo> _backups = [];
-  
   bool _isBackingUp = false;
   bool _isRestoring = false;
   String? _lastError;
@@ -17,13 +16,11 @@ class BackupProvider with ChangeNotifier {
   bool get isRestoring => _isRestoring;
   String? get lastError => _lastError;
 
-  // Construtor corrigido - inicialize _backupService diretamente
-  BackupProvider(AppDatabase database) 
-    : _backupService = BackupService(database) { // Inicialização no construtor
+  BackupProvider(AppDatabase database)
+      : _backupService = BackupService(database) {
     _loadBackups();
   }
 
-  // Carregar lista de backups
   Future<void> _loadBackups() async {
     try {
       _backups = await _backupService.getExistingBackups();
@@ -33,31 +30,28 @@ class BackupProvider with ChangeNotifier {
     }
   }
 
-  // Atualizar lista de backups
   Future<void> refreshBackups() async {
     await _loadBackups();
   }
 
-  // Deletar backup
   Future<void> deleteBackup(String filePath) async {
     try {
       await _backupService.deleteBackup(filePath);
-      await _loadBackups(); // Recarregar lista
+      await _loadBackups();
     } catch (e) {
       _lastError = 'Erro ao deletar backup: $e';
       rethrow;
     }
   }
 
-  // MÉTODO createLocalBackup
   Future<void> createLocalBackup() async {
     _isBackingUp = true;
     _lastError = null;
     notifyListeners();
-    
+
     try {
       await _backupService.exportBackupToFile();
-      await _loadBackups(); // 🔥 ATUALIZAR LISTA APÓS CRIAR BACKUP
+      await _loadBackups();
     } catch (e) {
       _lastError = 'Falha no backup local: $e';
       rethrow;
@@ -71,10 +65,10 @@ class BackupProvider with ChangeNotifier {
     _isBackingUp = true;
     _lastError = null;
     notifyListeners();
-    
+
     try {
       await _backupService.shareBackup();
-      await _loadBackups(); // 🔥 ATUALIZAR LISTA APÓS CRIAR BACKUP
+      await _loadBackups();
     } catch (e) {
       _lastError = 'Falha no backup: $e';
       rethrow;
@@ -84,41 +78,49 @@ class BackupProvider with ChangeNotifier {
     }
   }
 
-  Future<void> restoreFromBackup() async {
-  _isRestoring = true;
-  _lastError = null;
-  notifyListeners();
-  
-  try {
-    await _backupService.importBackupFromFile(); // Usa o file picker
-  } catch (e) {
-    _lastError = 'Falha na restauração: $e';
-    rethrow;
-  } finally {
-    _isRestoring = false;
-    notifyListeners();
-  }
-}
-
+  // 🔥 MÉTODO QUE ESTAVA FALTANDO - ADICIONAR ESTE
   Future<void> restoreFromSpecificFile(String filePath) async {
-  _isRestoring = true;
-  _lastError = null;
-  notifyListeners();
-  
-  try {
-    await _backupService.restoreFromSpecificFile(filePath); // Restauração direta
-    
-    // Recarregar lista de backups após restauração
-    await _loadBackups();
-    
-  } catch (e) {
-    _lastError = 'Falha na restauração: $e';
-    rethrow;
-  } finally {
-    _isRestoring = false;
+    _isRestoring = true;
+    _lastError = null;
     notifyListeners();
+
+    try {
+      print('🔄 INICIANDO RESTAURAÇÃO SEGURA...');
+
+      // 🔥 CORREÇÃO CRÍTICA: Salvar estado ANTES de qualquer operação
+      final prefs = await SharedPreferences.getInstance();
+      final bool wasTutorialCompleted =
+          prefs.getBool('home_tutorial_concluido') ?? true;
+      final bool wasOnboardingCompleted =
+          prefs.getBool('onboarding_concluido') ?? true;
+
+      print('💾 Estado pré-restauração:');
+      print('   - Tutorial concluído: $wasTutorialCompleted');
+      print('   - Onboarding concluído: $wasOnboardingCompleted');
+
+      // 🔥 CORREÇÃO: Fazer a restauração dos dados do banco
+      await _backupService.restoreFromSpecificFile(filePath);
+
+      // 🔥 CORREÇÃO: RESTAURAR ESTADO IMEDIATAMENTE após o restore
+      await prefs.setBool('home_tutorial_concluido', wasTutorialCompleted);
+      await prefs.setBool('onboarding_concluido', wasOnboardingCompleted);
+
+      // 🔥 CORREÇÃO: NÃO limpar estado do ShowcaseView - isso causa o erro
+      print('🔧 Estado do ShowcaseView PRESERVADO');
+
+      // Recarregar lista de backups
+      await _loadBackups();
+
+      print('✅ RESTAURAÇÃO CONCLUÍDA COM SUCESSO');
+    } catch (e) {
+      _lastError = 'Falha na restauração: $e';
+      print('❌ ERRO NA RESTAURAÇÃO: $e');
+      rethrow;
+    } finally {
+      _isRestoring = false;
+      notifyListeners();
+    }
   }
-}
 
   void clearError() {
     _lastError = null;

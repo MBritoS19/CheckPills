@@ -13,6 +13,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:CheckPills/main.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ConfigurationScreen extends StatefulWidget {
   const ConfigurationScreen({super.key});
@@ -154,7 +156,6 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
             ),
 
             // SEÇÃO: MANUTENÇÃO
-            _buildSectionHeader("Manutenção"),
             _buildSectionHeader("Manutenção"),
 
 // BACKUP DOS DADOS
@@ -459,164 +460,163 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
     );
   }
 
-void _testBackupFunctionality(BuildContext context) async {
-  final backupProvider = context.read<BackupProvider>();
-  
-  try {
-    print('🧪 INICIANDO TESTE DE BACKUP...');
-    
-    // Teste simples usando apenas o BackupProvider
-    await backupProvider.createLocalBackup();
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Teste de backup executado com sucesso!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-  } catch (e) {
-    print('❌ TESTE FALHOU: $e');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Erro no teste: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-}
+  void _testBackupFunctionality(BuildContext context) async {
+    final backupProvider = context.read<BackupProvider>();
 
-// Nos métodos principais, use também apenas o BackupProvider
-Future<void> _createLocalBackup(BuildContext context) async {
-  final backupProvider = context.read<BackupProvider>();
-  
-  try {
-    await backupProvider.createLocalBackup();
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Backup local salvo com sucesso!'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 3),
-        ),
-      );
-    }
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Falha ao criar backup: $e'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-    }
-  }
-}
+    try {
+      print('🧪 INICIANDO TESTE DE BACKUP...');
 
-Future<void> _createAndShareBackup(BuildContext context) async {
-  final backupProvider = context.read<BackupProvider>();
-  
-  try {
-    await backupProvider.createAndShareBackup();
-    
-    // Não precisa de SnackBar aqui porque o compartilhamento já mostra sua própria UI
-    print('✅ Backup compartilhado com sucesso!');
-    
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Falha ao compartilhar backup: $e'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-    }
-  }
-}
+      // Teste simples usando apenas o BackupProvider
+      await backupProvider.createLocalBackup();
 
-// MÉTODO _restoreFromFile - ATUALIZADO COM MENSAGENS MELHORES
-Future<void> _restoreFromFile(BuildContext context) async {
-  final backupProvider = context.read<BackupProvider>();
-  
-  try {
-    // Mostrar confirmação antes de restaurar
-    final shouldRestore = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Restaurar Backup'),
-        content: const Text(
-          'Tem certeza que deseja restaurar um backup?\n\n'
-          '⚠️ ATENÇÃO: Todos os dados atuais serão substituídos pelos dados do backup.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Continuar',
-              style: TextStyle(color: Colors.orange),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldRestore != true) return;
-
-    print('🔄 INICIANDO RESTAURAÇÃO VIA FILE PICKER...');
-    
-    // Abrir seletor de arquivos
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['json'],
-      allowMultiple: false,
-    );
-
-    if (result != null && result.files.single.path != null) {
-      final filePath = result.files.single.path!;
-      print('📁 Arquivo selecionado: $filePath');
-      
-      // Usar o método específico que foi adicionado ao BackupProvider
-      await backupProvider.restoreFromSpecificFile(filePath);
-      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Backup restaurado com sucesso!'),
+            content: Text('✅ Teste de backup executado com sucesso!'),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
           ),
         );
-        
-        // Mostrar recomendação de reinicialização
-        _showRestartRecommendation(context);
       }
-    } else {
-      print('📁 Nenhum arquivo selecionado');
-    }
-    
-  } catch (e) {
-    print('❌ ERRO NA RESTAURAÇÃO: $e');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Erro ao restaurar backup: $e'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+    } catch (e) {
+      print('❌ TESTE FALHOU: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Erro no teste: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
-}
+
+// Nos métodos principais, use também apenas o BackupProvider
+  Future<void> _createLocalBackup(BuildContext context) async {
+    final backupProvider = context.read<BackupProvider>();
+
+    try {
+      await backupProvider.createLocalBackup();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Falha ao criar backup: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _createAndShareBackup(BuildContext context) async {
+    final backupProvider = context.read<BackupProvider>();
+
+    try {
+      await backupProvider.createAndShareBackup();
+
+      // Não precisa de SnackBar aqui porque o compartilhamento já mostra sua própria UI
+      print('✅ Backup compartilhado com sucesso!');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Falha ao compartilhar backup: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
+// MÉTODO _restoreFromFile - ATUALIZADO COM MENSAGENS MELHORES
+  Future<void> _restoreFromFile(BuildContext context) async {
+    final backupProvider = context.read<BackupProvider>();
+
+    try {
+      // Mostrar confirmação
+      final shouldRestore = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Restaurar Backup'),
+          content: const Text(
+            'Tem certeza que deseja restaurar um backup?\n\n'
+            '⚠️ ATENÇÃO: Todos os dados atuais serão substituídos pelos dados do backup.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text(
+                'Continuar',
+                style: TextStyle(color: Colors.orange),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldRestore != true) return;
+
+      print('🔄 INICIANDO RESTAURAÇÃO VIA FILE PICKER...');
+
+      // Abrir seletor de arquivos
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final filePath = result.files.single.path!;
+        print('📁 Arquivo selecionado: $filePath');
+
+        // 🔥 ESTRATÉGIA: Fechar seletor de arquivos antes de restaurar
+        Navigator.of(context).pop();
+
+        // Aguardar fechamento do seletor
+        await Future.delayed(const Duration(milliseconds: 300));
+
+        // Fazer restauração
+        await backupProvider.restoreFromSpecificFile(filePath);
+
+        // 🔥 Navegação segura para MainScreen
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const MainScreen()),
+            (route) => false,
+          );
+
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('✅ Backup restaurado com sucesso!'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+            }
+          });
+        }
+      }
+    } catch (e) {
+      print('❌ ERRO NA RESTAURAÇÃO: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Erro ao restaurar backup: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
 
 // Método para mostrar backups locais
   Future<void> _showLocalBackups(BuildContext context) async {
@@ -631,12 +631,16 @@ Future<void> _restoreFromFile(BuildContext context) async {
 
 // Método para abrir o modal de backups - DENTRO da _ConfigurationScreenState
   void _showBackupModal(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
+          height: screenHeight * 0.7,
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
             borderRadius: const BorderRadius.only(
@@ -644,44 +648,257 @@ Future<void> _restoreFromFile(BuildContext context) async {
               topRight: Radius.circular(20),
             ),
           ),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // CABEÇALHO
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
+            children: [
+              // CABEÇALHO (mantido igual)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Backup e Restauração',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Divider(height: 1),
+
+              // CONTEÚDO COM SCROLL (apenas backups locais)
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        'Backup e Restauração',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
+                      // SEÇÃO: BACKUPS LOCAIS (mantida igual)
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: _buildLocalBackupsSection(context),
                       ),
                     ],
                   ),
                 ),
+              ),
 
-                const Divider(height: 1),
-
-                // SEÇÃO: BACKUPS LOCAIS
-                _buildLocalBackupsSection(context),
-
-                // SEÇÃO: AÇÕES
-                _buildActionsSection(context),
-
-                const SizedBox(height: 16),
-              ],
-            ),
+              // 🔥 BOTÕES NA PARTE DE BAIXO (mantendo funcionalidades e estilo originais)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(
+                      color: Theme.of(context).dividerColor,
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: _buildOriginalActionsSection(context),
+              ),
+            ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildOriginalActionsSection(BuildContext context) {
+    final theme = Theme.of(context);
+    final backupProvider = context.watch<BackupProvider>();
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+
+        // INDICADOR DE PROGRESSO (original)
+        if (backupProvider.isBackingUp || backupProvider.isRestoring) ...[
+          LinearProgressIndicator(
+            backgroundColor: Colors.grey.shade300,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            backupProvider.isBackingUp
+                ? 'Criando backup...'
+                : 'Restaurando backup...',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.primary,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        // BOTÕES ORIGINAIS (mesmo layout responsivo)
+        if (screenWidth > 400)
+          _buildOriginalHorizontalButtons(context, backupProvider, screenWidth)
+        else
+          _buildOriginalVerticalButtons(context, backupProvider, screenWidth),
+
+        // MENSAGEM DE ERRO ORIGINAL
+        if (backupProvider.lastError != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.red.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.red.shade600),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    backupProvider.lastError!,
+                    style: TextStyle(
+                      color: Colors.red.shade800,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.close, color: Colors.red.shade600, size: 16),
+                  onPressed: () => backupProvider.clearError(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildOriginalHorizontalButtons(
+      BuildContext context, BackupProvider backupProvider, double screenWidth) {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            icon: backupProvider.isBackingUp
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  )
+                : const Icon(Icons.backup),
+            label: backupProvider.isBackingUp
+                ? const Text('Criando...')
+                : const Text('Criar Backup'),
+            onPressed: backupProvider.isBackingUp || backupProvider.isRestoring
+                ? null
+                : () {
+                    _createBackup(context);
+                  },
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: FilledButton.icon(
+            icon: backupProvider.isRestoring
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.upload_file),
+            label: backupProvider.isRestoring
+                ? const Text('Restaurando...')
+                : const Text('Procurar Arquivo'),
+            onPressed: backupProvider.isBackingUp || backupProvider.isRestoring
+                ? null
+                : () {
+                    _selectBackupFile(context);
+                  },
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+// BOTÕES VERTICAIS ORIGINAIS
+  Widget _buildOriginalVerticalButtons(
+      BuildContext context, BackupProvider backupProvider, double screenWidth) {
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            icon: backupProvider.isBackingUp
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  )
+                : const Icon(Icons.backup),
+            label: backupProvider.isBackingUp
+                ? const Text('Criando Backup...')
+                : const Text('Criar Backup'),
+            onPressed: backupProvider.isBackingUp || backupProvider.isRestoring
+                ? null
+                : () {
+                    _createBackup(context);
+                  },
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            icon: backupProvider.isRestoring
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.upload_file),
+            label: backupProvider.isRestoring
+                ? const Text('Restaurando Backup...')
+                : const Text('Procurar Arquivo'),
+            onPressed: backupProvider.isBackingUp || backupProvider.isRestoring
+                ? null
+                : () {
+                    _selectBackupFile(context);
+                  },
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -717,562 +934,651 @@ Future<void> _restoreFromFile(BuildContext context) async {
 
 // LISTA DE BACKUPS - DENTRO da _ConfigurationScreenState
   Widget _buildBackupList(BuildContext context) {
-  final backupProvider = context.watch<BackupProvider>();
-  final backups = backupProvider.backups;
+    final backupProvider = context.watch<BackupProvider>();
+    final backups = backupProvider.backups;
 
-  if (backups.isEmpty) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Icon(Icons.folder_off, size: 48, color: Colors.grey.shade400),
-          const SizedBox(height: 8),
-          Text(
-            'Nenhum backup local',
-            style: TextStyle(
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w500,
+    if (backups.isEmpty) {
+      return Container(
+        height: 140,
+        alignment: Alignment.center, // 🔥 CENTRALIZAÇÃO DIRETA
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.folder_off,
+                size: 32,
+                color: Colors.grey.shade400,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Crie seu primeiro backup usando os botões abaixo',
-            style: TextStyle(
-              color: Colors.grey.shade500,
-              fontSize: 12,
+            const SizedBox(height: 12),
+            Text(
+              'Nenhum backup local',
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w500,
+                fontSize: 16,
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'Use os botões abaixo para criar seu primeiro backup',
+                style: TextStyle(
+                  color: Colors.grey.shade500,
+                  fontSize: 12,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children:
+          backups.map((backup) => _buildBackupItem(context, backup)).toList(),
     );
   }
-
-  return Column(
-    children: backups.map<Widget>((backup) => _buildBackupItem(context, backup)).toList(), // CORREÇÃO: added <Widget>
-  );
-}
 
 // ITEM DE BACKUP - DENTRO da _ConfigurationScreenState
   Widget _buildBackupItem(BuildContext context, BackupFileInfo backup) {
-  final stats = backup.stats;
-  
-  return Card(
-    margin: const EdgeInsets.only(bottom: 8),
-    child: ListTile(
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: Colors.green.shade50,
-          borderRadius: BorderRadius.circular(8),
+    final stats = backup.stats;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.green.shade50,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(Icons.backup, color: Colors.green.shade600, size: 20),
         ),
-        child: Icon(Icons.backup, color: Colors.green.shade600, size: 20),
-      ),
-      title: Text(
-        _formatBackupName(backup.name),
-        style: const TextStyle(fontWeight: FontWeight.w500),
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('${backup.formattedDate} • ${backup.formattedSize}'),
-          if (stats != null) ...[
-            const SizedBox(height: 2),
-            Text(
-              '${stats['users']} usuários • ${stats['prescriptions']} medicações • ${stats['doseEvents']} eventos',
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade600,
+        title: Text(
+          _formatBackupName(backup.name),
+          style: const TextStyle(fontWeight: FontWeight.w500),
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${backup.formattedDate} • ${backup.formattedSize}'),
+            if (stats != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                '${stats['users']} usuários • ${stats['prescriptions']} medicações • ${stats['doseEvents']} eventos',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ],
+        ),
+        trailing: PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert),
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'restore',
+              child: Row(
+                children: [
+                  Icon(Icons.restore, size: 20),
+                  SizedBox(width: 8),
+                  Text('Restaurar'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'share',
+              child: Row(
+                children: [
+                  Icon(Icons.share, size: 20),
+                  SizedBox(width: 8),
+                  Text('Compartilhar'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'info',
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 20),
+                  SizedBox(width: 8),
+                  Text('Informações'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'delete',
+              child: Row(
+                children: [
+                  Icon(Icons.delete, size: 20, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Deletar', style: TextStyle(color: Colors.red)),
+                ],
               ),
             ),
           ],
-        ],
-      ),
-      trailing: PopupMenuButton<String>(
-        icon: const Icon(Icons.more_vert),
-        itemBuilder: (context) => [
-          const PopupMenuItem(
-            value: 'restore',
-            child: Row(
-              children: [
-                Icon(Icons.restore, size: 20),
-                SizedBox(width: 8),
-                Text('Restaurar'),
-              ],
-            ),
-          ),
-          const PopupMenuItem(
-            value: 'share',
-            child: Row(
-              children: [
-                Icon(Icons.share, size: 20),
-                SizedBox(width: 8),
-                Text('Compartilhar'),
-              ],
-            ),
-          ),
-          const PopupMenuItem(
-            value: 'info',
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, size: 20),
-                SizedBox(width: 8),
-                Text('Informações'),
-              ],
-            ),
-          ),
-          const PopupMenuItem(
-            value: 'delete',
-            child: Row(
-              children: [
-                Icon(Icons.delete, size: 20, color: Colors.red),
-                SizedBox(width: 8),
-                Text('Deletar', style: TextStyle(color: Colors.red)),
-              ],
-            ),
-          ),
-        ],
-        onSelected: (value) {
-          _handleBackupAction(context, value, backup);
+          onSelected: (value) {
+            _handleBackupAction(context, value, backup);
+          },
+        ),
+        onTap: () {
+          _showBackupInfo(context, backup);
         },
       ),
-      onTap: () {
-        _showBackupInfo(context, backup);
-      },
-    ),
-  );
-}
+    );
+  }
 
 // MOSTRAR INFORMAÇÕES DO BACKUP
-Future<void> _shareBackupFile(BuildContext context, BackupFileInfo backup) async {
-  try {
-    await Share.shareXFiles(
-      [XFile(backup.path)],
-      subject: 'CheckPills Backup - ${backup.formattedDate}',
-      text: 'Backup do CheckPills criado em ${backup.formattedDate}',
-    );
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao compartilhar: $e'),
-          backgroundColor: Colors.red,
-        ),
+  Future<void> _shareBackupFile(
+      BuildContext context, BackupFileInfo backup) async {
+    try {
+      await Share.shareXFiles(
+        [XFile(backup.path)],
+        subject: 'CheckPills Backup - ${backup.formattedDate}',
+        text: 'Backup do CheckPills criado em ${backup.formattedDate}',
       );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao compartilhar: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
-}
 
-void _showBackupInfo(BuildContext context, BackupFileInfo backup) {
-  final stats = backup.stats;
-  
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Informações do Backup'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Arquivo: ${backup.name}'),
-          Text('Tamanho: ${backup.formattedSize}'),
-          Text('Data: ${backup.formattedDate}'),
-          if (stats != null) ...[
-            const SizedBox(height: 16),
-            const Text('Conteúdo:', style: TextStyle(fontWeight: FontWeight.bold)),
-            Text('• ${stats['users']} usuários'),
-            Text('• ${stats['prescriptions']} medicamentos'),
-            Text('• ${stats['doseEvents']} eventos de dose'),
-            Text('• Versão do app: ${stats['appVersion']}'),
+  void _showBackupInfo(BuildContext context, BackupFileInfo backup) {
+    final stats = backup.stats;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Informações do Backup'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Arquivo: ${backup.name}'),
+            Text('Tamanho: ${backup.formattedSize}'),
+            Text('Data: ${backup.formattedDate}'),
+            if (stats != null) ...[
+              const SizedBox(height: 16),
+              const Text('Conteúdo:',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('• ${stats['users']} usuários'),
+              Text('• ${stats['prescriptions']} medicamentos'),
+              Text('• ${stats['doseEvents']} eventos de dose'),
+            ],
           ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar'),
+          ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Fechar'),
-        ),
-      ],
-    ),
-  );
-}
+    );
+  }
 
 // Método auxiliar para formatar o nome do backup
-String _formatBackupName(String fileName) {
-  // Remove a extensão .json e o prefixo checkpills_backup_
-  final withoutExtension = fileName.replaceAll('.json', '');
-  final withoutPrefix = withoutExtension.replaceAll('checkpills_backup_', '');
-  
-  // Tenta converter o timestamp para data legível
-  try {
-    final timestamp = int.tryParse(withoutPrefix);
-    if (timestamp != null) {
-      final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
-      return 'Backup ${date.day}/${date.month}/${date.year}';
+  String _formatBackupName(String fileName) {
+    // Remove a extensão .json e o prefixo checkpills_backup_
+    final withoutExtension = fileName.replaceAll('.json', '');
+    final withoutPrefix = withoutExtension.replaceAll('checkpills_backup_', '');
+
+    // Tenta converter o timestamp para data legível
+    try {
+      final timestamp = int.tryParse(withoutPrefix);
+      if (timestamp != null) {
+        final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+        return 'Backup ${date.day}/${date.month}/${date.year}';
+      }
+    } catch (e) {
+      // Se não conseguir converter, usa o nome original
     }
-  } catch (e) {
-    // Se não conseguir converter, usa o nome original
+
+    return withoutPrefix;
   }
-  
-  return withoutPrefix;
-}
 
 // SEÇÃO DE AÇÕES - DENTRO da _ConfigurationScreenState
   Widget _buildActionsSection(BuildContext context) {
-  final theme = Theme.of(context);
-  final backupProvider = context.watch<BackupProvider>();
+    final theme = Theme.of(context);
+    final backupProvider = context.watch<BackupProvider>();
 
-  return Padding(
-    padding: const EdgeInsets.all(16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.add, size: 20, color: Colors.green),
-            const SizedBox(width: 8),
-            Text(
-              'Novo Backup',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        
-        // INDICADOR DE PROGRESSO
-        if (backupProvider.isBackingUp || backupProvider.isRestoring) ...[
-          LinearProgressIndicator(
-            backgroundColor: Colors.grey.shade300,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            backupProvider.isBackingUp 
-                ? 'Criando backup...' 
-                : 'Restaurando backup...',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.primary,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-        
-        Row(
-          children: [
-            // BOTÃO CRIAR BACKUP
-            Expanded(
-              child: OutlinedButton.icon(
-                icon: backupProvider.isBackingUp 
-                    ? SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      )
-                    : const Icon(Icons.backup),
-                label: backupProvider.isBackingUp 
-                    ? const Text('Criando...')
-                    : const Text('Criar Backup'),
-                onPressed: backupProvider.isBackingUp || backupProvider.isRestoring
-                    ? null
-                    : () {
-                        _createBackup(context);
-                      },
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-
-            // BOTÃO PROCURAR ARQUIVO
-            Expanded(
-              child: FilledButton.icon(
-                icon: backupProvider.isRestoring
-                    ? SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.upload_file),
-                label: backupProvider.isRestoring
-                    ? const Text('Restaurando...')
-                    : const Text('Procurar Arquivo'),
-                onPressed: backupProvider.isBackingUp || backupProvider.isRestoring
-                    ? null
-                    : () {
-                        _selectBackupFile(context);
-                      },
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
-          ],
-        ),
-        
-        // MENSAGEM DE ERRO
-        if (backupProvider.lastError != null) ...[
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.red.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.red.shade200),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.error_outline, color: Colors.red.shade600),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    backupProvider.lastError!,
-                    style: TextStyle(
-                      color: Colors.red.shade800,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.close, color: Colors.red.shade600, size: 16),
-                  onPressed: () => backupProvider.clearError(),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ],
-    ),
-  );
-}
-
-// MÉTODOS DE AÇÃO - DENTRO da _ConfigurationScreenState
-  void _handleBackupAction(BuildContext context, String action, BackupFileInfo backup) {
-  final backupProvider = context.read<BackupProvider>();
-  
-  switch (action) {
-    case 'restore':
-      _showRestoreConfirmation(context, backup);
-      break;
-    case 'share':
-      _shareBackupFile(context, backup);
-      break;
-    case 'info':
-      _showBackupInfo(context, backup);
-      break;
-    case 'delete':
-      _showDeleteConfirmation(context, backup, backupProvider);
-      break;
-  }
-}
-
-
-  void _showRestoreConfirmation(BuildContext context, BackupFileInfo backup) {
-  final backupProvider = context.read<BackupProvider>();
-  final stats = backup.stats;
-  
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Restaurar Backup'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Tem certeza que deseja restaurar este backup?'),
-          const SizedBox(height: 8),
-          Text('⚠️ Todos os dados atuais serão substituídos.', 
-               style: TextStyle(color: Colors.orange.shade800)),
-          if (stats != null) ...[
+          const SizedBox(height: 12),
+
+          // INDICADOR DE PROGRESSO
+          if (backupProvider.isBackingUp || backupProvider.isRestoring) ...[
+            LinearProgressIndicator(
+              backgroundColor: Colors.grey.shade300,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              backupProvider.isBackingUp
+                  ? 'Criando backup...'
+                  : 'Restaurando backup...',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontSize: 12,
+              ),
+            ),
             const SizedBox(height: 12),
-            Text('Este backup contém:'),
-            Text('• ${stats['users']} usuários'),
-            Text('• ${stats['prescriptions']} medicamentos'),
-            Text('• ${stats['doseEvents']} eventos'),
+          ],
+
+          Row(
+            children: [
+              // BOTÃO CRIAR BACKUP
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: backupProvider.isBackingUp
+                      ? SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        )
+                      : const Icon(Icons.backup),
+                  label: backupProvider.isBackingUp
+                      ? const Text('Criando...')
+                      : const Text('Criar Backup'),
+                  onPressed:
+                      backupProvider.isBackingUp || backupProvider.isRestoring
+                          ? null
+                          : () {
+                              _createBackup(context);
+                            },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // BOTÃO PROCURAR ARQUIVO
+              Expanded(
+                child: FilledButton.icon(
+                  icon: backupProvider.isRestoring
+                      ? SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.upload_file),
+                  label: backupProvider.isRestoring
+                      ? const Text('Restaurando...')
+                      : const Text('Procurar Arquivo'),
+                  onPressed:
+                      backupProvider.isBackingUp || backupProvider.isRestoring
+                          ? null
+                          : () {
+                              _selectBackupFile(context);
+                            },
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // MENSAGEM DE ERRO
+          if (backupProvider.lastError != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red.shade600),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      backupProvider.lastError!,
+                      style: TextStyle(
+                        color: Colors.red.shade800,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon:
+                        Icon(Icons.close, color: Colors.red.shade600, size: 16),
+                    onPressed: () => backupProvider.clearError(),
+                  ),
+                ],
+              ),
+            ),
           ],
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        TextButton(
-          onPressed: () async {
-            Navigator.pop(context);
-            await _restoreFromSpecificFile(context, backup, backupProvider);
-          },
-          child: const Text('Restaurar', style: TextStyle(color: Colors.red)),
-        ),
-      ],
-    ),
-  );
-}
+    );
+  }
 
-// RESTAURAR DE ARQUIVO ESPECÍFICO
-Future<void> _restoreFromSpecificFile(BuildContext context, BackupFileInfo backup, BackupProvider backupProvider) async {
-  try {
-    print('🔄 INICIANDO RESTAURAÇÃO DO BACKUP: ${backup.name}');
-    
-    // Usar o método específico que restaura do arquivo diretamente
-    await backupProvider.restoreFromSpecificFile(backup.path);
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Backup restaurado com sucesso!'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 3),
-        ),
-      );
-      
-      // Fechar o modal após sucesso
-      Navigator.pop(context);
-      
-      // Mostrar mensagem de reinicialização recomendada
-      _showRestartRecommendation(context);
-    }
-  } catch (e) {
-    print('❌ ERRO NA RESTAURAÇÃO: $e');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Erro ao restaurar backup: $e'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+// MÉTODOS DE AÇÃO - DENTRO da _ConfigurationScreenState
+  void _handleBackupAction(
+      BuildContext context, String action, BackupFileInfo backup) {
+    final backupProvider = context.read<BackupProvider>();
+
+    switch (action) {
+      case 'restore':
+        _showRestoreConfirmation(context, backup);
+        break;
+      case 'share':
+        _shareBackupFile(context, backup);
+        break;
+      case 'info':
+        _showBackupInfo(context, backup);
+        break;
+      case 'delete':
+        _showDeleteConfirmation(context, backup, backupProvider);
+        break;
     }
   }
-}
 
-// Método para mostrar recomendação de reinicialização
-void _showRestartRecommendation(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('✅ Restauração Concluída'),
-      content: const Text(
-        'O backup foi restaurado com sucesso!\n\n'
-        'Recomendamos reiniciar o aplicativo para garantir que todos os dados sejam carregados corretamente.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Continuar'),
-        ),
-        TextButton(
-          onPressed: () {
-            Navigator.pop(context);
-            // Fechar todas as telas e voltar para o início
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (context) => const MainScreen()),
-              (route) => false,
-            );
-          },
-          child: const Text('Reiniciar App'),
-        ),
-      ],
-    ),
-  );
-}
+  void _showRestoreConfirmation(BuildContext context, BackupFileInfo backup) {
+    final backupProvider = context.read<BackupProvider>();
+    final stats = backup.stats;
 
-  // MÉTODO _showDeleteConfirmation - CORRIGIDO
-void _showDeleteConfirmation(BuildContext context, BackupFileInfo backup, BackupProvider backupProvider) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Deletar Backup'),
-      content: Text('Tem certeza que deseja deletar o backup "${_formatBackupName(backup.name)}"?'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        TextButton(
-          onPressed: () async {
-            Navigator.pop(context);
-            try {
-              await backupProvider.deleteBackup(backup.path);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Backup deletado com sucesso'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
-            } catch (e) {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Erro ao deletar: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            }
-          },
-          child: const Text('Deletar', style: TextStyle(color: Colors.red)),
-        ),
-      ],
-    ),
-  );
-}
-
-  void _createBackup(BuildContext context) {
-  showModalBottomSheet(
-    context: context,
-    builder: (context) {
-      return SafeArea(
-        child: Column(
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Restaurar Backup'),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ListTile(
-              leading: const Icon(Icons.save, color: Colors.blue),
-              title: const Text('Backup Local'),
-              subtitle: const Text('Salvar backup no dispositivo'),
-              onTap: () {
-                Navigator.pop(context);
-                _createLocalBackup(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.share, color: Colors.green),
-              title: const Text('Compartilhar Backup'),
-              subtitle: const Text('Salvar e compartilhar arquivo'),
-              onTap: () {
-                Navigator.pop(context);
-                _createAndShareBackup(context);
-              },
-            ),
+            const Text('Tem certeza que deseja restaurar este backup?'),
+            const SizedBox(height: 8),
+            Text('⚠️ Todos os dados atuais serão substituídos.',
+                style: TextStyle(color: Colors.orange.shade800)),
+            if (stats != null) ...[
+              const SizedBox(height: 12),
+              const Text('Este backup contém:',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('• ${stats['users']} usuários'),
+              Text('• ${stats['prescriptions']} medicamentos'),
+              Text('• ${stats['doseEvents']} eventos'),
+              const SizedBox(height: 8),
+              Text(
+                  'Data do backup: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(stats['backupDate'].toString()))}'),
+            ],
           ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              // Fechar o diálogo PRIMEIRO
+              Navigator.pop(context);
+
+              // Iniciar a restauração de forma SEGURA
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _restoreFromSpecificFile(context, backup, backupProvider);
+              });
+            },
+            child: const Text('Restaurar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+// RESTAURAR DE ARQUIVO ESPECÍFICO
+  Future<void> _restoreFromSpecificFile(BuildContext context,
+      BackupFileInfo backup, BackupProvider backupProvider) async {
+    try {
+      print('🔄 INICIANDO RESTAURAÇÃO DO BACKUP: ${backup.name}');
+
+      // 🔥 CORREÇÃO: Fechar TODOS os modais de forma SEGURA
+      int popCount = 0;
+      while (Navigator.of(context).canPop() && popCount < 3) {
+        Navigator.of(context).pop();
+        popCount++;
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+
+      print('🔧 Modais fechados: $popCount');
+
+      // Aguardar estabilização
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Fazer a restauração
+      await backupProvider.restoreFromSpecificFile(backup.path);
+
+      print('✅ RESTAURAÇÃO CONCLUÍDA - Aguardando navegação...');
+
+      // 🔥 CORREÇÃO: Navegação SUPER SEGURA
+      if (mounted) {
+        // Aguardar mais tempo para garantir estabilidade
+        await Future.delayed(const Duration(milliseconds: 800));
+
+        // Usar Navigator pushAndRemoveUntil de forma mais específica
+        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const MainScreen()),
+          (Route<dynamic> route) => false,
+        );
+
+        print('🎯 Navegação para MainScreen concluída');
+      }
+    } catch (e) {
+      print('❌ ERRO NA RESTAURAÇÃO: $e');
+      if (mounted) {
+        // 🔥 CORREÇÃO: Mostrar erro mas NÃO tentar navegar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Falha na restauração: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 6),
+          ),
+        );
+      }
+    }
+  }
+
+// REINICIAR SILENCIOSAMENTE
+  void _restartAppSilently() {
+    Future.delayed(const Duration(milliseconds: 500), () {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const MainScreen()),
+        (route) => false,
       );
-    },
-  );
-}
+    });
+  }
+
+// TRATAR ERRO DE FORMA SEGURA
+  void _handleRestoreError(String error) {
+    Future.delayed(const Duration(milliseconds: 500), () {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const MainScreen()),
+        (route) => false,
+      );
+
+      // Mostrar erro após a navegação
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ Falha na restauração: $error'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 6),
+            ),
+          );
+        }
+      });
+    });
+  }
+
+// backup_provider.dart - ADICIONE ESTE MÉTODO
+  Future<void> safeRestoreFromFile(String filePath) async {
+    try {
+      // Fazer backup das configurações atuais antes da restauração
+      final prefs = await SharedPreferences.getInstance();
+      final currentTutorialState =
+          prefs.getBool('home_tutorial_concluido') ?? true;
+
+      //await restoreFromSpecificFile(filePath);
+
+      // Se a restauração foi bem-sucedida mas o tutorial foi resetado,
+      // garantir que o estado seja consistente
+      if (!currentTutorialState) {
+        await prefs.setBool('home_tutorial_concluido', false);
+      }
+    } catch (e) {
+      print('❌ Erro no restore seguro: $e');
+      rethrow;
+    }
+  }
+
+// Método para mostrar recomendação de reinicialização
+  void _showRestartRecommendation(BuildContext context) {
+    // Usar WidgetsBinding para garantir que o contexto está estável
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => WillPopScope(
+          onWillPop: () async => false,
+          child: AlertDialog(
+            title: const Text('✅ Restauração Concluída'),
+            content: const Text(
+              'O backup foi restaurado com sucesso!\n\n'
+              'O aplicativo será reiniciado para garantir que todos os dados sejam carregados corretamente.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+
+                  // Aguardar um frame antes de reiniciar
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                          builder: (context) => const MainScreen()),
+                      (route) => false,
+                    );
+                  });
+                },
+                child: const Text('Reiniciar Agora'),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  // MÉTODO _showDeleteConfirmation - CORRIGIDO
+  void _showDeleteConfirmation(BuildContext context, BackupFileInfo backup,
+      BackupProvider backupProvider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Deletar Backup'),
+        content: Text(
+            'Tem certeza que deseja deletar o backup "${_formatBackupName(backup.name)}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                await backupProvider.deleteBackup(backup.path);
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erro ao deletar: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Deletar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _createBackup(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.save, color: Colors.blue),
+                title: const Text('Backup Local'),
+                subtitle: const Text('Salvar backup no dispositivo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _createLocalBackup(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.share, color: Colors.green),
+                title: const Text('Compartilhar Backup'),
+                subtitle: const Text('Salvar e compartilhar arquivo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _createAndShareBackup(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   void _selectBackupFile(BuildContext context) {
-  _restoreFromFile(context); // Agora usa o método real de restauração
-}
+    _restoreFromFile(context); // Agora usa o método real de restauração
+  }
 
 // MÉTODO AUXILIAR PARA MOSTRAR MENSAGENS
   void _showMessage(BuildContext context, String message,
