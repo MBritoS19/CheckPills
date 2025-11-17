@@ -3,6 +3,8 @@ import 'package:CheckPills/presentation/screens/add_medication_screen.dart';
 import 'package:CheckPills/presentation/providers/medication_provider.dart';
 import 'package:CheckPills/presentation/providers/user_settings_provider.dart';
 import 'package:CheckPills/presentation/providers/reports_provider.dart';
+import 'package:CheckPills/presentation/providers/backup_provider.dart';
+import 'package:CheckPills/core/services/backup_service.dart';
 import 'package:CheckPills/presentation/widgets/custom_showcase_tooltip.dart';
 import 'package:CheckPills/presentation/providers/user_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -35,6 +37,13 @@ Future<void> main() async {
 
   runApp(MultiProvider(
     providers: [
+      // 🔥 ADICIONE ESTE PROVIDER PARA O DATABASE
+      Provider<AppDatabase>(
+        create: (context) => database,
+        dispose: (context, db) => db.close(),
+      ),
+      
+      // SEUS PROVIDERS EXISTENTES
       ChangeNotifierProvider(
         create: (context) => UserProvider(database: database),
       ),
@@ -60,7 +69,6 @@ Future<void> main() async {
           userProvider: userProvider,
         ),
       ),
-      // NOVO PROVIDER PARA RELATÓRIOS
       ChangeNotifierProxyProvider<UserProvider, ReportsProvider>(
         create: (context) => ReportsProvider(
           database: database,
@@ -70,6 +78,13 @@ Future<void> main() async {
             ReportsProvider(
           database: database,
           userProvider: userProvider,
+        ),
+      ),
+      
+      // 🔥 PROVIDER DO BACKUP - ATUALIZADO
+      ChangeNotifierProvider(
+        create: (context) => BackupProvider(
+          Provider.of<AppDatabase>(context, listen: false),
         ),
       ),
     ],

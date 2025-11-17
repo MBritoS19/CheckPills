@@ -119,14 +119,12 @@ class AppDatabase extends _$AppDatabase {
   DoseEventsDao get doseEventsDao => DoseEventsDao(this);
 
   Future<void> resetDatabase() async {
-    await transaction(() async {
-      // Ordem IMPORTANTE: primeiro deleta dependências, depois pais
-      await deleteAllDoseEvents();
-      await deleteAllPrescriptions();
-      await deleteAllSettings();
-      await deleteAllUsers();
-    });
-  }
+  // Limpa todas as tabelas na ordem correta
+  await delete(doseEvents).go();
+  await delete(prescriptions).go();
+  await delete(userSettings).go();
+  await delete(users).go();
+}
 
   // Métodos auxiliares para deletar todas as entradas de cada tabela
   Future<int> deleteAllUsers() => delete(users).go();
