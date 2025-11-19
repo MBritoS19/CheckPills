@@ -215,7 +215,7 @@ class NotificationService {
       final tz.TZDateTime tzScheduled =
           tz.TZDateTime.from(scheduledDate, tz.local);
 
-      debugPrint('Agendando notificação id=$id para $tzScheduled (local tz)');
+      //debugPrint('Agendando notificação id=$id para $tzScheduled (local tz)');
 
       await _notificationsPlugin.zonedSchedule(
         id,
@@ -242,7 +242,7 @@ class NotificationService {
         payload: payload,
       );
 
-      debugPrint('✅ Notificação agendada: id=$id payload=$payload');
+      //debugPrint('✅ Notificação agendada: id=$id payload=$payload');
     } catch (e, st) {
       debugPrint('❌ Falha ao agendar notificação: $e\n$st');
       rethrow;

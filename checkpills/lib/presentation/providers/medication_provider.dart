@@ -133,7 +133,8 @@ class MedicationProvider with ChangeNotifier {
 
   Future<void> deletePrescription(int id) async {
     await database.prescriptionsDao.deletePrescription(id);
-    await NotificationService.instance.cancelAllNotificationsForPrescription(id);
+    await NotificationService.instance
+        .cancelAllNotificationsForPrescription(id);
   }
 
   Future<bool> toggleDoseStatus(DoseEventWithPrescription doseData) async {
@@ -271,21 +272,29 @@ class MedicationProvider with ChangeNotifier {
 
     Future<void> scheduleNotificationsForDose(
         int doseId, DateTime scheduledTime) async {
-      // 1. Lembrete Antecipado
+      final now = DateTime.now();
+
+      // Só agenda notificações para o futuro
+      if (scheduledTime.isBefore(now)) return;
+
+      // 1. Lembrete Antecipado - only schedule if in future
       if (prescription.notifyMinutesBefore != null) {
-        await notificationService.scheduleNotification(
-          id: doseId * 10 + 1,
-          title: 'Lembrete: ${prescription.name}',
-          body:
-              'Hora de tomar sua dose de ${prescription.doseDescription} em ${prescription.notifyMinutesBefore} minutos.',
-          scheduledDate: scheduledTime
-              .subtract(Duration(minutes: prescription.notifyMinutesBefore!)),
-          payload: 'PRESCRIPTION_ID:${prescription.id}',
-        );
+        final reminderTime = scheduledTime
+            .subtract(Duration(minutes: prescription.notifyMinutesBefore!));
+        if (reminderTime.isAfter(now)) {
+          await notificationService.scheduleNotification(
+            id: doseId * 10 + 1,
+            title: 'Lembrete: ${prescription.name}',
+            body:
+                'Hora de tomar sua dose de ${prescription.doseDescription} em ${prescription.notifyMinutesBefore} minutos.',
+            scheduledDate: reminderTime,
+            payload: 'PRESCRIPTION_ID:${prescription.id}',
+          );
+        }
       }
 
-      // 2. Lembrete Pontual
-      if (prescription.notifyOnTime) {
+      // 2. Lembrete Pontual - only schedule if in future
+      if (prescription.notifyOnTime && scheduledTime.isAfter(now)) {
         await notificationService.scheduleNotification(
           id: doseId * 10 + 2,
           title: 'Está na hora: ${prescription.name}',
@@ -295,41 +304,60 @@ class MedicationProvider with ChangeNotifier {
         );
       }
 
-      // 3. Lembrete de Atraso
+      // 3. Lembrete de Atraso - only schedule if in future
       if (prescription.notifyAfterMinutes != null) {
-        await notificationService.scheduleNotification(
-          id: doseId * 10 + 3,
-          title: 'Dose Atrasada: ${prescription.name}',
-          body:
-              'Você esqueceu de tomar sua dose de ${prescription.doseDescription} às ${DateFormat('HH:mm').format(scheduledTime)}.',
-          scheduledDate: scheduledTime
-              .add(Duration(minutes: prescription.notifyAfterMinutes!)),
-          payload: 'PRESCRIPTION_ID:${prescription.id}',
-        );
+        final lateReminderTime = scheduledTime
+            .add(Duration(minutes: prescription.notifyAfterMinutes!));
+        if (lateReminderTime.isAfter(now)) {
+          await notificationService.scheduleNotification(
+            id: doseId * 10 + 3,
+            title: 'Dose Atrasada: ${prescription.name}',
+            body:
+                'Você esqueceu de tomar sua dose de ${prescription.doseDescription} às ${DateFormat('HH:mm').format(scheduledTime)}.',
+            scheduledDate: lateReminderTime,
+            payload: 'PRESCRIPTION_ID:${prescription.id}',
+          );
+        }
       }
     }
 
     // Lógica de geração de doses
     if (prescription.intervalValue == 0) {
-      // Dose única
-      final newDoseEvent = DoseEventsCompanion.insert(
-        prescriptionId: prescription.id,
-        scheduledTime: prescription.firstDoseTime,
-        status: const Value(DoseStatus.pendente),
-      );
-      // CORRIGIDO: addDoseEvent agora retorna o objeto completo
-      final newDose = await database.doseEventsDao.addDoseEvent(newDoseEvent);
-      if (prescription.enableNotifications) {
-        await scheduleNotificationsForDose(newDose.id, newDose.scheduledTime);
+      // Dose única - só cria se for hoje ou no futuro
+      final now = DateTime.now();
+      if (prescription.firstDoseTime.isAfter(now) ||
+          _isSameDay(prescription.firstDoseTime, now)) {
+        final newDoseEvent = DoseEventsCompanion.insert(
+          prescriptionId: prescription.id,
+          scheduledTime: prescription.firstDoseTime,
+          status: const Value(DoseStatus.pendente),
+        );
+
+        final newDose = await database.doseEventsDao.addDoseEvent(newDoseEvent);
+        if (prescription.enableNotifications) {
+          await scheduleNotificationsForDose(newDose.id, newDose.scheduledTime);
+        }
       }
       return;
     }
 
+    // PARA MEDICAMENTOS COM INTERVALO: Começar a gerar doses a partir de AGORA
+    DateTime startTime = prescription.firstDoseTime;
+    final now = DateTime.now();
+
+    // Se a primeira dose original já passou, começar a gerar a partir da próxima dose após AGORA
+    if (startTime.isBefore(now)) {
+      // Encontrar a próxima dose após o momento atual
+      while (startTime.isBefore(now)) {
+        startTime = _calculateNextDoseTime(startTime, prescription);
+      }
+    }
+
     final endDate = prescription.isContinuous
-        ? DateTime.now().add(const Duration(days: 365))
+        ? now.add(const Duration(days: 365)) // 1 ano a partir de AGORA
         : _calculateTreatmentEndDate(prescription);
 
-    DateTime nextDoseTime = prescription.firstDoseTime;
+    DateTime nextDoseTime = startTime;
 
     while (nextDoseTime.isBefore(endDate)) {
       final newDoseEvent = DoseEventsCompanion.insert(
@@ -337,7 +365,7 @@ class MedicationProvider with ChangeNotifier {
         scheduledTime: nextDoseTime,
         status: const Value(DoseStatus.pendente),
       );
-      // CORRIGIDO: addDoseEvent agora retorna o objeto completo
+
       final newDose = await database.doseEventsDao.addDoseEvent(newDoseEvent);
       if (prescription.enableNotifications) {
         await scheduleNotificationsForDose(newDose.id, newDose.scheduledTime);
@@ -345,6 +373,13 @@ class MedicationProvider with ChangeNotifier {
 
       nextDoseTime = _calculateNextDoseTime(nextDoseTime, prescription);
     }
+  }
+
+// ADICIONE ESTE MÉTODO AUXILIAR NO FINAL DA CLASSE (antes do dispose):
+  bool _isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
   }
 
   // NOVO MÉTODO AUXILIAR
