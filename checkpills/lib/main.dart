@@ -22,12 +22,14 @@ import 'package:flutter/services.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('pt_BR', null);
-
-  await NotificationService.instance.configureLocalTimezone();
+  
+  // Ordem SIMPLES de inicialização
   await NotificationService.instance.init();
+  await NotificationService.instance.configureLocalTimezone();
   await NotificationService.instance.requestPermissions();
-
+  
+  await initializeDateFormatting('pt_BR', null);
+  
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -341,25 +343,40 @@ class _AppInitializerState extends State<AppInitializer>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed) {
-      debugPrint("App retomado, reconfigurando fuso horário...");
-      NotificationService.instance.configureLocalTimezone();
-    }
+  super.didChangeAppLifecycleState(state);
+  
+  final medicationProvider = Provider.of<MedicationProvider>(context, listen: false);
+  
+  if (state == AppLifecycleState.resumed) {
+    
+    // Reconfigura timezone
+    NotificationService.instance.configureLocalTimezone();
+    
+    // Reinicia verificação periódica
+    medicationProvider.startNotificationChecking();
+    
+    // Verifica medicamentos no horário imediatamente
+    medicationProvider.checkDueMedicationsNow();
+        
+  } else if (state == AppLifecycleState.paused) {
+    
+    // Para a verificação periódica para economizar bateria
+    medicationProvider.stopNotificationChecking();
   }
+}
 
   Future<void> _initializeApp() async {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    await userProvider.initializationDone;
+  final userProvider = Provider.of<UserProvider>(context, listen: false);
+  await userProvider.initializationDone;
 
-    final prefs = await SharedPreferences.getInstance();
-    final bool isCompleted = prefs.getBool('onboarding_concluido') ?? false;
-    if (mounted) {
-      setState(() {
-        _status = isCompleted ? AppStatus.home : AppStatus.onboarding;
-      });
-    }
+  final prefs = await SharedPreferences.getInstance();
+  final bool isCompleted = prefs.getBool('onboarding_concluido') ?? false;
+  if (mounted) {
+    setState(() {
+      _status = isCompleted ? AppStatus.home : AppStatus.onboarding;
+    });
   }
+}
 
   @override
   Widget build(BuildContext context) {

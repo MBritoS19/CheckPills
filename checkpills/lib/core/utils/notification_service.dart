@@ -4,7 +4,6 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
-/// Serviço Singleton para notificações locais.
 class NotificationService {
   NotificationService._internal();
   static final NotificationService _instance = NotificationService._internal();
@@ -19,186 +18,178 @@ class NotificationService {
       'Notificações para lembrar de tomar medicamentos.';
 
   bool _initialized = false;
-  bool get initialized => _initialized;
 
-  /// Inicializa o plugin, registra canais e handlers.
+  /// Inicialização SIMPLES
   Future<void> init() async {
     if (_initialized) return;
 
-    // Android initialization
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    try {
+      // Configuração Android
+      const AndroidInitializationSettings initializationSettingsAndroid =
+          AndroidInitializationSettings('@mipmap/launcher_icon');
 
-    // iOS / macOS initialization (Darwin)
-    const DarwinInitializationSettings initializationSettingsDarwin =
-        DarwinInitializationSettings(
-      requestAlertPermission: false, // vamos pedir manualmente
-      requestBadgePermission: false,
-      requestSoundPermission: false,
-    );
+      // Configuração iOS
+      const DarwinInitializationSettings initializationSettingsDarwin =
+          DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
 
-    // Windows initialization - 'guid' pode ser exigido em algumas versões.
-    const WindowsInitializationSettings initializationSettingsWindows =
-        WindowsInitializationSettings(
-      appName: 'CheckPills',
-      appUserModelId: 'com.example.checkpills',
-      guid: 'e1b80596-c677-4547-ae50-f26399f41e1f',
-    );
+      const InitializationSettings initializationSettings =
+          InitializationSettings(
+        android: initializationSettingsAndroid,
+        iOS: initializationSettingsDarwin,
+        macOS: initializationSettingsDarwin,
+      );
 
-    const InitializationSettings initializationSettings =
-        InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsDarwin,
-      macOS: initializationSettingsDarwin,
-      windows: initializationSettingsWindows,
-    );
+      await _notificationsPlugin.initialize(initializationSettings);
 
-    // Inicializa e registra os callbacks
-    await _notificationsPlugin.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) {
-        debugPrint('Notification clicked/payload: ${response.payload}');
-        // TODO: rotear utilizando GlobalKey<NavigatorState> se precisar abrir tela.
-      },
-      onDidReceiveBackgroundNotificationResponse:
-          notificationTapBackgroundHandler,
-    );
+      // Criar canal Android - VERSÃO SIMPLES
+      await _createSimpleChannel();
 
-    // Cria o canal Android (deve existir antes do agendamento)
-    final androidPlugin =
-        _notificationsPlugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+      _initialized = true;
+      if (kDebugMode) {
+        print('✅ NotificationService initialized successfully');
+      }
+    } catch (e, stack) {
+      if (kDebugMode) {
+        print('❌ Error initializing NotificationService: $e');
+        print('Stack: $stack');
+      }
+    }
+  }
 
-    if (androidPlugin != null) {
-      final channel = const AndroidNotificationChannel(
+  /// Canal SIMPLES - focado em fazer funcionar
+  Future<void> _createSimpleChannel() async {
+    try {
+      final AndroidNotificationChannel channel = AndroidNotificationChannel(
         channelId,
         channelName,
         description: channelDescription,
-        importance: Importance.max,
+        importance: Importance.high,
         playSound: true,
+        enableVibration: true,
+        vibrationPattern: Int64List.fromList([0, 1000, 500, 1000]), // Vibração mais longa
+        sound: const RawResourceAndroidNotificationSound('notification'),
+        showBadge: true,
       );
-      await androidPlugin.createNotificationChannel(channel);
-      debugPrint('✅ Android channel criado: $channelId');
+
+      final androidPlugin = _notificationsPlugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      
+      if (androidPlugin != null) {
+        await androidPlugin.createNotificationChannel(channel);
+        if (kDebugMode) {
+          print('✅ Canal de notificação criado (SIMPLES)');
+        }
+      }
+    } catch (e, stack) {
+      if (kDebugMode) {
+        print('❌ Error creating channel: $e');
+        print('Stack: $stack');
+      }
     }
-
-    _initialized = true;
-    debugPrint('NotificationService initialized');
   }
 
-  /// Handler background (top-level / static)
-  static void notificationTapBackgroundHandler(NotificationResponse response) {
-    debugPrint(
-        'notificationTapBackgroundHandler invoked. payload: ${response.payload}');
-  }
-
-  /// Configura o timezone local usando flutter_timezone corretamente.
-  /// Deve ser chamado **após** init() e **antes** de agendar notificações.
+  /// Configura timezone
   Future<void> configureLocalTimezone() async {
     try {
       tz.initializeTimeZones();
-      final dynamic tzResult = await FlutterTimezone.getLocalTimezone();
-      String timeZoneName;
-
-      // Compatibilidade: flutter_timezone pode retornar String ou um objeto
-      if (tzResult is String) {
-        timeZoneName = tzResult;
-      } else if (tzResult != null) {
-        try {
-          timeZoneName =
-              (tzResult as dynamic).identifier ?? (tzResult as dynamic).name;
-        } catch (_) {
-          timeZoneName = 'Etc/UTC';
-        }
-      } else {
-        timeZoneName = 'Etc/UTC';
-      }
-
-      try {
-        tz.setLocalLocation(tz.getLocation(timeZoneName));
-        debugPrint('🕒 Timezone configurado: $timeZoneName');
-      } catch (e) {
-        debugPrint('⚠️ Timezone $timeZoneName não mapeado: $e');
-        tz.setLocalLocation(tz.getLocation('Etc/UTC'));
-        debugPrint('🕒 Fallback para Etc/UTC aplicado');
+      final timezoneInfo = await FlutterTimezone.getLocalTimezone();
+      final String timeZoneName = timezoneInfo.identifier;
+      tz.setLocalLocation(tz.getLocation(timeZoneName));
+      if (kDebugMode) {
+        print('🕒 Timezone: $timeZoneName');
       }
     } catch (e) {
-      debugPrint('⚠️ Could not configure timezone: $e');
-      tz.initializeTimeZones();
       tz.setLocalLocation(tz.getLocation('Etc/UTC'));
     }
   }
 
-  /// Solicita permissões de notificação (Android 13+, iOS)
-  /// Retorna true se tem permissão (ou aparentemente tem).
+  /// Solicita permissões - MÉTODO ADICIONADO
   Future<bool> requestPermissions() async {
-    bool granted = true;
-
-    // Android
     try {
-      final androidImpl =
-          _notificationsPlugin.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
-      final bool? androidResult =
-          await androidImpl?.requestNotificationsPermission();
-      debugPrint('Android permission request result: $androidResult');
-      if (androidResult == false) granted = false;
-    } catch (e) {
-      debugPrint('Android permission request not available: $e');
-    }
-
-    // iOS / macOS
-    try {
-      final iosImpl =
-          _notificationsPlugin.resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>();
-      final bool? iosResult = await iosImpl?.requestPermissions(
+      // Android 13+
+      final androidPlugin = _notificationsPlugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      final bool? androidGranted = await androidPlugin?.requestNotificationsPermission();
+      
+      // iOS
+      final iosPlugin = _notificationsPlugin.resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin>();
+      final bool? iosGranted = await iosPlugin?.requestPermissions(
         alert: true,
         badge: true,
         sound: true,
       );
-      debugPrint('iOS permission request result: $iosResult');
-      if (iosResult == false) granted = false;
-    } catch (e) {
-      debugPrint('iOS permission request error: $e');
-    }
 
-    debugPrint('Permissions overall granted: $granted');
-    return granted;
+      final bool granted = androidGranted ?? iosGranted ?? false;
+      if (kDebugMode) {
+        print('🔔 Permissions granted: $granted');
+      }
+      return granted;
+    } catch (e) {
+      if (kDebugMode) {
+        print('⚠️ Error requesting permissions: $e');
+      }
+      return false;
+    }
   }
 
-  /// Mostra uma notificação imediata (útil para testes)
+  /// Notificação imediata - VERSÃO SIMPLES
   Future<void> showNotificationNow({
     required int id,
     required String title,
     required String body,
     String? payload,
   }) async {
-    await _notificationsPlugin.show(
-      id,
-      title,
-      body,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          channelId,
-          channelName,
-          channelDescription: channelDescription,
-          importance: Importance.max,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
+    if (!_initialized) await init();
+
+    try {
+      if (kDebugMode) {
+        print('🔔 Mostrando notificação: $title');
+      }
+
+      // Configuração Android SIMPLES
+      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+        'dose_reminders_channel', // channelId
+        'Lembretes de Dose',      // channelName
+        channelDescription: 'Notificações para lembrar de tomar medicamentos.',
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+        timeoutAfter: 30000,
+        autoCancel: true,
+      );
+
+      await _notificationsPlugin.show(
+        id,
+        title,
+        body,
+        const NotificationDetails(
+          android: androidDetails,
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
         ),
-        iOS: const DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      ),
-      payload: payload,
-    );
-    debugPrint('🔔 Notificação imediata mostrada: id=$id payload=$payload');
+        payload: payload,
+      );
+
+      if (kDebugMode) {
+        print('✅ Notificação $id enviada: $title');
+      }
+    } catch (e, stack) {
+      if (kDebugMode) {
+        print('❌ Erro na notificação $id: $e');
+        print('Stack: $stack');
+      }
+    }
   }
 
-  /// Agendamento de notificação (pontual) com timezone (zonedSchedule).
-  /// scheduledDate deve ser DateTime local.
+  /// Agendamento de notificação
   Future<void> scheduleNotification({
     required int id,
     required String title,
@@ -206,69 +197,146 @@ class NotificationService {
     required DateTime scheduledDate,
     String? payload,
   }) async {
-    if (!_initialized) {
-      debugPrint('⚠️ NotificationService not initialized. Calling init() now.');
-      await init();
-    }
+    if (!_initialized) await init();
 
     try {
-      final tz.TZDateTime tzScheduled =
-          tz.TZDateTime.from(scheduledDate, tz.local);
+      final tz.TZDateTime tzScheduled = tz.TZDateTime.from(scheduledDate, tz.local);
 
-      //debugPrint('Agendando notificação id=$id para $tzScheduled (local tz)');
+      if (kDebugMode) {
+        print('🎯 Agendando: "$title" para $tzScheduled');
+      }
+
+      // Configuração Android SIMPLES
+      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+        'dose_reminders_channel',
+        'Lembretes de Dose',
+        channelDescription: 'Notificações para lembrar de tomar medicamentos.',
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+        timeoutAfter: 30000,
+        autoCancel: true,
+      );
 
       await _notificationsPlugin.zonedSchedule(
         id,
         title,
         body,
         tzScheduled,
-        NotificationDetails(
-          android: AndroidNotificationDetails(
-            channelId,
-            channelName,
-            channelDescription: channelDescription,
-            importance: Importance.max,
-            priority: Priority.high,
-            icon: '@mipmap/ic_launcher',
-          ),
-          iOS: const DarwinNotificationDetails(
+        const NotificationDetails(
+          android: androidDetails,
+          iOS: DarwinNotificationDetails(
             presentAlert: true,
             presentBadge: true,
             presentSound: true,
-            interruptionLevel: InterruptionLevel.timeSensitive,
           ),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         payload: payload,
       );
 
-      //debugPrint('✅ Notificação agendada: id=$id payload=$payload');
-    } catch (e, st) {
-      debugPrint('❌ Falha ao agendar notificação: $e\n$st');
-      rethrow;
-    }
-  }
-
-  /// Cancela notificação por id
-  Future<void> cancelNotification(int id) async {
-    await _notificationsPlugin.cancel(id);
-    debugPrint('Notificação cancelada: id=$id');
-  }
-
-  /// Cancela todas as notificações que contenham payload 'PRESCRIPTION_ID:xxx'
-  Future<void> cancelAllNotificationsForPrescription(int prescriptionId) async {
-    final pending = await _notificationsPlugin.pendingNotificationRequests();
-    for (final n in pending) {
-      if (n.payload != null && n.payload == 'PRESCRIPTION_ID:$prescriptionId') {
-        await _notificationsPlugin.cancel(n.id);
-        debugPrint(
-            'Canceled notification ${n.id} for prescription $prescriptionId');
+      if (kDebugMode) {
+        print('✅ Notificação $id agendada');
+      }
+    } catch (e, stack) {
+      if (kDebugMode) {
+        print('❌ Erro ao agendar $id: $e');
+        print('Stack: $stack');
       }
     }
   }
 
-  /// Lista notificações pendentes (útil para debug)
+  /// Cancela notificação
+  Future<void> cancelNotification(int id) async {
+    try {
+      await _notificationsPlugin.cancel(id);
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Erro ao cancelar $id: $e');
+      }
+    }
+  }
+
+  /// Cancela todas as notificações de uma prescrição - MÉTODO ADICIONADO
+  Future<void> cancelAllNotificationsForPrescription(int prescriptionId) async {
+    try {
+      final pending = await _notificationsPlugin.pendingNotificationRequests();
+      
+      for (final notification in pending) {
+        if (notification.payload?.contains('PRESCRIPTION_ID:$prescriptionId') == true) {
+          await _notificationsPlugin.cancel(notification.id);
+          if (kDebugMode) {
+            print('🗑️ Cancelada notificação ${notification.id} para prescrição $prescriptionId');
+          }
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Erro ao cancelar notificações da prescrição $prescriptionId: $e');
+      }
+    }
+  }
+
+  /// Obtém notificações pendentes
   Future<List<PendingNotificationRequest>> getPendingNotifications() async {
-    return await _notificationsPlugin.pendingNotificationRequests();
+    try {
+      return await _notificationsPlugin.pendingNotificationRequests();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Debug: lista notificações pendentes - MÉTODO ADICIONADO
+  Future<void> debugNotificationStatus() async {
+    try {
+      final pending = await getPendingNotifications();
+      if (kDebugMode) {
+        print('📋 Notificações pendentes: ${pending.length}');
+        
+        for (final notification in pending) {
+          print('   - ID: ${notification.id}');
+          print('     Title: ${notification.title}');
+          print('     Body: ${notification.body}');
+          print('     Payload: ${notification.payload}');
+          print('     ---');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Erro no debug: $e');
+      }
+    }
+  }
+
+  /// Diagnóstico completo
+  Future<void> debugNotificationSystem() async {
+    if (kDebugMode) {
+      print('\n🔍 ===== DIAGNÓSTICO DO SISTEMA =====');
+      print('1. ✅ Inicializado: $_initialized');
+      
+      // Verificar permissões
+      try {
+        final androidPlugin = _notificationsPlugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+        final bool? androidGranted = await androidPlugin?.areNotificationsEnabled();
+        print('2. 🔔 Notificações habilitadas: $androidGranted');
+      } catch (e) {
+        print('2. ❌ Erro nas permissões: $e');
+      }
+      
+      // Verificar notificações pendentes
+      final pending = await getPendingNotifications();
+      print('3. 📋 Notificações pendentes: ${pending.length}');
+      
+      // Verificar timezone
+      try {
+        final now = tz.TZDateTime.now(tz.local);
+        print('4. 🕒 Hora atual: $now');
+      } catch (e) {
+        print('4. ❌ Erro no timezone: $e');
+      }
+      
+      print('🔍 ===== FIM DO DIAGNÓSTICO =====\n');
+    }
   }
 }

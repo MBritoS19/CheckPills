@@ -15,6 +15,9 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:showcaseview/showcaseview.dart';
 
+//Retirar
+import 'package:CheckPills/core/utils/notification_service.dart';
+
 class HomeScreen extends StatefulWidget {
   final GlobalKey fabKey;
   final GlobalKey profileKey;
@@ -49,7 +52,7 @@ class HomeScreenState extends State<HomeScreen> {
       _updateSelectedDate(DateTime.now());
     });
   }
-
+  
   void hideTutorialPlaceholder() {
     if (mounted && _showTutorialPlaceholder) {
       setState(() {

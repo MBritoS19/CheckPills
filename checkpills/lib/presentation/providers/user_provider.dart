@@ -100,7 +100,6 @@ class UserProvider with ChangeNotifier {
 
   Future<void> resetApp() async {
     try {
-      debugPrint('Iniciando reset do aplicativo...');
 
       // 1. Cancela todas as notificações
       final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -109,16 +108,13 @@ class UserProvider with ChangeNotifier {
 
       // 2. Limpa o banco de dados
       await database.resetDatabase();
-      debugPrint('Banco de dados limpo');
 
       // 3. Limpa o SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
-      debugPrint('SharedPreferences limpo');
 
-      debugPrint('Reset do aplicativo concluído com sucesso');
     } catch (e) {
-      debugPrint('Erro ao resetar app: $e');
+      ////debugPrint('Erro ao resetar app: $e');
       rethrow;
     }
   }
@@ -128,9 +124,8 @@ class UserProvider with ChangeNotifier {
       final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
           FlutterLocalNotificationsPlugin();
       await flutterLocalNotificationsPlugin.cancelAll();
-      debugPrint('Todas as notificações canceladas diretamente');
     } catch (e) {
-      debugPrint('Erro ao cancelar notificações: $e');
+      ////debugPrint('Erro ao cancelar notificações: $e');
     }
   }
 }

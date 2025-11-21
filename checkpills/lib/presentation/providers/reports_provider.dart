@@ -42,7 +42,7 @@ class ReportsProvider with ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      debugPrint('Erro ao carregar prescrições: $e');
+      ////debugPrint('Erro ao carregar prescrições: $e');
     }
   }
 
@@ -64,7 +64,7 @@ class ReportsProvider with ChangeNotifier {
       // Ouvir mudanças nos dados do usuário ativo
       _listenToUserDoseEvents();
     } catch (e) {
-      debugPrint('Erro ao carregar eventos de dose: $e');
+      ////debugPrint('Erro ao carregar eventos de dose: $e');
     }
   }
 
@@ -98,7 +98,7 @@ class ReportsProvider with ChangeNotifier {
       subscription.cancel();
       return events;
     } catch (e) {
-      debugPrint('Erro ao carregar eventos para usuário $userId: $e');
+      ////debugPrint('Erro ao carregar eventos para usuário $userId: $e');
       return [];
     }
   }
