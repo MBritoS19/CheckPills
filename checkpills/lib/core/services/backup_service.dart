@@ -120,38 +120,126 @@ class BackupService {
     }
   }
 
-  // Exportar backup para arquivo JSON
+  Future<Directory> getBackupDirectory() async {
+  try {
+    print('🔄 OBTENDO DIRETÓRIO DE BACKUP PERSISTENTE...');
+    
+    Directory directory;
+    
+    if (Platform.isAndroid) {
+      // 🔥 CORREÇÃO: Usar Environment.DIRECTORY_DOWNLOADS (Downloads público)
+      // Isso sobrevive à limpeza de dados do app
+      if (await _canAccessPublicDownloads()) {
+        // Tenta acessar Downloads público
+        directory = await _getPublicDownloadsDirectory();
+      } else {
+        // Fallback para o diretório atual (que funciona sem permissões)
+        directory = await getApplicationDocumentsDirectory();
+      }
+    } else {
+      // Para iOS e outras plataformas
+      directory = await getApplicationDocumentsDirectory();
+    }
+    
+    // Cria subpasta específica para backups
+    final backupDir = Directory('${directory.path}/CheckPills/Backups');
+    if (!await backupDir.exists()) {
+      await backupDir.create(recursive: true);
+      print('✅ Diretório de backups criado: ${backupDir.path}');
+    }
+    
+    print('📁 Diretório FINAL: ${backupDir.path}');
+    print('📁 É persistente?: ${!backupDir.path.contains("/Android/data/")}');
+    
+    return backupDir;
+  } catch (e) {
+    print('❌ Erro ao obter diretório de backup: $e');
+    // Fallback absoluto
+    final directory = await getApplicationDocumentsDirectory();
+    return Directory('${directory.path}/Backups');
+  }
+}
+
+// 🔥 NOVO: Verificar se podemos acessar Downloads público
+Future<bool> _canAccessPublicDownloads() async {
+  try {
+    if (Platform.isAndroid) {
+      final status = await Permission.manageExternalStorage.request();
+      return status.isGranted;
+    }
+    return false;
+  } catch (e) {
+    return false;
+  }
+}
+
+// 🔥 NOVO: Obter Downloads público
+Future<Directory> _getPublicDownloadsDirectory() async {
+  try {
+    // No Android, o diretório de Downloads público
+    final downloadsDir = Directory('/storage/emulated/0/Download');
+    
+    if (await downloadsDir.exists()) {
+      return downloadsDir;
+    }
+    
+    // Fallback para o diretório padrão
+    return await getApplicationDocumentsDirectory();
+  } catch (e) {
+    print('❌ Erro ao acessar Downloads público: $e');
+    return await getApplicationDocumentsDirectory();
+  }
+}
+
+  Future<bool> _requestStoragePermissions() async {
+  if (Platform.isAndroid) {
+    try {
+      print('🔐 SOLICITANDO PERMISSÕES...');
+      
+      // Verifica permissão atual
+      var status = await Permission.storage.status;
+      print('📋 Status da permissão storage: $status');
+      
+      // Solicita permissão
+      status = await Permission.storage.request();
+      print('📋 Nova status da permissão: $status');
+      
+      return status.isGranted;
+    } catch (e) {
+      print('❌ Erro nas permissões: $e');
+      return false;
+    }
+  }
+  return true;
+}
+
+  // 🔥 ATUALIZADO: Exportar backup para diretório persistente
   Future<File> exportBackupToFile() async {
     try {
       print('💾 EXPORTANDO BACKUP PARA ARQUIVO...');
 
-      // Verificar permissões para Android 13+
-      if (Platform.isAndroid) {
-        final status = await Permission.manageExternalStorage.request();
-        if (!status.isGranted) {
-          print(
-              '⚠️  Permissão de armazenamento não concedida, tentando continuar...');
-        }
-      }
+      // Solicitar permissões
+      await _requestStoragePermissions();
 
       final backupData = await createBackup();
       final jsonString = jsonEncode(backupData.toJson());
 
       print('📝 JSON gerado (${jsonString.length} caracteres)');
 
-      final directory = await getApplicationDocumentsDirectory();
+      // Usar diretório de backups persistente
+      final backupDir = await getBackupDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = 'checkpills_backup_$timestamp.json';
-      final filePath = '${directory.path}/$fileName';
+      final filePath = '${backupDir.path}/$fileName';
       final file = File(filePath);
 
-      await file.writeAsString(jsonString);
+      await file.writeAsString(jsonString, flush: true);
 
       // Verificar se o arquivo foi realmente criado
       final exists = await file.exists();
       final size = await file.length();
 
-      print('✅ ARQUIVO SALVO: $filePath');
+      print('✅ ARQUIVO SALVO EM LOCAL PERSISTENTE: $filePath');
       print('📁 Existe: $exists, Tamanho: $size bytes');
 
       if (!exists || size == 0) {
@@ -189,50 +277,99 @@ class BackupService {
 
   Future<List<BackupFileInfo>> getExistingBackups() async {
     try {
-      final directory = await getApplicationDocumentsDirectory();
-      final dir = Directory(directory.path);
-
-      if (!await dir.exists()) {
+      final backupDir = await getBackupDirectory();
+      
+      print('🔍 Procurando backups em: ${backupDir.path}');
+      
+      if (!await backupDir.exists()) {
+        print('📁 Diretório de backups não existe');
         return [];
       }
 
-      final files = await dir.list().toList();
+      final files = await backupDir.list().toList();
       final backupFiles = <BackupFileInfo>[];
 
       for (final file in files) {
-        if (file is File &&
-            file.path.endsWith('.json') &&
-            file.path.contains('checkpills_backup_')) {
-          final stat = await file.stat();
-          final content = await file.readAsString();
-          Map<String, dynamic>? backupData;
-
+        if (file is File && file.path.endsWith('.json')) {
           try {
-            backupData = jsonDecode(content);
+            final stat = await file.stat();
+            final content = await file.readAsString();
+            final backupData = jsonDecode(content);
+
+            // Verificar se é um backup válido do CheckPills
+            if (backupData.containsKey('backupDate') && 
+                backupData.containsKey('appVersion')) {
+              
+              backupFiles.add(BackupFileInfo(
+                file: file,
+                name: file.path.split('/').last,
+                path: file.path,
+                size: stat.size,
+                modified: stat.modified,
+                backupData: backupData,
+              ));
+              
+              print('📦 Backup encontrado: ${file.path.split('/').last}');
+            }
           } catch (e) {
-            print('❌ Arquivo de backup corrompido: ${file.path}');
+            print('❌ Arquivo de backup corrompido: ${file.path} - $e');
             continue;
           }
-
-          backupFiles.add(BackupFileInfo(
-            file: file,
-            name: file.path.split('/').last,
-            path: file.path,
-            size: stat.size,
-            modified: stat.modified,
-            backupData: backupData,
-          ));
         }
       }
 
       // Ordenar por data (mais recente primeiro)
       backupFiles.sort((a, b) => b.modified.compareTo(a.modified));
 
-      print('📁 Backups encontrados: ${backupFiles.length}');
+      print('📁 Backups encontrados no diretório persistente: ${backupFiles.length}');
       return backupFiles;
     } catch (e) {
       print('❌ Erro ao listar backups: $e');
       return [];
+    }
+  }
+
+  // 🔥 NOVO: Método para migrar backups antigos para o novo diretório
+  Future<void> migrateOldBackups() async {
+    try {
+      final oldDirectory = await getApplicationDocumentsDirectory();
+      final newDirectory = await getBackupDirectory();
+
+      final oldDir = Directory(oldDirectory.path);
+      
+      if (!await oldDir.exists()) {
+        return;
+      }
+
+      final files = await oldDir.list().toList();
+      int migratedCount = 0;
+
+      for (final file in files) {
+        if (file is File && 
+            file.path.endsWith('.json') && 
+            file.path.contains('checkpills_backup_')) {
+          
+          final fileName = file.path.split('/').last;
+          final newPath = '${newDirectory.path}/$fileName';
+          
+          // Verificar se já existe no novo diretório
+          final newFile = File(newPath);
+          if (!await newFile.exists()) {
+            // Copiar arquivo para novo diretório
+            await file.copy(newPath);
+            migratedCount++;
+            print('📦 Backup migrado: $fileName');
+          }
+        }
+      }
+
+      if (migratedCount > 0) {
+        print('✅ $migratedCount backups migrados para diretório persistente');
+      } else {
+        print('ℹ️  Nenhum backup antigo para migrar');
+      }
+    } catch (e) {
+      print('⚠️ Erro na migração de backups: $e');
     }
   }
 
@@ -453,6 +590,37 @@ class BackupService {
       rethrow;
     }
   }
+
+  Future<void> debugBackupDirectory() async {
+  try {
+    print('🔍 DIAGNÓSTICO INICIADO');
+    
+    // Teste 1: Diretório de documentos do app
+    final appDocDir = await getApplicationDocumentsDirectory();
+    print('📁 App Documents: ${appDocDir.path}');
+    
+    // Teste 2: Diretório de downloads
+    final downloadsDir = await getDownloadsDirectory();
+    print('📁 Downloads: ${downloadsDir?.path ?? "NULL"}');
+    
+    // Teste 3: Nosso diretório de backups
+    final backupDir = await getBackupDirectory();
+    print('📁 Backup Directory: ${backupDir.path}');
+    
+    // Teste 4: Listar arquivos existentes
+    final files = await backupDir.list().toList();
+    print('📊 Arquivos no diretório: ${files.length}');
+    
+    for (final file in files) {
+      if (file is File) {
+        print('   📄 ${file.path.split('/').last}');
+      }
+    }
+    
+  } catch (e) {
+    print('❌ ERRO NO DIAGNÓSTICO: $e');
+  }
+}
 }
 
 class BackupFileInfo {

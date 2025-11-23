@@ -11,6 +11,8 @@ class BackupProvider with ChangeNotifier {
   bool _isRestoring = false;
   String? _lastError;
 
+  bool _isLoading = false;
+
   List<BackupFileInfo> get backups => _backups;
   bool get isBackingUp => _isBackingUp;
   bool get isRestoring => _isRestoring;
@@ -19,6 +21,44 @@ class BackupProvider with ChangeNotifier {
   BackupProvider(AppDatabase database)
       : _backupService = BackupService(database) {
     _loadBackups();
+  }
+
+  Future<void> initialize() async {
+  try {
+    print('🔄 Inicializando BackupProvider...');
+    
+    // 🔥 CORREÇÃO: Remover a linha que causa erro
+    // await debugBackupDirectory(); // ⚠️ REMOVA ESTA LINHA
+    
+    // 🔥 CORREÇÃO: Fazer diagnóstico através do BackupService
+    await _backupService.debugBackupDirectory();
+    
+    await loadExistingBackups();
+    print('✅ BackupProvider inicializado com sucesso');
+  } catch (e) {
+    print('❌ Erro na inicialização do BackupProvider: $e');
+    _lastError = 'Erro na inicialização: $e';
+    notifyListeners();
+  }
+}
+
+  Future<void> loadExistingBackups() async {
+    try {
+      _isLoading = true; // 🔥 AGORA ESTÁ DEFINIDO
+      notifyListeners();
+
+      final backups = await _backupService.getExistingBackups();
+      _backups = backups;
+      
+      _isLoading = false; // 🔥 AGORA ESTÁ DEFINIDO
+      _lastError = null;
+      notifyListeners();
+    } catch (e) {
+      _isLoading = false; // 🔥 AGORA ESTÁ DEFINIDO
+      _lastError = 'Erro ao carregar backups: $e';
+      notifyListeners();
+      rethrow;
+    }
   }
 
   Future<void> _loadBackups() async {
@@ -45,19 +85,21 @@ class BackupProvider with ChangeNotifier {
   }
 
   Future<void> createLocalBackup() async {
-    _isBackingUp = true;
-    _lastError = null;
-    notifyListeners();
-
     try {
+      _isBackingUp = true;
+      _lastError = null;
+      notifyListeners();
+
       await _backupService.exportBackupToFile();
-      await _loadBackups();
-    } catch (e) {
-      _lastError = 'Falha no backup local: $e';
-      rethrow;
-    } finally {
+      await loadExistingBackups(); // Recarregar lista após criar backup
+      
       _isBackingUp = false;
       notifyListeners();
+    } catch (e) {
+      _isBackingUp = false;
+      _lastError = 'Erro ao criar backup: $e';
+      notifyListeners();
+      rethrow;
     }
   }
 

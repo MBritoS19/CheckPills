@@ -366,17 +366,46 @@ class _AppInitializerState extends State<AppInitializer>
 }
 
   Future<void> _initializeApp() async {
-  final userProvider = Provider.of<UserProvider>(context, listen: false);
-  await userProvider.initializationDone;
+    try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      
+      // Aguarde a inicialização do UserProvider
+      await userProvider.initializationDone;
+      print('✅ UserProvider inicializado');
 
-  final prefs = await SharedPreferences.getInstance();
-  final bool isCompleted = prefs.getBool('onboarding_concluido') ?? false;
-  if (mounted) {
-    setState(() {
-      _status = isCompleted ? AppStatus.home : AppStatus.onboarding;
+      // Inicialize o BackupProvider (não bloqueante)
+      _initializeBackupProvider();
+
+      final prefs = await SharedPreferences.getInstance();
+      final bool isCompleted = prefs.getBool('onboarding_concluido') ?? false;
+      
+      if (mounted) {
+        setState(() {
+          _status = isCompleted ? AppStatus.home : AppStatus.onboarding;
+        });
+      }
+    } catch (e) {
+      print('❌ Erro na inicialização do app: $e');
+      if (mounted) {
+        setState(() {
+          _status = AppStatus.home; // Fallback para home
+        });
+      }
+    }
+  }
+
+  // Inicialização não bloqueante do BackupProvider
+  void _initializeBackupProvider() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        final backupProvider = Provider.of<BackupProvider>(context, listen: false);
+        await backupProvider.initialize();
+        print('✅ BackupProvider inicializado com sucesso');
+      } catch (e) {
+        print('⚠️ BackupProvider não pôde ser inicializado: $e');
+      }
     });
   }
-}
 
   @override
   Widget build(BuildContext context) {
