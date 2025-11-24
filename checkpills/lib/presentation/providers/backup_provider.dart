@@ -122,47 +122,28 @@ class BackupProvider with ChangeNotifier {
 
   // 🔥 MÉTODO QUE ESTAVA FALTANDO - ADICIONAR ESTE
   Future<void> restoreFromSpecificFile(String filePath) async {
+  try {
     _isRestoring = true;
     _lastError = null;
     notifyListeners();
 
-    try {
-      print('🔄 INICIANDO RESTAURAÇÃO SEGURA...');
-
-      // 🔥 CORREÇÃO CRÍTICA: Salvar estado ANTES de qualquer operação
-      final prefs = await SharedPreferences.getInstance();
-      final bool wasTutorialCompleted =
-          prefs.getBool('home_tutorial_concluido') ?? true;
-      final bool wasOnboardingCompleted =
-          prefs.getBool('onboarding_concluido') ?? true;
-
-      print('💾 Estado pré-restauração:');
-      print('   - Tutorial concluído: $wasTutorialCompleted');
-      print('   - Onboarding concluído: $wasOnboardingCompleted');
-
-      // 🔥 CORREÇÃO: Fazer a restauração dos dados do banco
-      await _backupService.restoreFromSpecificFile(filePath);
-
-      // 🔥 CORREÇÃO: RESTAURAR ESTADO IMEDIATAMENTE após o restore
-      await prefs.setBool('home_tutorial_concluido', wasTutorialCompleted);
-      await prefs.setBool('onboarding_concluido', wasOnboardingCompleted);
-
-      // 🔥 CORREÇÃO: NÃO limpar estado do ShowcaseView - isso causa o erro
-      print('🔧 Estado do ShowcaseView PRESERVADO');
-
-      // Recarregar lista de backups
-      await _loadBackups();
-
-      print('✅ RESTAURAÇÃO CONCLUÍDA COM SUCESSO');
-    } catch (e) {
-      _lastError = 'Falha na restauração: $e';
-      print('❌ ERRO NA RESTAURAÇÃO: $e');
-      rethrow;
-    } finally {
-      _isRestoring = false;
-      notifyListeners();
-    }
+    print('🔄 Restaurando backup de: $filePath');
+    
+    // 🔥 Isso deve chamar o método do BackupService
+    await _backupService.restoreFromSpecificFile(filePath);
+    
+    _isRestoring = false;
+    notifyListeners();
+    
+    print('✅ Restauração concluída com sucesso');
+  } catch (e) {
+    _isRestoring = false;
+    _lastError = 'Erro ao restaurar backup: $e';
+    notifyListeners();
+    print('❌ Erro na restauração: $e');
+    rethrow;
   }
+}
 
   void clearError() {
     _lastError = null;

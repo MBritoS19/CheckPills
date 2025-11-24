@@ -557,39 +557,30 @@ Future<Directory> _getPublicDownloadsDirectory() async {
   }
 
   Future<void> restoreFromSpecificFile(String filePath) async {
-    try {
-      print('🔄 INICIANDO RESTAURAÇÃO DE ARQUIVO ESPECÍFICO...');
-      print('📁 Arquivo: $filePath');
+  try {
+    print('🔄 INICIANDO RESTAURAÇÃO DE ARQUIVO ESPECÍFICO...');
+    print('📁 Arquivo: $filePath');
 
-      final file = File(filePath);
+    final file = File(filePath);
 
-      // Verificar se o arquivo existe
-      if (!await file.exists()) {
-        throw Exception('Arquivo de backup não encontrado: $filePath');
-      }
-
-      // Ler e validar o arquivo
-      final jsonString = await file.readAsString();
-      print('📝 Conteúdo do arquivo: ${jsonString.length} caracteres');
-
-      final backupData = BackupData.fromJson(jsonDecode(jsonString));
-      print(
-          '✅ Backup carregado: ${backupData.users.length} usuários, ${backupData.prescriptions.length} prescrições');
-
-      // Verificar integridade
-      if (!await verifyBackupIntegrity(backupData)) {
-        throw Exception('Arquivo de backup corrompido ou inválido');
-      }
-
-      // Executar restauração
-      await _restoreBackup(backupData);
-
-      print('✅ RESTAURAÇÃO CONCLUÍDA COM SUCESSO!');
-    } catch (e) {
-      print('❌ ERRO NA RESTAURAÇÃO: $e');
-      rethrow;
+    if (!await file.exists()) {
+      throw Exception('Arquivo de backup não encontrado: $filePath');
     }
+
+    final jsonString = await file.readAsString();
+    final backupData = BackupData.fromJson(jsonDecode(jsonString));
+
+    if (!await verifyBackupIntegrity(backupData)) {
+      throw Exception('Arquivo de backup corrompido ou inválido');
+    }
+
+    await _restoreBackup(backupData);
+    print('✅ RESTAURAÇÃO CONCLUÍDA COM SUCESSO!');
+  } catch (e) {
+    print('❌ ERRO NA RESTAURAÇÃO: $e');
+    rethrow;
   }
+}
 
   Future<void> debugBackupDirectory() async {
   try {

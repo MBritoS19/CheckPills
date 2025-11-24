@@ -145,8 +145,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  final GlobalKey<HomeScreenState> _homeScreenKey =
-      GlobalKey<HomeScreenState>();
+  final GlobalKey<HomeScreenState> _homeScreenKey = GlobalKey<HomeScreenState>();
   int _selectedIndex = 0;
   final GlobalKey _fabKey = GlobalKey();
   final GlobalKey _profileKey = GlobalKey();
@@ -155,6 +154,9 @@ class _MainScreenState extends State<MainScreen> {
   final GlobalKey _doseCardKey = GlobalKey();
   final GlobalKey _homeKey = GlobalKey();
   final GlobalKey _settingsKey = GlobalKey();
+
+  // 🔥 NOVO: Controla a visibilidade do FAB
+  bool _showFab = true;
 
   @override
   void initState() {
@@ -173,6 +175,8 @@ class _MainScreenState extends State<MainScreen> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      // 🔥 NOVO: Mostra FAB apenas na tela inicial (índice 0)
+      _showFab = index == 0;
     });
   }
 
@@ -196,17 +200,6 @@ class _MainScreenState extends State<MainScreen> {
       const ConfigurationScreen(),
     ];
 
-    screens[0] = HomeScreen(
-      key: _homeScreenKey,
-      fabKey: _fabKey,
-      profileKey: _profileKey,
-      calendarKey: _calendarKey,
-      weekNavKey: _weekNavKey,
-      doseCardKey: _doseCardKey,
-      onTutorialFinish: () =>
-          _homeScreenKey.currentState?.hideTutorialPlaceholder(),
-    );
-
     return TutorialController(
       showcaseKeys: [
         _profileKey,
@@ -222,39 +215,41 @@ class _MainScreenState extends State<MainScreen> {
           index: _selectedIndex,
           children: screens,
         ),
-        floatingActionButton: Showcase.withWidget(
-          key: _fabKey,
-          targetBorderRadius: BorderRadius.circular(16),
-          container: CustomShowcaseTooltip(
-            description:
-                'Use este botão a qualquer momento para adicionar um novo medicamento.',
-            onTutorialFinish: () =>
-                _homeScreenKey.currentState?.hideTutorialPlaceholder(),
-          ),
-          child: SizedBox(
-            height: screenWidth * 0.18,
-            width: screenWidth * 0.18,
-            child: FloatingActionButton(
-              shape: const CircleBorder(),
-              child: Icon(Icons.add, size: screenWidth * 0.1),
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(20.0)),
+        floatingActionButton: _selectedIndex == 0 
+            ? Showcase.withWidget(
+                key: _fabKey,
+                targetBorderRadius: BorderRadius.circular(16),
+                container: CustomShowcaseTooltip(
+                  description:
+                      'Use este botão a qualquer momento para adicionar um novo medicamento.',
+                  onTutorialFinish: () =>
+                      _homeScreenKey.currentState?.hideTutorialPlaceholder(),
+                ),
+                child: SizedBox(
+                  height: screenWidth * 0.18,
+                  width: screenWidth * 0.18,
+                  child: FloatingActionButton(
+                    shape: const CircleBorder(),
+                    child: Icon(Icons.add, size: screenWidth * 0.1),
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(20.0)),
+                        ),
+                        useSafeArea: true,
+                        builder: (BuildContext context) {
+                          return const AddMedicationScreen(
+                              key: ValueKey('add_new_medication'));
+                        },
+                      );
+                    },
                   ),
-                  useSafeArea: true,
-                  builder: (BuildContext context) {
-                    return const AddMedicationScreen(
-                        key: ValueKey('add_new_medication'));
-                  },
-                );
-              },
-            ),
-          ),
-        ),
+                ),
+              )
+            : null,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
         bottomNavigationBar: BottomAppBar(
           shape: const CircularNotchedRectangle(),

@@ -904,7 +904,6 @@ class HomeScreenState extends State<HomeScreen> {
               },
             ),
           ),
-          Divider(color: colorScheme.secondary, height: 1, thickness: 1),
         ],
       ),
     );

@@ -650,7 +650,7 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
         ),
         child: Column(
           children: [
-            // CABEÇALHO (existente)
+            // CABEÇALHO (mantido igual)
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -672,17 +672,17 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
 
             const Divider(height: 1),
 
-            // 🔥 NOVO: SEÇÃO DE INFORMAÇÕES
+            // 🔥 NOVO: SEÇÃO DE INFORMAÇÕES (APENAS ADICIONADA, NÃO SUBSTITUI)
             _buildBackupInfoSection(context),
 
-            // CONTEÚDO COM SCROLL
+            // CONTEÚDO COM SCROLL (MANTIDO ORIGINAL)
             Expanded(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // SEÇÃO: BACKUPS LOCAIS
+                    // ✅ SEÇÃO: BACKUPS LOCAIS (ORIGINAL - MANTIDA)
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: _buildLocalBackupsSection(context),
@@ -692,7 +692,7 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
               ),
             ),
 
-            // BOTÕES NA PARTE DE BAIXO
+            // ✅ BOTÕES NA PARTE DE BAIXO (ORIGINAL - MANTIDO)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -1255,25 +1255,78 @@ Widget _buildStepItem(String number, String text) {
         ),
         child: Icon(Icons.backup, color: Colors.green.shade600, size: 20),
       ),
-      title: Row(
+      title: Text(
+        _formatBackupName(backup.name),
+        style: const TextStyle(fontWeight: FontWeight.w500),
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Text(
-              _formatBackupName(backup.name),
-              style: const TextStyle(fontWeight: FontWeight.w500),
-              overflow: TextOverflow.ellipsis,
+          Text('${backup.formattedDate} • ${backup.formattedSize}'),
+          if (stats != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              '${stats['users']} usuários • ${stats['prescriptions']} medicações • ${stats['doseEvents']} eventos',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey.shade600,
+              ),
             ),
-          ),
-          // 🔥 NOVO: Ícone informativo
-          IconButton(
-            icon: Icon(Icons.info_outline, size: 16, color: Colors.grey.shade600),
-            onPressed: () => _showBackupLocationInfo(context, backup),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-          ),
+          ],
         ],
       ),
-      // ... resto do método existente
+      trailing: PopupMenuButton<String>(
+        icon: const Icon(Icons.more_vert),
+        itemBuilder: (context) => [
+          const PopupMenuItem(
+            value: 'restore',
+            child: Row(
+              children: [
+                Icon(Icons.restore, size: 20),
+                SizedBox(width: 8),
+                Text('Restaurar'),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
+            value: 'share',
+            child: Row(
+              children: [
+                Icon(Icons.share, size: 20),
+                SizedBox(width: 8),
+                Text('Compartilhar'),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
+            value: 'info',
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 20),
+                SizedBox(width: 8),
+                Text('Informações'),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
+            value: 'delete',
+            child: Row(
+              children: [
+                Icon(Icons.delete, size: 20, color: Colors.red),
+                SizedBox(width: 8),
+                Text('Deletar', style: TextStyle(color: Colors.red)),
+              ],
+            ),
+          ),
+        ],
+        onSelected: (value) {
+          _handleBackupAction(context, value, backup);
+        },
+      ),
+      onTap: () {
+        _showBackupInfo(context, backup);
+      },
     ),
   );
 }
@@ -1593,57 +1646,49 @@ void _showBackupLocationInfo(BuildContext context, BackupFileInfo backup) {
     );
   }
 
-// RESTAURAR DE ARQUIVO ESPECÍFICO
-  Future<void> _restoreFromSpecificFile(BuildContext context,
-      BackupFileInfo backup, BackupProvider backupProvider) async {
-    try {
-      print('🔄 INICIANDO RESTAURAÇÃO DO BACKUP: ${backup.name}');
+  // configuration_screen.dart - SOLUÇÃO SIMPLES E FUNCIONAL
 
-      // 🔥 CORREÇÃO: Fechar TODOS os modais de forma SEGURA
-      int popCount = 0;
-      while (Navigator.of(context).canPop() && popCount < 3) {
-        Navigator.of(context).pop();
-        popCount++;
-        await Future.delayed(const Duration(milliseconds: 100));
-      }
+Future<void> _restoreFromSpecificFile(BuildContext context, 
+    BackupFileInfo backup, BackupProvider backupProvider) async {
+  
+  try {
+    print('🔄 INICIANDO RESTAURAÇÃO DO BACKUP: ${backup.name}');
 
-      print('🔧 Modais fechados: $popCount');
+    // 1. Fechar todos os modais IMEDIATAMENTE
+    Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
 
-      // Aguardar estabilização
-      await Future.delayed(const Duration(milliseconds: 500));
+    // 2. Aguardar um pouco
+    await Future.delayed(const Duration(milliseconds: 300));
 
-      // Fazer a restauração
-      await backupProvider.restoreFromSpecificFile(backup.path);
+    // 3. Fazer a restauração
+    await backupProvider.restoreFromSpecificFile(backup.path);
 
-      print('✅ RESTAURAÇÃO CONCLUÍDA - Aguardando navegação...');
+    print('✅ RESTAURAÇÃO CONCLUÍDA');
 
-      // 🔥 CORREÇÃO: Navegação SUPER SEGURA
-      if (mounted) {
-        // Aguardar mais tempo para garantir estabilidade
-        await Future.delayed(const Duration(milliseconds: 800));
+    // 4. Navegar SEM tentar mostrar mensagem (mais seguro)
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const MainScreen()),
+      (Route<dynamic> route) => false,
+    );
 
-        // Usar Navigator pushAndRemoveUntil de forma mais específica
-        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const MainScreen()),
-          (Route<dynamic> route) => false,
-        );
+    // 5. O MainScreen pode mostrar uma mensagem de boas-vindas
+    // indicando que os dados foram restaurados
 
-        print('🎯 Navegação para MainScreen concluída');
-      }
-    } catch (e) {
-      print('❌ ERRO NA RESTAURAÇÃO: $e');
-      if (mounted) {
-        // 🔥 CORREÇÃO: Mostrar erro mas NÃO tentar navegar
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Falha na restauração: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 6),
-          ),
-        );
-      }
+  } catch (e) {
+    print('❌ ERRO NA RESTAURAÇÃO: $e');
+    
+    // 6. Mostrar erro apenas se ainda estivermos nesta tela
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Falha na restauração: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 6),
+        ),
+      );
     }
   }
+}
 
 // REINICIAR SILENCIOSAMENTE
   void _restartAppSilently() {
