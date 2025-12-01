@@ -51,9 +51,9 @@ class NotificationScheduler {
       }
 
     } catch (e) {
-      if (kDebugMode) {
+      /*if (kDebugMode) {
         print('❌ Erro ao agendar notificações: $e');
-      }
+      }*/
     }
   }
 
@@ -180,17 +180,12 @@ String _getStockUnit(String doseDescription) {
         payload: 'PRESCRIPTION_ID:$prescriptionId:DOSE_ID:$doseId:TIME:${scheduledTime.millisecondsSinceEpoch}',
       );
 
-      if (kDebugMode) {
-        final difference = scheduledTime.difference(DateTime.now());
-        final minutes = difference.inMinutes;
-        final seconds = difference.inSeconds % 60;
-      }
-    } catch (e) {
-      /*if (kDebugMode) {
-        print('   ❌ Erro ao agendar notificação $id: $e');
-      }*/
-    }
+  } catch (e) {
+    /*if (kDebugMode) {
+      print('   ❌ Erro ao agendar notificação fixa $id: $e');
+    }*/
   }
+}
 
   // Gera ID único para notificação
   int _generateNotificationId(int doseId, int notificationType) {
@@ -217,9 +212,9 @@ String _getStockUnit(String doseDescription) {
         }
       }
     } catch (e) {
-      if (kDebugMode) {
+      /*if (kDebugMode) {
         print('❌ Erro ao agendar notificações para prescrição $prescriptionId: $e');
-      }
+      }*/
     }
   }
 

@@ -475,9 +475,9 @@ class MedicationProvider with ChangeNotifier {
       );
 
     } catch (e) {
-      if (kDebugMode) {
+      /*if (kDebugMode) {
         print('   ❌ Erro ao agendar notificação $id: $e');
-      }
+      }*/
     }
   }
 
@@ -516,10 +516,6 @@ class MedicationProvider with ChangeNotifier {
       // 4. Agenda notificações para cada dose
       for (final dose in relevantDoses) {
         await _scheduleNotificationsForDose(dose.id, prescription, dose.scheduledTime);
-      }
-      
-      if (kDebugMode) {
-        print('✅ Notificações reagendadas para ${relevantDoses.length} doses');
       }
       
     } catch (e) {
@@ -628,10 +624,6 @@ class MedicationProvider with ChangeNotifier {
       await notificationService.cancelNotification(_generateNotificationId(doseId, 1));
       await notificationService.cancelNotification(_generateNotificationId(doseId, 2));
       await notificationService.cancelNotification(_generateNotificationId(doseId, 3));
-      
-      if (kDebugMode) {
-        print('   ✅ Notificações canceladas para dose $doseId');
-      }
     } catch (e) {
       if (kDebugMode) {
         print('   ❌ Erro ao cancelar notificações da dose $doseId: $e');
