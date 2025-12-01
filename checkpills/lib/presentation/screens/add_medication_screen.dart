@@ -785,7 +785,7 @@ void initState() {
 
   // Em: lib/presentation/screens/add_medication_screen.dart
 
-  void _onSave() {
+  void _onSave() async {
   final provider = Provider.of<MedicationProvider>(context, listen: false);
   String finalType;
   if (_selectedType == 'Outros') {
@@ -793,7 +793,8 @@ void initState() {
   } else {
     finalType = _selectedType ?? 'Não definido';
   }
-  final firstDoseDateTime = DateTime(
+  
+  final editedDoseDateTime = DateTime(
       _selectedFirstDoseDate.year,
       _selectedFirstDoseDate.month,
       _selectedFirstDoseDate.day,
@@ -803,89 +804,113 @@ void initState() {
   final doseDescription =
       '${_doseQuantityController.text} $_selectedDoseUnit'.trim();
 
-  final prescriptionCompanion = PrescriptionsCompanion(
-    name: Value(_nameController.text),
-    imagePath: Value(_imagePath),
-    doseDescription: Value(doseDescription),
-    type: Value(finalType),
-    stock: Value(
-        _dontTrackStock ? -1 : (int.tryParse(_stockController.text) ?? 0)),
-    firstDoseTime: Value(firstDoseDateTime),  // IMPORTANTE: Isso muda a primeira dose da prescrição
-    intervalValue: Value(_isSingleDose ? 0 : _intervalValue),
-    intervalUnit: Value(_isSingleDose ? 'Dias' : _selectedIntervalUnit),
-    isContinuous: Value(_isSingleDose ? false : _isContinuous),
-    durationTreatment: Value(_isSingleDose
-        ? 1
-        : (_isContinuous
-            ? null
-            : int.tryParse(_treatmentLengthController.text) ?? 0)),
-    unitTreatment: Value(_isSingleDose
-        ? 'Dias'
-        : (_isContinuous ? null : _selectedTreatmentUnit)),
-    notes: Value(_notesController.text),
-    updatedAt: Value(DateTime.now()),
-    enableNotifications: Value(_enableNotifications),
-    notifyMinutesBefore: Value(_notifyMinutesBefore),
-    notifyOnTime: Value(_notifyOnTime),
-    notifyAfterMinutes: Value(_notifyIfLate ? 15 : null),
-  );
-
   if (widget.prescription != null) {
     final prescriptionId = widget.prescription!.id;
+    final originalPrescription = widget.prescription!;
+    final now = DateTime.now();
+    
+    // Determina se a dose original era passada ou futura
+    final originalDoseTime = widget.doseEvent?.scheduledTime ?? originalPrescription.firstDoseTime;
+    final wasOriginalDosePast = originalDoseTime.isBefore(now);
+    
+    // Cria o companion para atualizar a prescrição
+    final prescriptionCompanion = PrescriptionsCompanion(
+      id: Value(prescriptionId),
+      userId: Value(originalPrescription.userId),
+      name: Value(_nameController.text),
+      imagePath: Value(_imagePath),
+      doseDescription: Value(doseDescription),
+      type: Value(finalType),
+      stock: Value(
+          _dontTrackStock ? -1 : (int.tryParse(_stockController.text) ?? 0)),
+      // IMPORTANTE: Se editar dose específica, mantém firstDoseTime original
+      firstDoseTime: Value(widget.doseEvent != null ? 
+          originalPrescription.firstDoseTime : editedDoseDateTime),
+      intervalValue: Value(_isSingleDose ? 0 : _intervalValue),
+      intervalUnit: Value(_isSingleDose ? 'Dias' : _selectedIntervalUnit),
+      isContinuous: Value(_isSingleDose ? false : _isContinuous),
+      durationTreatment: Value(_isSingleDose
+          ? 1
+          : (_isContinuous
+              ? null
+              : int.tryParse(_treatmentLengthController.text) ?? 0)),
+      unitTreatment: Value(_isSingleDose
+          ? 'Dias'
+          : (_isContinuous ? null : _selectedTreatmentUnit)),
+      notes: Value(_notesController.text),
+      updatedAt: Value(DateTime.now()),
+      enableNotifications: Value(_enableNotifications),
+      notifyMinutesBefore: Value(_notifyMinutesBefore),
+      notifyOnTime: Value(_notifyOnTime),
+      notifyAfterMinutes: Value(_notifyIfLate ? 15 : null),
+    );
     
     if (widget.doseEvent != null) {
-      // CASO: Editando uma dose específica
+      // CASO: Editando uma dose específica (passada ou futura)
       
-      if (widget.isFutureDose == true) {
-        // 1. Primeiro, ATUALIZA a dose específica com o novo horário
-        provider.rescheduleSingleDose(
-          widget.doseEvent!.id, 
-          firstDoseDateTime
-        );
-        
-        // 2. Depois atualiza a prescrição (sem regenerar todas as doses)
-        provider.updatePrescriptionWithoutRegeneratingDoses(
-          prescriptionId, 
-          prescriptionCompanion.copyWith(
-            userId: Value(widget.prescription!.userId),
-            // NÃO atualiza firstDoseTime da prescrição quando edita dose específica
-            firstDoseTime: Value(widget.prescription!.firstDoseTime),
-          )
-        );
-        
-        // 3. Reagenda apenas as doses FUTURAS a partir desta dose (se não for dose única)
-        if (widget.prescription!.intervalValue != 0) {
-          provider.rescheduleFutureDosesFromDose(
-            widget.doseEvent!.id,
-            prescriptionId,
-            firstDoseDateTime
-          );
-        }
-        
-      } else {
-        // Editando dose PASSADA - apenas atualiza a prescrição
-        provider.updatePrescriptionWithoutRegeneratingDoses(
+      // 1. Primeiro, atualiza a DOSE ESPECÍFICA que está sendo editada
+      // Mesmo se for dose passada, atualizamos o horário
+      await provider.rescheduleSingleDose(
+        widget.doseEvent!.id, 
+        editedDoseDateTime
+      );
+      
+      // 2. Atualiza os dados do MEDICAMENTO (prescrição)
+      await provider.updatePrescriptionWithoutRegeneratingDoses(
+        prescriptionId, 
+        prescriptionCompanion
+      );
+      
+      // 3. Se NÃO for dose única, reagenda as doses FUTURAS
+      if (originalPrescription.intervalValue != 0) {
+        // Remove apenas as doses FUTURAS após a dose editada
+        // Isso mantém as doses passadas intactas
+        await provider.rescheduleFutureDosesFromDose(
+          widget.doseEvent!.id,
           prescriptionId,
-          prescriptionCompanion.copyWith(
-            userId: Value(widget.prescription!.userId),
-            // NÃO atualiza firstDoseTime da prescrição quando edita dose passada
-            firstDoseTime: Value(widget.prescription!.firstDoseTime),
-          )
+          editedDoseDateTime
         );
       }
       
     } else {
-      // CASO: Editando a prescrição geral (sem dose específica)
+      // CASO: Editando a prescrição geral (não uma dose específica)
+      
       final finalCompanion = prescriptionCompanion.copyWith(
-        userId: Value(widget.prescription!.userId),
-        // Mantém o firstDoseTime original se não for para mudar
-        // Ou usa o novo firstDoseTime se quiser alterar
-        firstDoseTime: Value(firstDoseDateTime),
+        firstDoseTime: Value(editedDoseDateTime),
       );
+      
+      // Se está editando geral, regenera todas as doses futuras
       provider.updatePrescription(prescriptionId, finalCompanion);
     }
   } else {
     // CASO: Nova prescrição (modo adição)
+    final prescriptionCompanion = PrescriptionsCompanion(
+      name: Value(_nameController.text),
+      imagePath: Value(_imagePath),
+      doseDescription: Value(doseDescription),
+      type: Value(finalType),
+      stock: Value(
+          _dontTrackStock ? -1 : (int.tryParse(_stockController.text) ?? 0)),
+      firstDoseTime: Value(editedDoseDateTime),
+      intervalValue: Value(_isSingleDose ? 0 : _intervalValue),
+      intervalUnit: Value(_isSingleDose ? 'Dias' : _selectedIntervalUnit),
+      isContinuous: Value(_isSingleDose ? false : _isContinuous),
+      durationTreatment: Value(_isSingleDose
+          ? 1
+          : (_isContinuous
+              ? null
+              : int.tryParse(_treatmentLengthController.text) ?? 0)),
+      unitTreatment: Value(_isSingleDose
+          ? 'Dias'
+          : (_isContinuous ? null : _selectedTreatmentUnit)),
+      notes: Value(_notesController.text),
+      updatedAt: Value(DateTime.now()),
+      enableNotifications: Value(_enableNotifications),
+      notifyMinutesBefore: Value(_notifyMinutesBefore),
+      notifyOnTime: Value(_notifyOnTime),
+      notifyAfterMinutes: Value(_notifyIfLate ? 15 : null),
+    );
+    
     provider.addPrescription(prescriptionCompanion);
   }
   

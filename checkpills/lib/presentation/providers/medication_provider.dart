@@ -136,7 +136,7 @@ class MedicationProvider with ChangeNotifier {
   final dose = await _getDoseEventById(doseId);
   if (dose != null) {
     // Cancela todas as notificações desta dose
-    await _cancelDoseNotifications(doseId);
+    await _cancelDoseNotifications(doseId); // Este método existe?
   }
   
   // 2. Atualiza a dose no banco de dados
@@ -189,12 +189,25 @@ Future<DoseEvent?> _getDoseEventById(int doseId) async {
 }
 
 // Método auxiliar para cancelar notificações de uma dose
+// Método auxiliar para cancelar notificações de uma dose
 Future<void> _cancelDoseNotifications(int doseId) async {
-  await NotificationService.instance.cancelNotification(_generateNotificationId(doseId, 1));
-  await NotificationService.instance.cancelNotification(_generateNotificationId(doseId, 2));
-  await NotificationService.instance.cancelNotification(_generateNotificationId(doseId, 3));
+  try {
+    // Cancela os 3 tipos possíveis de notificação para esta dose
+    await notificationService.cancelNotification(_generateNotificationId(doseId, 1));
+    await notificationService.cancelNotification(_generateNotificationId(doseId, 2));
+    await notificationService.cancelNotification(_generateNotificationId(doseId, 3));
+    
+    /*if (kDebugMode) {
+      print('   ✅ Notificações canceladas para dose $doseId');
+    }*/
+  } catch (e) {
+    /*if (kDebugMode) {
+      print('   ❌ Erro ao cancelar notificações da dose $doseId: $e');
+    }*/
+  }
 }
 
+// Método auxiliar para agendar notificações para uma dose existente
 // Método auxiliar para agendar notificações para uma dose existente
 Future<void> _scheduleNotificationsForDose(int doseId, Prescription prescription, DateTime scheduledTime) async {
   final now = DateTime.now();
@@ -283,6 +296,55 @@ Future<void> _scheduleNotificationsForDose(int doseId, Prescription prescription
         prescriptionId: prescription.id,
         doseId: doseId,
       );
+    }
+  }
+}
+
+// ADICIONAR este método no medication_provider.dart
+
+Future<void> rescheduleAllNotificationsForPrescription(int prescriptionId) async {
+  try {
+    // 1. Cancela todas as notificações existentes
+    await notificationScheduler.cancelPrescriptionNotifications(prescriptionId);
+    
+    // 2. Busca a prescrição atualizada
+    final prescription = await database.prescriptionsDao.getPrescriptionById(prescriptionId);
+    
+    if (!prescription.enableNotifications) {
+      if (kDebugMode) {
+        print('🔕 Notificações desativadas para ${prescription.name}');
+      }
+      return;
+    }
+    
+    // 3. Busca todas as doses PENDENTES e FUTURAS
+    final allDoses = await database.doseEventsDao.getAllDoseEventsForPrescription(prescriptionId);
+    final now = DateTime.now();
+    
+    // Filtra apenas doses pendentes e futuras (ou próximas 1 hora)
+    final oneHourAgo = now.subtract(const Duration(hours: 1));
+    final relevantDoses = allDoses.where((dose) => 
+      dose.status == DoseStatus.pendente &&
+      dose.scheduledTime.isAfter(oneHourAgo)
+    ).toList();
+    
+    if (kDebugMode) {
+      print('🔄 Reagendando notificações para ${prescription.name}');
+      print('   Doses relevantes: ${relevantDoses.length}');
+    }
+    
+    // 4. Agenda notificações para cada dose
+    for (final dose in relevantDoses) {
+      await _scheduleNotificationsForDose(dose.id, prescription, dose.scheduledTime);
+    }
+    
+    if (kDebugMode) {
+      print('✅ Notificações reagendadas para ${relevantDoses.length} doses');
+    }
+    
+  } catch (e) {
+    if (kDebugMode) {
+      print('❌ Erro ao reagendar notificações: $e');
     }
   }
 }
@@ -657,38 +719,41 @@ Future<void> rescheduleFutureDosesFromDose(
   DateTime newBaseTime
 ) async {
   final prescription = await database.prescriptionsDao.getPrescriptionById(prescriptionId);
-  if (prescription.intervalValue == 0) return; // Dose única, não há o que reagendar
+  if (prescription.intervalValue == 0) return; // Dose única
   
-  // Busca todas as doses
+  // Busca TODAS as doses
   final allDoses = await database.doseEventsDao.getAllDoseEventsForPrescription(prescriptionId);
   
-  // Ordena as doses por horário
+  // Ordena por horário
   allDoses.sort((a, b) => a.scheduledTime.compareTo(b.scheduledTime));
   
   // Encontra a dose que está sendo editada
   int doseIndex = allDoses.indexWhere((dose) => dose.id == doseId);
   if (doseIndex == -1) return;
   
-  // Identifica se esta dose é futura
   final now = DateTime.now();
-  final bool isFutureDose = allDoses[doseIndex].scheduledTime.isAfter(now) || 
-                           allDoses[doseIndex].scheduledTime.isAtSameMomentAs(now);
   
-  if (!isFutureDose) {
-    // Se for dose passada, NÃO faz nada com as outras doses
-    return;
-  }
-  
-  // Se for dose futura: remove apenas as doses FUTURAS APÓS esta dose
+  // 1. Primeiro, CANCELA NOTIFICAÇÕES das doses que serão removidas
   for (int i = doseIndex + 1; i < allDoses.length; i++) {
     final dose = allDoses[i];
+    // Cancela notificações apenas se for futura (ou "agora")
+    if (dose.scheduledTime.isAfter(now) || 
+        dose.scheduledTime.isAtSameMomentAs(now)) {
+      await _cancelDoseNotifications(dose.id); // Cancela notificações
+    }
+  }
+  
+  // 2. Remove APENAS as doses FUTURAS após a dose editada
+  for (int i = doseIndex + 1; i < allDoses.length; i++) {
+    final dose = allDoses[i];
+    // Remove apenas se for futura (ou "agora")
     if (dose.scheduledTime.isAfter(now) || 
         dose.scheduledTime.isAtSameMomentAs(now)) {
       await database.doseEventsDao.deleteDoseEvent(dose.id);
     }
   }
   
-  // Gera novas doses a partir do novo horário base
+  // 3. Gera novas doses a partir do novo horário base
   DateTime nextDoseTime = newBaseTime;
   final maxGenerationDate = now.add(const Duration(days: 60));
   final endDate = prescription.isContinuous
@@ -712,6 +777,7 @@ Future<void> rescheduleFutureDosesFromDose(
     
     final newDose = await database.doseEventsDao.addDoseEvent(newDoseEvent);
     
+    // 4. Agenda notificações para as NOVAS doses
     if (prescription.enableNotifications) {
       await _scheduleNotificationsForNewDose(newDose, prescription);
     }
