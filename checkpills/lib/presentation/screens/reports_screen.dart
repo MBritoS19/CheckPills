@@ -104,22 +104,28 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   Widget _buildOverviewTab(ReportsProvider reportsProvider, UserProvider userProvider, 
       Map<String, dynamic> stats, Map<String, dynamic> adherenceStats) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildFilterHeader(userProvider),
-          const SizedBox(height: 20),
-          _buildMainStatisticsCards(stats, adherenceStats),
-          const SizedBox(height: 20),
-          _buildDosesDistributionChart(adherenceStats),
-          const SizedBox(height: 20),
-          _buildProgressChart(stats),
-          const SizedBox(height: 20),
-          _buildUpcomingDoses(reportsProvider),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isSmallScreen = constraints.maxWidth < 600;
+        
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildFilterHeader(userProvider),
+              const SizedBox(height: 20),
+              _buildMainStatisticsCards(stats, adherenceStats, isSmallScreen),
+              const SizedBox(height: 20),
+              _buildDosesDistributionChart(adherenceStats),
+              const SizedBox(height: 20),
+              _buildProgressChart(stats, isSmallScreen),
+              const SizedBox(height: 20),
+              _buildUpcomingDoses(reportsProvider),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -132,36 +138,44 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       ? reportsProvider.getTopMedicationsForUser(_selectedUser ?? userProvider.allUsers.first)
       : reportsProvider.getTopMedicationsForUser(_selectedUser!);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildFilterHeader(userProvider),
-          const SizedBox(height: 20),
-          _buildTopMedicationsCard(topMedications),
-          const SizedBox(height: 20),
-          _buildMedicationsList(medications),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(constraints.maxWidth < 600 ? 12 : 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildFilterHeader(userProvider),
+              const SizedBox(height: 20),
+              _buildTopMedicationsCard(topMedications),
+              const SizedBox(height: 20),
+              _buildMedicationsList(medications),
+            ],
+          ),
+        );
+      },
     );
   }
 
   Widget _buildTrendsTab(ReportsProvider reportsProvider, UserProvider userProvider, Map<String, dynamic> stats) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildFilterHeader(userProvider),
-          const SizedBox(height: 20),
-          _buildWeeklyPerformance(stats),
-          const SizedBox(height: 20),
-          _buildComparativeStats(stats),
-          const SizedBox(height: 20),
-          _buildInsightsCard(stats),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(constraints.maxWidth < 600 ? 12 : 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildFilterHeader(userProvider),
+              const SizedBox(height: 20),
+              _buildWeeklyPerformance(stats),
+              const SizedBox(height: 20),
+              _buildComparativeStats(stats),
+              const SizedBox(height: 20),
+              _buildInsightsCard(stats),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -201,13 +215,21 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-                Chip(
-                  label: Text(periodText),
-                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                Flexible(
+                  child: Chip(
+                    label: Text(
+                      periodText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  ),
                 ),
               ],
             ),
@@ -218,6 +240,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 fontSize: 12,
                 color: Colors.grey[600],
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -225,102 +249,113 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildMainStatisticsCards(Map<String, dynamic> stats, Map<String, dynamic> adherenceStats) {
-    final totalDoses = (stats['takenDoses'] ?? 0) + (stats['skippedDoses'] ?? 0) + (stats['pendingDoses'] ?? 0);
-    final uniqueMeds = stats['uniqueMedications'] ?? 0;
-    
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      children: [
-        _buildStatCard(
-          'Total de Doses',
-          totalDoses.toString(),
-          Icons.format_list_numbered,
-          Colors.blue,
-          '$uniqueMeds medicamentos',
-        ),
-        _buildStatCard(
-          'Doses Tomadas',
-          (stats['takenDoses'] ?? 0).toString(),
-          Icons.check_circle,
-          Colors.green,
-          '${_calculatePercentage(stats['takenDoses'] ?? 0, totalDoses)}% do total',
-        ),
-        _buildStatCard(
-          'Doses Puladas',
-          (stats['skippedDoses'] ?? 0).toString(),
-          Icons.cancel,
-          Colors.orange,
-          '${_calculatePercentage(stats['skippedDoses'] ?? 0, totalDoses)}% do total',
-        ),
-        _buildStatCard(
-          'Doses Pendentes',
-          (stats['pendingDoses'] ?? 0).toString(),
-          Icons.schedule,
-          Colors.grey,
-          'A serem tomadas',
-        ),
-      ],
-    );
-  }
+  Widget _buildMainStatisticsCards(Map<String, dynamic> stats, Map<String, dynamic> adherenceStats, bool isSmallScreen) {
+  final totalDoses = (stats['takenDoses'] ?? 0) + (stats['skippedDoses'] ?? 0) + (stats['pendingDoses'] ?? 0);
+  final uniqueMeds = stats['uniqueMedications'] ?? 0;
+  
+  final crossAxisCount = isSmallScreen ? 2 : 4;
+  // Voltar ao aspect ratio original
+  final childAspectRatio = isSmallScreen ? 1.2 : 1.2;
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color, String subtitle) {
-    return Card(
-      elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, color: color, size: 20),
+  return GridView.count(
+    crossAxisCount: crossAxisCount,
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    childAspectRatio: childAspectRatio,
+    crossAxisSpacing: isSmallScreen ? 8 : 12,
+    mainAxisSpacing: isSmallScreen ? 8 : 12,
+    children: [
+      _buildStatCard(
+        'Total de Doses',
+        totalDoses.toString(),
+        Icons.format_list_numbered,
+        Colors.blue,
+        '$uniqueMeds medicamentos',
+        isSmallScreen: isSmallScreen,
+      ),
+      _buildStatCard(
+        'Doses Tomadas',
+        (stats['takenDoses'] ?? 0).toString(),
+        Icons.check_circle,
+        Colors.green,
+        '${_calculatePercentage(stats['takenDoses'] ?? 0, totalDoses)}% do total',
+        isSmallScreen: isSmallScreen,
+      ),
+      _buildStatCard(
+        'Doses Puladas',
+        (stats['skippedDoses'] ?? 0).toString(),
+        Icons.cancel,
+        Colors.orange,
+        '${_calculatePercentage(stats['skippedDoses'] ?? 0, totalDoses)}% do total',
+        isSmallScreen: isSmallScreen,
+      ),
+      _buildStatCard(
+        'Doses Pendentes',
+        (stats['pendingDoses'] ?? 0).toString(),
+        Icons.schedule,
+        Colors.grey,
+        'A serem tomadas',
+        isSmallScreen: isSmallScreen,
+      ),
+    ],
+  );
+}
+
+  Widget _buildStatCard(String title, String value, IconData icon, Color color, String subtitle, {bool isSmallScreen = false}) {
+  return Card(
+    elevation: 3,
+    child: Padding(
+      // Voltar ao padding original
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+                // Voltar ao tamanho original do ícone
+                child: Icon(icon, color: color, size: 20),
               ),
+            ],
+          ),
+          // Voltar aos espaçamentos originais
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
             ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
-              ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
             ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.grey[500],
-              ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.grey[500],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildDosesDistributionChart(Map<String, dynamic> stats) {
     final taken = stats['takenDoses'] ?? 0;
@@ -343,60 +378,67 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         _ChartData('Pendentes ($pending)', pending, Colors.grey),
     ];
 
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isSmallScreen = constraints.maxWidth < 600;
+        
+        return Card(
+          elevation: 2,
+          child: Padding(
+            padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Distribuição de Doses',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Distribuição de Doses',
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 16 : 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Chip(
+                      label: Text('Total: $totalDoses doses'),
+                      backgroundColor: Colors.blue.withOpacity(0.1),
+                    ),
+                  ],
                 ),
-                const Spacer(),
-                Chip(
-                  label: Text('Total: $totalDoses doses'),
-                  backgroundColor: Colors.blue.withOpacity(0.1),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: isSmallScreen ? 180 : 200,
+                  child: SfCircularChart(
+                    legend: Legend(
+                      isVisible: true,
+                      position: isSmallScreen ? LegendPosition.bottom : LegendPosition.right,
+                      overflowMode: LegendItemOverflowMode.wrap,
+                    ),
+                    series: <CircularSeries>[
+                      DoughnutSeries<_ChartData, String>(
+                        dataSource: chartData,
+                        xValueMapper: (_ChartData data, _) => data.category,
+                        yValueMapper: (_ChartData data, _) => data.value,
+                        pointColorMapper: (_ChartData data, _) => data.color,
+                        dataLabelSettings: const DataLabelSettings(
+                          isVisible: true,
+                          labelPosition: ChartDataLabelPosition.outside,
+                          textStyle: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 200,
-              child: SfCircularChart(
-                legend: const Legend(
-                  isVisible: true,
-                  position: LegendPosition.bottom,
-                  overflowMode: LegendItemOverflowMode.wrap,
-                ),
-                series: <CircularSeries>[
-                  DoughnutSeries<_ChartData, String>(
-                    dataSource: chartData,
-                    xValueMapper: (_ChartData data, _) => data.category,
-                    yValueMapper: (_ChartData data, _) => data.value,
-                    pointColorMapper: (_ChartData data, _) => data.color,
-                    dataLabelSettings: const DataLabelSettings(
-                      isVisible: true,
-                      labelPosition: ChartDataLabelPosition.outside,
-                      textStyle: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildProgressChart(Map<String, dynamic> stats) {
+  Widget _buildProgressChart(Map<String, dynamic> stats, bool isSmallScreen) {
     final weeklyData = [
       _ProgressData('Seg', 8, 2, 0),
       _ProgressData('Ter', 10, 1, 0),
@@ -410,23 +452,26 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     return Card(
       elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Desempenho Semanal',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: isSmallScreen ? 16 : 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 16),
             SizedBox(
-              height: 200,
+              height: isSmallScreen ? 180 : 200,
               child: SfCartesianChart(
                 primaryXAxis: CategoryAxis(),
-                legend: const Legend(isVisible: true),
+                legend: Legend(
+                  isVisible: true,
+                  position: isSmallScreen ? LegendPosition.bottom : LegendPosition.top,
+                ),
                 series: <CartesianSeries>[
                   ColumnSeries<_ProgressData, String>(
                     dataSource: weeklyData,
@@ -453,45 +498,47 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               ),
             ),
             const SizedBox(height: 16),
-            _buildWeeklySummary(weeklyData),
+            _buildWeeklySummary(weeklyData, isSmallScreen),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildWeeklySummary(List<_ProgressData> weeklyData) {
+  Widget _buildWeeklySummary(List<_ProgressData> weeklyData, bool isSmallScreen) {
     final totalTaken = weeklyData.fold(0, (sum, day) => sum + day.taken);
     final totalSkipped = weeklyData.fold(0, (sum, day) => sum + day.skipped);
     final totalPending = weeklyData.fold(0, (sum, day) => sum + day.pending);
     final totalDoses = totalTaken + totalSkipped + totalPending;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
+    return Wrap(
+      spacing: isSmallScreen ? 8 : 16,
+      runSpacing: 8,
+      alignment: WrapAlignment.spaceAround,
       children: [
-        _buildSummaryItem('Total Semana', '$totalDoses doses', Colors.blue),
-        _buildSummaryItem('Tomadas', '$totalTaken doses', Colors.green),
-        _buildSummaryItem('Puladas', '$totalSkipped doses', Colors.orange),
-        _buildSummaryItem('Pendentes', '$totalPending doses', Colors.grey),
+        _buildSummaryItem('Total Semana', '$totalDoses doses', Colors.blue, isSmallScreen),
+        _buildSummaryItem('Tomadas', '$totalTaken doses', Colors.green, isSmallScreen),
+        _buildSummaryItem('Puladas', '$totalSkipped doses', Colors.orange, isSmallScreen),
+        _buildSummaryItem('Pendentes', '$totalPending doses', Colors.grey, isSmallScreen),
       ],
     );
   }
 
-  Widget _buildSummaryItem(String label, String value, Color color) {
+  Widget _buildSummaryItem(String label, String value, Color color, bool isSmallScreen) {
     return Column(
       children: [
         Text(
           value,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: isSmallScreen ? 12 : 14,
             fontWeight: FontWeight.bold,
             color: color,
           ),
         ),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 10,
+          style: TextStyle(
+            fontSize: isSmallScreen ? 9 : 10,
             color: Colors.grey,
           ),
         ),
@@ -499,6 +546,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     );
   }
 
+  // Os métodos restantes permanecem EXATAMENTE como estavam originalmente
   Widget _buildUpcomingDoses(ReportsProvider reportsProvider) {
     final now = DateTime.now();
     final tomorrow = DateTime(now.year, now.month, now.day + 1);
@@ -817,10 +865,10 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        _buildSummaryItem('Total Semanal', '$total doses', Colors.blue),
-        _buildSummaryItem('Taxa de Adesão', '$adherenceRate%', Colors.green),
-        _buildSummaryItem('Melhor Dia', 'Terça (10 doses)', Colors.green),
-        _buildSummaryItem('Pior Dia', 'Quarta (3 puladas)', Colors.orange),
+        _buildSummaryItem('Total Semanal', '$total doses', Colors.blue, false),
+        _buildSummaryItem('Taxa de Adesão', '$adherenceRate%', Colors.green, false),
+        _buildSummaryItem('Melhor Dia', 'Terça (10 doses)', Colors.green, false),
+        _buildSummaryItem('Pior Dia', 'Quarta (3 puladas)', Colors.orange, false),
       ],
     );
   }
@@ -829,12 +877,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     final takenDoses = stats['takenDoses'] ?? 0;
     final skippedDoses = stats['skippedDoses'] ?? 0;
     final pendingDoses = stats['pendingDoses'] ?? 0;
-    final uniqueMeds = stats['uniqueMedications'] ?? 1; // Evitar divisão por zero
+    final uniqueMeds = stats['uniqueMedications'] ?? 1;
     
     final totalDoses = takenDoses + skippedDoses + pendingDoses;
     final adherenceRate = totalDoses > 0 ? ((takenDoses / totalDoses) * 100).round() : 0;
     
-    // Cálculos seguros para evitar divisão por zero
     final dailyAverage = totalDoses > 0 ? (totalDoses / 30).round() : 0;
     final dosesPerMed = uniqueMeds > 0 ? (totalDoses / uniqueMeds).round() : 0;
     final efficiency = uniqueMeds > 0 ? (takenDoses / uniqueMeds).round() : 0;
