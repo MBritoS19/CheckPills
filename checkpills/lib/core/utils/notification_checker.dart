@@ -109,13 +109,10 @@ class NotificationChecker {
         payload: 'DOSE_DUE:${dose.id}:${prescription.id}',
       );
 
-      if (kDebugMode) {
-        print('🔔 Notificação enviada para: ${prescription.name} às ${dose.scheduledTime}');
-      }
     } catch (e) {
-      if (kDebugMode) {
+      /*if (kDebugMode) {
         print('❌ Erro ao enviar notificação para ${prescription.name}: $e');
-      }
+      }*/
     }
   }
 

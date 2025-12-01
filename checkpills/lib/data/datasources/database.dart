@@ -243,6 +243,14 @@ class DoseEventsDao extends DatabaseAccessor<AppDatabase>
     });
   }
 
+  // Adicione este método na classe DoseEventsDao
+Future<List<DoseEvent>> getAllDoseEventsForPrescription(int prescriptionId) {
+  return (select(doseEvents)
+    ..where((t) => t.prescriptionId.equals(prescriptionId))
+    ..orderBy([(t) => OrderingTerm(expression: t.scheduledTime)]))
+    .get();
+}
+
   Future<void> updateDoseEvent(int id, DoseEventsCompanion entry) {
     return (update(doseEvents)..where((t) => t.id.equals(id))).write(entry);
   }

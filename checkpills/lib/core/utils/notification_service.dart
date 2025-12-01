@@ -60,7 +60,7 @@ class NotificationService {
     }
   }
 
-  /// Canal SIMPLES - focado em fazer funcionar
+  /// Canal SIMPLES - REMOVER configuração de som para usar o padrão do sistema
   Future<void> _createSimpleChannel() async {
     try {
       final AndroidNotificationChannel channel = AndroidNotificationChannel(
@@ -68,11 +68,11 @@ class NotificationService {
         channelName,
         description: channelDescription,
         importance: Importance.high,
-        playSound: true,
+        playSound: true, // Ativa som
         enableVibration: true,
-        vibrationPattern: Int64List.fromList([0, 1000, 500, 1000]), // Vibração mais longa
-        sound: const RawResourceAndroidNotificationSound('notification'),
+        vibrationPattern: Int64List.fromList([0, 1000, 500, 1000]),
         showBadge: true,
+        // NÃO definir 'sound' aqui - deixe o Android usar o som padrão do dispositivo
       );
 
       final androidPlugin = _notificationsPlugin.resolvePlatformSpecificImplementation<
@@ -80,9 +80,6 @@ class NotificationService {
       
       if (androidPlugin != null) {
         await androidPlugin.createNotificationChannel(channel);
-        if (kDebugMode) {
-          print('✅ Canal de notificação criado (SIMPLES)');
-        }
       }
     } catch (e, stack) {
       if (kDebugMode) {
@@ -147,40 +144,40 @@ class NotificationService {
     if (!_initialized) await init();
 
     try {
-      if (kDebugMode) {
-        print('🔔 Mostrando notificação: $title');
-      }
-
-      // Configuração Android SIMPLES
-      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      // Configuração Android SIMPLES - NÃO definir som para usar o padrão
+      final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
         'dose_reminders_channel', // channelId
         'Lembretes de Dose',      // channelName
         channelDescription: 'Notificações para lembrar de tomar medicamentos.',
         importance: Importance.high,
-        playSound: true,
+        priority: Priority.high,
+        playSound: true, // Ativa som
         enableVibration: true,
         timeoutAfter: 30000,
         autoCancel: true,
+        styleInformation: BigTextStyleInformation(body),
+        // NÃO definir 'sound' - deixe o Android usar o som padrão do dispositivo
+      );
+
+      // Configuração iOS - NÃO definir som para usar o padrão
+      const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        // NÃO definir 'sound' - deixe o iOS usar o som padrão do dispositivo
       );
 
       await _notificationsPlugin.show(
         id,
         title,
         body,
-        const NotificationDetails(
+        NotificationDetails(
           android: androidDetails,
-          iOS: DarwinNotificationDetails(
-            presentAlert: true,
-            presentBadge: true,
-            presentSound: true,
-          ),
+          iOS: iosDetails,
+          macOS: iosDetails,
         ),
         payload: payload,
       );
-
-      if (kDebugMode) {
-        print('✅ Notificação $id enviada: $title');
-      }
     } catch (e, stack) {
       if (kDebugMode) {
         print('❌ Erro na notificação $id: $e');
@@ -202,20 +199,27 @@ class NotificationService {
     try {
       final tz.TZDateTime tzScheduled = tz.TZDateTime.from(scheduledDate, tz.local);
 
-      if (kDebugMode) {
-        print('🎯 Agendando: "$title" para $tzScheduled');
-      }
-
-      // Configuração Android SIMPLES
-      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      // Configuração Android SIMPLES - NÃO definir som para usar o padrão
+      final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
         'dose_reminders_channel',
         'Lembretes de Dose',
         channelDescription: 'Notificações para lembrar de tomar medicamentos.',
         importance: Importance.high,
-        playSound: true,
+        priority: Priority.high,
+        playSound: true, // Ativa som
         enableVibration: true,
         timeoutAfter: 30000,
         autoCancel: true,
+        styleInformation: BigTextStyleInformation(body),
+        // NÃO definir 'sound' - deixe o Android usar o som padrão do dispositivo
+      );
+
+      // Configuração iOS - NÃO definir som para usar o padrão
+      const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        // NÃO definir 'sound' - deixe o iOS usar o som padrão do dispositivo
       );
 
       await _notificationsPlugin.zonedSchedule(
@@ -223,21 +227,15 @@ class NotificationService {
         title,
         body,
         tzScheduled,
-        const NotificationDetails(
+        NotificationDetails(
           android: androidDetails,
-          iOS: DarwinNotificationDetails(
-            presentAlert: true,
-            presentBadge: true,
-            presentSound: true,
-          ),
+          iOS: iosDetails,
+          macOS: iosDetails,
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         payload: payload,
       );
 
-      if (kDebugMode) {
-        print('✅ Notificação $id agendada');
-      }
     } catch (e, stack) {
       if (kDebugMode) {
         print('❌ Erro ao agendar $id: $e');
@@ -265,9 +263,6 @@ class NotificationService {
       for (final notification in pending) {
         if (notification.payload?.contains('PRESCRIPTION_ID:$prescriptionId') == true) {
           await _notificationsPlugin.cancel(notification.id);
-          if (kDebugMode) {
-            print('🗑️ Cancelada notificação ${notification.id} para prescrição $prescriptionId');
-          }
         }
       }
     } catch (e) {

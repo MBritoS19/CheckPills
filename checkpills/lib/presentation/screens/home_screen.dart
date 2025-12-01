@@ -309,82 +309,103 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   void _showDoseDetails(DoseEventWithPrescription doseData) {
-    // REMOVER: final provider = Provider.of<MedicationProvider>(context, listen: false);
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+    ),
+    builder: (context) {
+      return Consumer<MedicationProvider>(
+        builder: (context, provider, child) {
+          final currentDoseData = provider.doseEventsForDay.firstWhere(
+            (e) => e.doseEvent.id == doseData.doseEvent.id,
+            orElse: () => doseData,
+          );
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+          // VERIFICA se é uma dose passada
+          final bool isPastDose = currentDoseData.doseEvent.scheduledTime.isBefore(DateTime.now());
+          
+          return DoseDetailsModal(
+            doseData: currentDoseData,
+            onSkip: () {
+              Navigator.of(context).pop();
+              final prescription = currentDoseData.prescription;
+              if (prescription.intervalValue == 0) {
+                _handleSingleDoseSkip(currentDoseData);
+              } else {
+                provider.skipDoseAndReschedule(currentDoseData);
+              }
+            },
+            onEdit: () {
+              Navigator.of(context).pop();
+              // Permite editar qualquer dose (passada ou futura)
+              _navigateToEditScreen(
+                currentDoseData.prescription, 
+                doseEvent: currentDoseData.doseEvent
+              );
+            },
+            onDelete: () {
+              Navigator.of(context).pop();
+              _handleDelete(context, provider, currentDoseData.prescription);
+            },
+            onToggleStatus: () async {
+              final prescription = currentDoseData.prescription;
+              final isTaken = currentDoseData.doseEvent.status == DoseStatus.tomada;
+
+              if (isTaken) {
+                await provider.toggleDoseStatus(currentDoseData);
+                return;
+              }
+
+              if (prescription.stock == -1 || prescription.stock > 0) {
+                final bool shouldShowWarning = await provider.toggleDoseStatus(currentDoseData);
+                if (shouldShowWarning && mounted) {
+                  Future.delayed(const Duration(milliseconds: 100), () {
+                    final updatedPrescription = provider.prescriptionList
+                        .firstWhere((p) => p.id == prescription.id);
+                    _showLowStockDialog(updatedPrescription);
+                  });
+                }
+              } else {
+                _showOutOfStockDialog(context, prescription);
+              }
+            },
+          );
+        },
+      );
+    },
+  );
+}
+
+void _showCannotEditPastDoseDialog() {
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      icon: const Icon(Icons.info_outline, color: Colors.blue, size: 48),
+      title: const Text('Edição Não Permitida', textAlign: TextAlign.center),
+      content: const Text(
+        'Não é possível editar doses passadas. Você pode editar apenas doses futuras.',
+        textAlign: TextAlign.center,
       ),
-      builder: (context) {
-        // Usar um Consumer para reagir às mudanças do MedicationProvider
-        return Consumer<MedicationProvider>(
-          builder: (context, provider, child) {
-            // A doseData que recebemos pode estar desatualizada.
-            // Buscamos a versão mais atualizada no provider para reconstruir o modal.
-            final currentDoseData = provider.doseEventsForDay.firstWhere(
-              (e) => e.doseEvent.id == doseData.doseEvent.id,
-              // Fallback para o dado original se não for encontrado (embora improvável)
-              orElse: () => doseData,
-            );
-
-            // As closures (onSkip, onEdit, etc.) usarão o 'provider' do Consumer.
-            return DoseDetailsModal(
-              doseData: currentDoseData, // Passa o dado atualizado
-              onSkip: () {
-                Navigator.of(context).pop();
-                final prescription = currentDoseData.prescription;
-                if (prescription.intervalValue == 0) {
-                  _handleSingleDoseSkip(currentDoseData);
-                } else {
-                  provider.skipDoseAndReschedule(currentDoseData);
-                }
-              },
-              onEdit: () {
-                Navigator.of(context).pop();
-                _navigateToEditScreen(currentDoseData.prescription);
-              },
-              onDelete: () {
-                Navigator.of(context).pop();
-                _handleDelete(context, provider, currentDoseData.prescription);
-              },
-              onToggleStatus: () async {
-                // Não precisa fechar o modal, ele será reconstruído.
-
-                final prescription = currentDoseData.prescription;
-                final isTaken =
-                    currentDoseData.doseEvent.status == DoseStatus.tomada;
-
-                // Lógica de desmarcar (se já foi tomada)
-                if (isTaken) {
-                  await provider.toggleDoseStatus(currentDoseData);
-                  return;
-                }
-
-                // Lógica de marcar (se pendente)
-                if (prescription.stock == -1 || prescription.stock > 0) {
-                  final bool shouldShowWarning =
-                      await provider.toggleDoseStatus(currentDoseData);
-                  if (shouldShowWarning && mounted) {
-                    Future.delayed(const Duration(milliseconds: 100), () {
-                      // Após 100ms e a reconstrução, verificamos o estoque
-                      final updatedPrescription = provider.prescriptionList
-                          .firstWhere((p) => p.id == prescription.id);
-                      _showLowStockDialog(updatedPrescription);
-                    });
-                  }
-                } else {
-                  _showOutOfStockDialog(context, prescription);
-                }
-              },
-            );
-          },
-        );
-      },
-    );
-  }
+      actions: <Widget>[
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ElevatedButton(
+              child: const Text('Entendi'),
+              onPressed: () => Navigator.of(ctx).pop(),
+            ),
+          ],
+        )
+      ],
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20.0),
+      ),
+    ),
+  );
+}
 
   void _showOutOfStockDialog(BuildContext context, Prescription prescription) {
     final provider = Provider.of<MedicationProvider>(context, listen: false);
@@ -576,21 +597,27 @@ class HomeScreenState extends State<HomeScreen> {
     return weekDays;
   }
 
-  void _navigateToEditScreen(Prescription prescription) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-      ),
-      builder: (BuildContext context) {
-        return AddMedicationScreen(
-          key: ValueKey(prescription.id),
-          prescription: prescription,
-        );
-      },
-    );
-  }
+  void _navigateToEditScreen(Prescription prescription, {DoseEvent? doseEvent}) {
+  final bool isFutureDose = doseEvent != null && 
+      (doseEvent.scheduledTime.isAfter(DateTime.now()) || 
+       doseEvent.scheduledTime.isAtSameMomentAs(DateTime.now()));
+  
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+    ),
+    builder: (BuildContext context) {
+      return AddMedicationScreen(
+        key: ValueKey(prescription.id),
+        prescription: prescription,
+        doseEvent: doseEvent,
+        isFutureDose: isFutureDose,
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -858,11 +885,11 @@ class HomeScreenState extends State<HomeScreen> {
                             ),
                             confirmDismiss: (direction) async {
                               if (direction == DismissDirection.endToStart) {
-                                await _handleDelete(
-                                    context, provider, prescription);
+                                await _handleDelete(context, provider, prescription);
                                 return false;
                               } else {
-                                _navigateToEditScreen(prescription);
+                                // PERMITE editar qualquer dose (passada ou futura)
+                                _navigateToEditScreen(prescription, doseEvent: result.doseEvent);
                                 return false;
                               }
                             },

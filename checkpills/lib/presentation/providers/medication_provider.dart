@@ -132,15 +132,160 @@ class MedicationProvider with ChangeNotifier {
   }
 
   Future<void> rescheduleSingleDose(int doseId, DateTime newTime) async {
-    // Usamos a nova função do DAO para atualizar a hora e resetar o status
-    await database.doseEventsDao.updateDoseEvent(
-      doseId,
-      DoseEventsCompanion(
-        scheduledTime: Value(newTime),
-        status: const Value(DoseStatus.pendente), // Volta para pendente
-      ),
-    );
+  // 1. Busca a dose atual para cancelar suas notificações
+  final dose = await _getDoseEventById(doseId);
+  if (dose != null) {
+    // Cancela todas as notificações desta dose
+    await _cancelDoseNotifications(doseId);
   }
+  
+  // 2. Atualiza a dose no banco de dados
+  await database.doseEventsDao.updateDoseEvent(
+    doseId,
+    DoseEventsCompanion(
+      scheduledTime: Value(newTime),
+      status: const Value(DoseStatus.pendente), // Volta para pendente
+      updatedAt: Value(DateTime.now()),
+    ),
+  );
+  
+  // 3. Busca a prescrição para agendar novas notificações
+  if (dose != null) {
+    final prescription = await database.prescriptionsDao.getPrescriptionById(dose.prescriptionId);
+    
+    // 4. Agenda novas notificações para o novo horário
+    if (prescription.enableNotifications) {
+      await _scheduleNotificationsForDose(doseId, prescription, newTime);
+    }
+  }
+}
+
+// Método auxiliar para buscar uma dose por ID
+Future<DoseEvent?> _getDoseEventById(int doseId) async {
+  // Método 1: Procura nas doses já carregadas para o dia atual
+  for (final doseData in _doseEventsForDay) {
+    if (doseData.doseEvent.id == doseId) {
+      return doseData.doseEvent;
+    }
+  }
+  
+  // Método 2: Procura em todas as prescrições usando o método EXISTENTE getAllDoseEventsForPrescription
+  for (final prescription in _prescriptionList) {
+    try {
+      final allDoses = await database.doseEventsDao.getAllDoseEventsForPrescription(prescription.id);
+      for (final dose in allDoses) {
+        if (dose.id == doseId) {
+          return dose;
+        }
+      }
+    } catch (e) {
+      // Continua procurando em outras prescrições
+      continue;
+    }
+  }
+  
+  // Método 3: Se ainda não encontrou, retorna null (o método original já retornava null se não encontrasse)
+  return null;
+}
+
+// Método auxiliar para cancelar notificações de uma dose
+Future<void> _cancelDoseNotifications(int doseId) async {
+  await NotificationService.instance.cancelNotification(_generateNotificationId(doseId, 1));
+  await NotificationService.instance.cancelNotification(_generateNotificationId(doseId, 2));
+  await NotificationService.instance.cancelNotification(_generateNotificationId(doseId, 3));
+}
+
+// Método auxiliar para agendar notificações para uma dose existente
+Future<void> _scheduleNotificationsForDose(int doseId, Prescription prescription, DateTime scheduledTime) async {
+  final now = DateTime.now();
+  
+  // Só agenda se a dose for futura (ou dentro de 1 hora no passado)
+  final oneHourAgo = now.subtract(const Duration(hours: 1));
+  if (scheduledTime.isAfter(oneHourAgo)) {
+    
+    String bodyText = '';
+    
+    if (prescription.notes?.isNotEmpty == true) {
+      bodyText += '📝 ${prescription.notes}';
+    }
+    
+    if (prescription.stock != -1) {
+      if (bodyText.isNotEmpty) bodyText += '\n';
+      bodyText += '📦 Estoque: ${prescription.stock} ${_getStockUnit(prescription.doseDescription)}';
+      if (prescription.stock <= 3) {
+        bodyText += ' ⚠️';
+      }
+    }
+
+    // Ajusta horários que já passaram para agora + alguns segundos
+    DateTime adjustTimeIfPast(DateTime original) {
+      return original.isBefore(now) ? now.add(const Duration(seconds: 5)) : original;
+    }
+
+    // 1. Lembrete Antecipado
+    if (prescription.notifyMinutesBefore != null && prescription.notifyMinutesBefore! > 0) {
+      final reminderTime = DateTime(
+        scheduledTime.year,
+        scheduledTime.month,
+        scheduledTime.day,
+        scheduledTime.hour,
+        scheduledTime.minute - prescription.notifyMinutesBefore!,
+        0, 0
+      );
+      
+      await _scheduleSingleNotification(
+        id: _generateNotificationId(doseId, 1),
+        title: '⏰ ${prescription.name} - Lembrete em ${prescription.notifyMinutesBefore} min',
+        body: bodyText,
+        scheduledTime: adjustTimeIfPast(reminderTime),
+        prescriptionId: prescription.id,
+        doseId: doseId,
+      );
+    }
+
+    // 2. Lembrete Pontual
+    if (prescription.notifyOnTime) {
+      final exactTime = DateTime(
+        scheduledTime.year,
+        scheduledTime.month,
+        scheduledTime.day,
+        scheduledTime.hour,
+        scheduledTime.minute,
+        0, 0
+      );
+      
+      await _scheduleSingleNotification(
+        id: _generateNotificationId(doseId, 2),
+        title: '💊 ${prescription.name} - Tome agora: ${prescription.doseDescription}',
+        body: bodyText,
+        scheduledTime: adjustTimeIfPast(exactTime),
+        prescriptionId: prescription.id,
+        doseId: doseId,
+      );
+    }
+
+    // 3. Lembrete de Atraso
+    if (prescription.notifyAfterMinutes != null && prescription.notifyAfterMinutes! > 0) {
+      final lateReminderTime = DateTime(
+        scheduledTime.year,
+        scheduledTime.month,
+        scheduledTime.day,
+        scheduledTime.hour,
+        scheduledTime.minute + prescription.notifyAfterMinutes!,
+        0, 0
+      );
+      
+      await _scheduleSingleNotification(
+        id: _generateNotificationId(doseId, 3),
+        title: '⚠️ ${prescription.name} - Dose atrasada',
+        body: bodyText,
+        scheduledTime: adjustTimeIfPast(lateReminderTime),
+        prescriptionId: prescription.id,
+        doseId: doseId,
+      );
+    }
+  }
+}
 
 // ADICIONE ESTE NOVO MÉTODO
   Future<void> markDoseAsSkipped(int doseId) async {
@@ -169,14 +314,26 @@ Future<void> updatePrescription(
   // Cancela notificações antigas
   await notificationScheduler.cancelPrescriptionNotifications(id);
   
-  await database.prescriptionsDao
-      .updatePrescription(updatedPrescription.copyWith(id: Value(id)));
-  await database.doseEventsDao.deleteFutureDoseEventsForPrescription(id);
-  final reloadedPrescription =
-      await database.prescriptionsDao.getPrescriptionById(id);
+  // ATUALIZA o registro existente
+  await database.prescriptionsDao.updatePrescription(
+    updatedPrescription.copyWith(
+      id: Value(id),
+      updatedAt: Value(DateTime.now()),
+    )
+  );
   
-  // REGERA as doses e agenda notificações AUTOMATICAMENTE
+  // CORREÇÃO: Remove apenas as doses FUTURAS (a partir de hoje)
+  // Isso preserva as doses passadas e mantém apenas as futuras para regeneração
+  await database.doseEventsDao.deleteFutureDoseEventsForPrescription(id);
+  
+  // Recarrega a prescrição atualizada
+  final reloadedPrescription = await database.prescriptionsDao.getPrescriptionById(id);
+  
+  // Regera APENAS as doses futuras
   await _generateAndInsertDoseEvents(reloadedPrescription);
+  
+  // Notifica os listeners para atualizar a UI
+  notifyListeners();
 }
 
   Future<void> deletePrescription(int id) async {
@@ -299,10 +456,10 @@ Future<void> updatePrescription(
     return;
   }
 
-  // MEDICAMENTOS COM INTERVALO - LÓGICA MELHORADA
+  // MEDICAMENTOS COM INTERVALO - LÓGICA PARA GERAR APENAS FUTURAS
   DateTime nextDoseTime = prescription.firstDoseTime;
   
-  // CORREÇÃO INTELIGENTE: Só ajusta para "agora" se o horário passou há menos de 1 hora
+  // Ajusta para o futuro se necessário
   final oneHourAgo = now.subtract(const Duration(hours: 1));
   if (nextDoseTime.isBefore(oneHourAgo)) {
     // Horário muito no passado (>1 hora): começa do próximo ciclo
@@ -469,6 +626,101 @@ String _getStockUnit(String doseDescription) {
       print('   ❌ Erro ao agendar notificação $id: $e');
     }*/
   }
+}
+
+// NOVO MÉTODO: Atualiza prescrição sem regenerar doses
+Future<void> updatePrescriptionWithoutRegeneratingDoses(
+  int id, 
+  PrescriptionsCompanion updatedPrescription
+) async {
+  // Cancela notificações antigas
+  await notificationScheduler.cancelPrescriptionNotifications(id);
+  
+  // Atualiza apenas o registro do medicamento
+  await database.prescriptionsDao.updatePrescription(
+    updatedPrescription.copyWith(
+      id: Value(id),
+      updatedAt: Value(DateTime.now()),
+    )
+  );
+  
+  // NÃO remove ou regenera doses - mantém o que já existe
+  
+  // Notifica os listeners para atualizar a UI
+  notifyListeners();
+}
+
+// NOVO MÉTODO: Reagenda doses futuras a partir de uma dose específica
+Future<void> rescheduleFutureDosesFromDose(
+  int doseId, 
+  int prescriptionId, 
+  DateTime newBaseTime
+) async {
+  final prescription = await database.prescriptionsDao.getPrescriptionById(prescriptionId);
+  if (prescription.intervalValue == 0) return; // Dose única, não há o que reagendar
+  
+  // Busca todas as doses
+  final allDoses = await database.doseEventsDao.getAllDoseEventsForPrescription(prescriptionId);
+  
+  // Ordena as doses por horário
+  allDoses.sort((a, b) => a.scheduledTime.compareTo(b.scheduledTime));
+  
+  // Encontra a dose que está sendo editada
+  int doseIndex = allDoses.indexWhere((dose) => dose.id == doseId);
+  if (doseIndex == -1) return;
+  
+  // Identifica se esta dose é futura
+  final now = DateTime.now();
+  final bool isFutureDose = allDoses[doseIndex].scheduledTime.isAfter(now) || 
+                           allDoses[doseIndex].scheduledTime.isAtSameMomentAs(now);
+  
+  if (!isFutureDose) {
+    // Se for dose passada, NÃO faz nada com as outras doses
+    return;
+  }
+  
+  // Se for dose futura: remove apenas as doses FUTURAS APÓS esta dose
+  for (int i = doseIndex + 1; i < allDoses.length; i++) {
+    final dose = allDoses[i];
+    if (dose.scheduledTime.isAfter(now) || 
+        dose.scheduledTime.isAtSameMomentAs(now)) {
+      await database.doseEventsDao.deleteDoseEvent(dose.id);
+    }
+  }
+  
+  // Gera novas doses a partir do novo horário base
+  DateTime nextDoseTime = newBaseTime;
+  final maxGenerationDate = now.add(const Duration(days: 60));
+  final endDate = prescription.isContinuous
+      ? maxGenerationDate
+      : (_calculateTreatmentEndDate(prescription).isBefore(maxGenerationDate)
+          ? _calculateTreatmentEndDate(prescription)
+          : maxGenerationDate);
+  
+  // Pula a primeira pois já existe (é a dose que foi editada)
+  nextDoseTime = _calculateNextDoseTime(nextDoseTime, prescription);
+  
+  int doseCount = 0;
+  final maxDoses = 100;
+  
+  while ((nextDoseTime.isBefore(endDate) || doseCount == 0) && doseCount < maxDoses) {
+    final newDoseEvent = DoseEventsCompanion.insert(
+      prescriptionId: prescription.id,
+      scheduledTime: nextDoseTime,
+      status: const Value(DoseStatus.pendente),
+    );
+    
+    final newDose = await database.doseEventsDao.addDoseEvent(newDoseEvent);
+    
+    if (prescription.enableNotifications) {
+      await _scheduleNotificationsForNewDose(newDose, prescription);
+    }
+    
+    nextDoseTime = _calculateNextDoseTime(nextDoseTime, prescription);
+    doseCount++;
+  }
+  
+  notifyListeners();
 }
 
 // Gera ID único para notificação

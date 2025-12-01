@@ -91,11 +91,6 @@ class NotificationScheduler {
 Future<void> _scheduleAllNotificationsForDose(DoseEvent dose, Prescription prescription) async {
   final now = DateTime.now();
 
-  if (kDebugMode) {
-    print('🎯 Agendando notificações para: ${prescription.name} às ${dose.scheduledTime}');
-    print('   📦 Controle de estoque: ${prescription.stock != -1 ? "Ativo" : "Inativo"}');
-  }
-
   // Prepara o texto do corpo
   String bodyText = '';
   
@@ -189,12 +184,11 @@ String _getStockUnit(String doseDescription) {
         final difference = scheduledTime.difference(DateTime.now());
         final minutes = difference.inMinutes;
         final seconds = difference.inSeconds % 60;
-        print('   🔔 Notificação $id: $title em ${minutes}m ${seconds}s');
       }
     } catch (e) {
-      if (kDebugMode) {
+      /*if (kDebugMode) {
         print('   ❌ Erro ao agendar notificação $id: $e');
-      }
+      }*/
     }
   }
 
@@ -274,9 +268,6 @@ String _getStockUnit(String doseDescription) {
       final pending = await notificationService.getPendingNotifications();
       
       if (pending.isEmpty) {
-        if (kDebugMode) {
-          print('🔔 Nenhuma notificação pendente, reagendando...');
-        }
         await scheduleNearbyNotifications();
       } else {
         if (kDebugMode) {
