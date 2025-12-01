@@ -865,7 +865,7 @@ void initState() {
       if (originalPrescription.intervalValue != 0) {
         // Remove apenas as doses FUTURAS após a dose editada
         // Isso mantém as doses passadas intactas
-        await provider.rescheduleFutureDosesFromDose(
+        await provider.regenerateFutureDosesAfterEdit(
           widget.doseEvent!.id,
           prescriptionId,
           editedDoseDateTime
