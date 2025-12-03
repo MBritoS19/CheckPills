@@ -631,332 +631,327 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
 
 // Método para abrir o modal de backups - DENTRO da _ConfigurationScreenState
   void _showBackupModal(BuildContext context) {
-  final mediaQuery = MediaQuery.of(context);
-  final screenHeight = mediaQuery.size.height;
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
 
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) {
-      return Container(
-        height: screenHeight * 0.7,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-        ),
-        child: Column(
-          children: [
-            // CABEÇALHO (mantido igual)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Backup e Restauração',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: screenHeight * 0.7,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
             ),
-
-            const Divider(height: 1),
-
-            // 🔥 NOVO: SEÇÃO DE INFORMAÇÕES (APENAS ADICIONADA, NÃO SUBSTITUI)
-            _buildBackupInfoSection(context),
-
-            // CONTEÚDO COM SCROLL (MANTIDO ORIGINAL)
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+          ),
+          child: Column(
+            children: [
+              // CABEÇALHO (mantido igual)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // ✅ SEÇÃO: BACKUPS LOCAIS (ORIGINAL - MANTIDA)
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: _buildLocalBackupsSection(context),
+                    Text(
+                      'Backup e Restauração',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
               ),
-            ),
 
-            // ✅ BOTÕES NA PARTE DE BAIXO (ORIGINAL - MANTIDO)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: Theme.of(context).dividerColor,
-                    width: 1,
+              const Divider(height: 1),
+
+              // 🔥 NOVO: SEÇÃO DE INFORMAÇÕES (APENAS ADICIONADA, NÃO SUBSTITUI)
+              _buildBackupInfoSection(context),
+
+              // CONTEÚDO COM SCROLL (MANTIDO ORIGINAL)
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // ✅ SEÇÃO: BACKUPS LOCAIS (ORIGINAL - MANTIDA)
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: _buildLocalBackupsSection(context),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              child: _buildOriginalActionsSection(context),
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
+
+              // ✅ BOTÕES NA PARTE DE BAIXO (ORIGINAL - MANTIDO)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(
+                      color: Theme.of(context).dividerColor,
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: _buildOriginalActionsSection(context),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
 // 🔥 NOVO MÉTODO: Seção de informações sobre backups
-Widget _buildBackupInfoSection(BuildContext context) {
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.blue.shade50,
-      border: Border(
-        bottom: BorderSide(
-          color: Colors.blue.shade200,
-          width: 1,
+  Widget _buildBackupInfoSection(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        border: Border(
+          bottom: BorderSide(
+            color: Colors.blue.shade200,
+            width: 1,
+          ),
         ),
       ),
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(
-          Icons.info_outline,
-          color: Colors.blue.shade700,
-          size: 20,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline,
+            color: Colors.blue.shade700,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Backups Persistente',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blue.shade800,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Seus backups são salvos na pasta Download e NÃO são removidos ao desinstalar o app.',
+                  style: TextStyle(
+                    color: Colors.blue.shade700,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () => _showDetailedBackupInfo(context),
+                  child: Text(
+                    'Saiba mais...',
+                    style: TextStyle(
+                      color: Colors.blue.shade600,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+// 🔥 NOVO MÉTODO: Diálogo com informações detalhadas
+  void _showDetailedBackupInfo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.backup, color: Colors.blue.shade700),
+            const SizedBox(width: 8),
+            const Text('Sobre Backups'),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
+        content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Backups Persistente',
+                'Onde os backups são salvos?',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: Colors.blue.shade800,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Seus backups são salvos na pasta Download e NÃO são removidos ao desinstalar o app.',
-                style: TextStyle(
-                  color: Colors.blue.shade700,
-                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
               const SizedBox(height: 8),
-              GestureDetector(
-                onTap: () => _showDetailedBackupInfo(context),
+              const Text(
+                'Seus backups são salvos na pasta:\n'
+                '• "Download/CheckPills/Backups" do seu dispositivo',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '✅ Vantagens:',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.green.shade700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                '• Sobrevivem à limpeza de dados do app\n'
+                '• Fácil acesso para compartilhamento\n'
+                '• Você tem controle total sobre os arquivos',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '⚠️  Importante:',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.orange.shade700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                '• Ao desinstalar o app, os backups NÃO são removidos automaticamente\n'
+                '• Para remover completamente, exclua manualmente a pasta "CheckPills" do Download\n'
+                '• Mantenha backups importantes em local seguro',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '🗑️  Como gerenciar:',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                '• Use o gerenciador de arquivos do seu dispositivo\n'
+                '• Acesse "Download/CheckPills/Backups"\n'
+                '• Exclua, mova ou compartilhe os arquivos .json',
+                style: TextStyle(fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Entendi'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showHowToManageFiles(context);
+            },
+            child: const Text('Como acessar?'),
+          ),
+        ],
+      ),
+    );
+  }
+
+// 🔥 NOVO MÉTODO: Instruções para acessar os arquivos
+  void _showHowToManageFiles(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('📁 Como acessar seus backups'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildStepItem('1',
+                  'Abra o app "Arquivos" ou "Gerenciador de Arquivos" do seu dispositivo'),
+              _buildStepItem('2', 'Navegue até a pasta "Download"'),
+              _buildStepItem('3', 'Entre na pasta "CheckPills" → "Backups"'),
+              _buildStepItem(
+                  '4', 'Encontre os arquivos com nome "checkpills_backup_..."'),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
                 child: Text(
-                  'Saiba mais...',
+                  '💡 Dica: Você pode copiar esses arquivos para outro local (como nuvem ou computador) para backup adicional.',
                   style: TextStyle(
-                    color: Colors.blue.shade600,
+                    color: Colors.orange.shade800,
                     fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    decoration: TextDecoration.underline,
                   ),
                 ),
               ),
             ],
           ),
         ),
-      ],
-    ),
-  );
-}
-
-// 🔥 NOVO MÉTODO: Diálogo com informações detalhadas
-void _showDetailedBackupInfo(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Row(
-        children: [
-          Icon(Icons.backup, color: Colors.blue.shade700),
-          const SizedBox(width: 8),
-          const Text('Sobre Backups'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar'),
+          ),
         ],
       ),
-      content: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Onde os backups são salvos?',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Seus backups são salvos na pasta:\n'
-              '• "Download/CheckPills/Backups" do seu dispositivo',
-              style: TextStyle(fontSize: 14),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            Text(
-              '✅ Vantagens:',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.green.shade700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              '• Sobrevivem à limpeza de dados do app\n'
-              '• Fácil acesso para compartilhamento\n'
-              '• Você tem controle total sobre os arquivos',
-              style: TextStyle(fontSize: 14),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            Text(
-              '⚠️  Importante:',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.orange.shade700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              '• Ao desinstalar o app, os backups NÃO são removidos automaticamente\n'
-              '• Para remover completamente, exclua manualmente a pasta "CheckPills" do Download\n'
-              '• Mantenha backups importantes em local seguro',
-              style: TextStyle(fontSize: 14),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            Text(
-              '🗑️  Como gerenciar:',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              '• Use o gerenciador de arquivos do seu dispositivo\n'
-              '• Acesse "Download/CheckPills/Backups"\n'
-              '• Exclua, mova ou compartilhe os arquivos .json',
-              style: TextStyle(fontSize: 14),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Entendi'),
-        ),
-        TextButton(
-          onPressed: () {
-            Navigator.pop(context);
-            _showHowToManageFiles(context);
-          },
-          child: const Text('Como acessar?'),
-        ),
-      ],
-    ),
-  );
-}
+    );
+  }
 
-// 🔥 NOVO MÉTODO: Instruções para acessar os arquivos
-void _showHowToManageFiles(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('📁 Como acessar seus backups'),
-      content: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildStepItem('1', 'Abra o app "Arquivos" ou "Gerenciador de Arquivos" do seu dispositivo'),
-            _buildStepItem('2', 'Navegue até a pasta "Download"'),
-            _buildStepItem('3', 'Entre na pasta "CheckPills" → "Backups"'),
-            _buildStepItem('4', 'Encontre os arquivos com nome "checkpills_backup_..."'),
-            
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.shade200),
-              ),
+  Widget _buildStepItem(String number, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: Colors.blue.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
               child: Text(
-                '💡 Dica: Você pode copiar esses arquivos para outro local (como nuvem ou computador) para backup adicional.',
+                number,
                 style: TextStyle(
-                  color: Colors.orange.shade800,
+                  color: Colors.blue.shade700,
+                  fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Fechar'),
-        ),
-      ],
-    ),
-  );
-}
-
-Widget _buildStepItem(String number, String text) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 24,
-          height: 24,
-          decoration: BoxDecoration(
-            color: Colors.blue.shade100,
-            borderRadius: BorderRadius.circular(12),
           ),
-          child: Center(
+          const SizedBox(width: 12),
+          Expanded(
             child: Text(
-              number,
-              style: TextStyle(
-                color: Colors.blue.shade700,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
+              text,
+              style: const TextStyle(fontSize: 14),
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(fontSize: 14),
-          ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   Widget _buildOriginalActionsSection(BuildContext context) {
     final theme = Theme.of(context);
@@ -1241,132 +1236,132 @@ Widget _buildStepItem(String number, String text) {
 
 // ITEM DE BACKUP - DENTRO da _ConfigurationScreenState
   Widget _buildBackupItem(BuildContext context, BackupFileInfo backup) {
-  final stats = backup.stats;
+    final stats = backup.stats;
 
-  return Card(
-    margin: const EdgeInsets.only(bottom: 8),
-    child: ListTile(
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: Colors.green.shade50,
-          borderRadius: BorderRadius.circular(8),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.green.shade50,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(Icons.backup, color: Colors.green.shade600, size: 20),
         ),
-        child: Icon(Icons.backup, color: Colors.green.shade600, size: 20),
-      ),
-      title: Text(
-        _formatBackupName(backup.name),
-        style: const TextStyle(fontWeight: FontWeight.w500),
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('${backup.formattedDate} • ${backup.formattedSize}'),
-          if (stats != null) ...[
-            const SizedBox(height: 2),
-            Text(
-              '${stats['users']} usuários • ${stats['prescriptions']} medicações • ${stats['doseEvents']} eventos',
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade600,
+        title: Text(
+          _formatBackupName(backup.name),
+          style: const TextStyle(fontWeight: FontWeight.w500),
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${backup.formattedDate} • ${backup.formattedSize}'),
+            if (stats != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                '${stats['users']} usuários • ${stats['prescriptions']} medicações • ${stats['doseEvents']} eventos',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ],
+        ),
+        trailing: PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert),
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'restore',
+              child: Row(
+                children: [
+                  Icon(Icons.restore, size: 20),
+                  SizedBox(width: 8),
+                  Text('Restaurar'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'share',
+              child: Row(
+                children: [
+                  Icon(Icons.share, size: 20),
+                  SizedBox(width: 8),
+                  Text('Compartilhar'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'info',
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 20),
+                  SizedBox(width: 8),
+                  Text('Informações'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'delete',
+              child: Row(
+                children: [
+                  Icon(Icons.delete, size: 20, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Deletar', style: TextStyle(color: Colors.red)),
+                ],
               ),
             ),
           ],
-        ],
-      ),
-      trailing: PopupMenuButton<String>(
-        icon: const Icon(Icons.more_vert),
-        itemBuilder: (context) => [
-          const PopupMenuItem(
-            value: 'restore',
-            child: Row(
-              children: [
-                Icon(Icons.restore, size: 20),
-                SizedBox(width: 8),
-                Text('Restaurar'),
-              ],
-            ),
-          ),
-          const PopupMenuItem(
-            value: 'share',
-            child: Row(
-              children: [
-                Icon(Icons.share, size: 20),
-                SizedBox(width: 8),
-                Text('Compartilhar'),
-              ],
-            ),
-          ),
-          const PopupMenuItem(
-            value: 'info',
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, size: 20),
-                SizedBox(width: 8),
-                Text('Informações'),
-              ],
-            ),
-          ),
-          const PopupMenuItem(
-            value: 'delete',
-            child: Row(
-              children: [
-                Icon(Icons.delete, size: 20, color: Colors.red),
-                SizedBox(width: 8),
-                Text('Deletar', style: TextStyle(color: Colors.red)),
-              ],
-            ),
-          ),
-        ],
-        onSelected: (value) {
-          _handleBackupAction(context, value, backup);
+          onSelected: (value) {
+            _handleBackupAction(context, value, backup);
+          },
+        ),
+        onTap: () {
+          _showBackupInfo(context, backup);
         },
       ),
-      onTap: () {
-        _showBackupInfo(context, backup);
-      },
-    ),
-  );
-}
+    );
+  }
 
 // 🔥 NOVO MÉTODO: Informação específica do backup
-void _showBackupLocationInfo(BuildContext context, BackupFileInfo backup) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('📋 Local do Backup'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Arquivo: ${backup.name}'),
-          Text('Local: ${backup.path}'),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(8),
+  void _showBackupLocationInfo(BuildContext context, BackupFileInfo backup) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('📋 Local do Backup'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Arquivo: ${backup.name}'),
+            Text('Local: ${backup.path}'),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                '💡 Este arquivo está salvo na pasta Download do seu dispositivo '
+                'e permanecerá lá mesmo se você desinstalar o app.',
+                style: TextStyle(fontSize: 12),
+              ),
             ),
-            child: const Text(
-              '💡 Este arquivo está salvo na pasta Download do seu dispositivo '
-              'e permanecerá lá mesmo se você desinstalar o app.',
-              style: TextStyle(fontSize: 12),
-            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar'),
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Fechar'),
-        ),
-      ],
-    ),
-  );
-}
+    );
+  }
 
 // MOSTRAR INFORMAÇÕES DO BACKUP
   Future<void> _shareBackupFile(
@@ -1648,47 +1643,46 @@ void _showBackupLocationInfo(BuildContext context, BackupFileInfo backup) {
 
   // configuration_screen.dart - SOLUÇÃO SIMPLES E FUNCIONAL
 
-Future<void> _restoreFromSpecificFile(BuildContext context, 
-    BackupFileInfo backup, BackupProvider backupProvider) async {
-  
-  try {
-    print('🔄 INICIANDO RESTAURAÇÃO DO BACKUP: ${backup.name}');
+  Future<void> _restoreFromSpecificFile(BuildContext context,
+      BackupFileInfo backup, BackupProvider backupProvider) async {
+    try {
+      print('🔄 INICIANDO RESTAURAÇÃO DO BACKUP: ${backup.name}');
 
-    // 1. Fechar todos os modais IMEDIATAMENTE
-    Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+      // 1. Fechar todos os modais IMEDIATAMENTE
+      Navigator.of(context, rootNavigator: true)
+          .popUntil((route) => route.isFirst);
 
-    // 2. Aguardar um pouco
-    await Future.delayed(const Duration(milliseconds: 300));
+      // 2. Aguardar um pouco
+      await Future.delayed(const Duration(milliseconds: 300));
 
-    // 3. Fazer a restauração
-    await backupProvider.restoreFromSpecificFile(backup.path);
+      // 3. Fazer a restauração
+      await backupProvider.restoreFromSpecificFile(backup.path);
 
-    print('✅ RESTAURAÇÃO CONCLUÍDA');
+      print('✅ RESTAURAÇÃO CONCLUÍDA');
 
-    // 4. Navegar SEM tentar mostrar mensagem (mais seguro)
-    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const MainScreen()),
-      (Route<dynamic> route) => false,
-    );
-
-    // 5. O MainScreen pode mostrar uma mensagem de boas-vindas
-    // indicando que os dados foram restaurados
-
-  } catch (e) {
-    print('❌ ERRO NA RESTAURAÇÃO: $e');
-    
-    // 6. Mostrar erro apenas se ainda estivermos nesta tela
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Falha na restauração: $e'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 6),
-        ),
+      // 4. Navegar SEM tentar mostrar mensagem (mais seguro)
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const MainScreen()),
+        (Route<dynamic> route) => false,
       );
+
+      // 5. O MainScreen pode mostrar uma mensagem de boas-vindas
+      // indicando que os dados foram restaurados
+    } catch (e) {
+      print('❌ ERRO NA RESTAURAÇÃO: $e');
+
+      // 6. Mostrar erro apenas se ainda estivermos nesta tela
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Falha na restauração: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 6),
+          ),
+        );
+      }
     }
   }
-}
 
 // REINICIAR SILENCIOSAMENTE
   void _restartAppSilently() {
