@@ -120,8 +120,8 @@ Contribuições são bem-vindas! Se você tiver sugestões de melhorias ou encon
 ## 👤 Autores
 
 Desenvolvido por:
-**[MBritoS19](https://github.com/MBritoS19)**.
-**[luigi10082002](https://github.com/luigi10082002)**.
+**[MBritoS19](https://github.com/MBritoS19)**, 
+**[luigi10082002](https://github.com/luigi10082002)**, 
 **[LeonardoYur](https://github.com/LeonardoYur)**.
 
 Entre em contato!
